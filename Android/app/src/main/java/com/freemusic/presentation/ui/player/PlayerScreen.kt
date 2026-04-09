@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.freemusic.domain.model.LyricLine
 import com.freemusic.domain.model.Song
+import com.freemusic.presentation.ui.player.effects.LyricsParticleEffects
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,6 +87,13 @@ fun PlayerScreen(
                 contentScale = ContentScale.Crop
             )
         }
+
+        // 歌词粒子特效（樱花/雨/雪）
+        LyricsParticleEffects(
+            modifier = Modifier.fillMaxSize(),
+            lyricsContent = uiState.lyrics?.lrc,
+            currentPosition = uiState.currentPosition
+        )
 
         Column(
             modifier = Modifier

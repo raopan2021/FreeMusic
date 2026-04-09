@@ -1,6 +1,8 @@
 package com.freemusic.presentation.ui.home
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +17,7 @@ import com.freemusic.presentation.viewmodel.PlayerViewModel
 fun HomeScreen(
     onSearchClick: () -> Unit,
     onSongClick: () -> Unit,
+    onSettingsClick: () -> Unit = {},
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     val playerState by playerViewModel.uiState.collectAsState()
@@ -24,6 +27,12 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("FreeMusic") },
                 actions = {
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置"
+                        )
+                    }
                     TextButton(onClick = onSearchClick) {
                         Text("搜索")
                     }

@@ -2,6 +2,7 @@ package com.freemusic.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.freemusic.data.local.LocalDataSource
 import com.freemusic.domain.model.Song
 import com.freemusic.domain.usecase.SearchSongsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,12 +18,15 @@ data class SearchUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val hasMore: Boolean = false,
-    val currentPage: Int = 0
+    val currentPage: Int = 0,
+    val searchHistory: List<String> = emptyList(),
+    val showHistory: Boolean = true
 )
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val searchSongsUseCase: SearchSongsUseCase
+    private val searchSongsUseCase: SearchSongsUseCase,
+    private val localDataSource: LocalDataSource
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState())
@@ -30,8 +34,22 @@ class SearchViewModel @Inject constructor(
 
     private var searchJob: Job? = null
 
+    init {
+        // 加载搜索历史
+        viewModelScope.launch {
+            localDataSource.getSearchHistory().collect { history ->
+                _uiState.update { it.copy(searchHistory = history) }
+            }
+        }
+    }
+
     fun onQueryChange(query: String) {
-        _uiState.update { it.copy(query = query) }
+        _uiState.update { 
+            it.copy(
+                query = query, 
+                showHistory = query.isEmpty()
+            ) 
+        }
 
         // Debounce search
         searchJob?.cancel()
@@ -43,6 +61,18 @@ class SearchViewModel @Inject constructor(
                 _uiState.update { it.copy(songs = emptyList(), error = null) }
             }
         }
+    }
+
+    fun onSearch(query: String = _uiState.value.query) {
+        if (query.isBlank()) return
+
+        // 保存搜索历史
+        viewModelScope.launch {
+            localDataSource.addSearchHistory(query)
+        }
+
+        _uiState.update { it.copy(showHistory = false) }
+        search(query, reset = true)
     }
 
     fun search(query: String = _uiState.value.query, reset: Boolean = false) {
@@ -92,6 +122,23 @@ class SearchViewModel @Inject constructor(
     }
 
     fun clearSearch() {
-        _uiState.update { SearchUiState() }
+        _uiState.update { SearchUiState(searchHistory = it.searchHistory) }
+    }
+
+    fun removeHistoryItem(keyword: String) {
+        viewModelScope.launch {
+            localDataSource.removeSearchHistory(keyword)
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            localDataSource.clearSearchHistory()
+        }
+    }
+
+    fun onHistoryItemClick(keyword: String) {
+        _uiState.update { it.copy(query = keyword, showHistory = false) }
+        onSearch(keyword)
     }
 }

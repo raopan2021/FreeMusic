@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -90,6 +91,15 @@ fun SearchScreen(
 
         // 搜索结果
         when {
+            uiState.showHistory && uiState.searchHistory.isNotEmpty() -> {
+                SearchHistory(
+                    history = uiState.searchHistory,
+                    onItemClick = viewModel::onHistoryItemClick,
+                    onRemoveItem = viewModel::removeHistoryItem,
+                    onClearAll = viewModel::clearHistory
+                )
+            }
+
             uiState.isLoading && uiState.songs.isEmpty() -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -280,4 +290,63 @@ private fun formatDuration(durationMs: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+@Composable
+private fun SearchHistory(
+    history: List<String>,
+    onItemClick: (String) -> Unit,
+    onRemoveItem: (String) -> Unit,
+    onClearAll: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "搜索历史",
+                style = MaterialTheme.typography.titleMedium
+            )
+            TextButton(onClick = onClearAll) {
+                Text("清空")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        history.forEach { keyword ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onItemClick(keyword) }
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = keyword,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { onRemoveItem(keyword) }) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "删除",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
 }

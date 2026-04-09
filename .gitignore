@@ -1,0 +1,10 @@
+# FreeMusic
+
+# Android
+Android/.gradle/
+Android/build/
+Android/app/build/
+Android/app/gen/
+Android/local.properties
+Android/*.apk
+Android/*.aab

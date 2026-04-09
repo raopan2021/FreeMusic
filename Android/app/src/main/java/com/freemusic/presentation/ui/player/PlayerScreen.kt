@@ -1,12 +1,13 @@
 package com.freemusic.presentation.ui.player
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
@@ -23,8 +24,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.freemusic.domain.model.LyricLine
+import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.domain.model.Song
+import com.freemusic.presentation.ui.player.cover.AnimatedAlbumCover
+import com.freemusic.presentation.ui.player.cover.CoverStyle
 import com.freemusic.presentation.ui.player.effects.LyricsParticleEffects
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 
@@ -33,7 +36,12 @@ import com.freemusic.presentation.viewmodel.PlayerViewModel
 fun PlayerScreen(
     onBackClick: () -> Unit,
     onQueueClick: () -> Unit,
-    viewModel: PlayerViewModel = hiltViewModel()
+    viewModel: PlayerViewModel = hiltViewModel(),
+    // Settings
+    particlesEnabled: Boolean = true,
+    particleIntensity: Float = 1f,
+    coverStyleType: CoverStyleType = CoverStyleType.ROUND,
+    visualizerEnabled: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -42,57 +50,62 @@ fun PlayerScreen(
         viewModel.startProgressUpdates()
     }
 
-    // 动态颜色（从封面 URL 生成简单渐变）
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val primaryColor = MaterialTheme.colorScheme.primary
-    
-    // 如果有封面，使用深色渐变背景模拟动态配色效果
-    val hasCover = !uiState.currentSong?.coverUrl.isNullOrEmpty()
-    
-    val gradientColors = if (hasCover) {
-        listOf(
-            Color(0xFF1A1A2E), // 深蓝紫色
-            Color(0xFF16213E), // 深蓝色
-            Color(0xFF0F3460)  // 中蓝色
-        )
-    } else {
-        listOf(surfaceColor, surfaceColor)
+    // 平滑背景颜色过渡
+    val animatedBgColor by animateColorAsState(
+        targetValue = if (uiState.currentSong != null) Color(0xFF1A1A2E) else Color(0xFF121212),
+        animationSpec = tween(500),
+        label = "bg_color"
+    )
+
+    // 封面样式映射
+    val coverStyle = when (coverStyleType) {
+        CoverStyleType.ROUND -> CoverStyle.ROUND
+        CoverStyleType.SQUARE -> CoverStyle.SQUARE
+        CoverStyleType.SQUARE_NO_ROUND -> CoverStyle.SQUARE_NO_ROUND
+        CoverStyleType.DIAMOND -> CoverStyle.DIAMOND
+        CoverStyleType.BORDER_ROUND -> CoverStyle.BORDER_ROUND
+        CoverStyleType.HEXAGON -> CoverStyle.HEXAGON
+        CoverStyleType.PARALLELOGRAM -> CoverStyle.PARALLELOGRAM
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(gradientColors)
-            )
+            .background(animatedBgColor)
     ) {
         // 模糊的背景封面
-        if (hasCover) {
+        if (uiState.currentSong?.coverUrl != null) {
             AsyncImage(
                 model = uiState.currentSong?.coverUrl,
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(60.dp)
-                    .then(
-                        Modifier.background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.Black.copy(alpha = 0.3f),
-                                    Color.Black.copy(alpha = 0.7f)
-                                )
+                    .blur(80.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            // 渐变遮罩
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.4f),
+                                Color.Black.copy(alpha = 0.7f),
+                                Color.Black.copy(alpha = 0.9f)
                             )
                         )
-                    ),
-                contentScale = ContentScale.Crop
+                    )
             )
         }
 
-        // 歌词粒子特效（樱花/雨/雪）
+        // 歌词粒子特效
         LyricsParticleEffects(
             modifier = Modifier.fillMaxSize(),
             lyricsContent = uiState.lyrics?.lrc,
-            currentPosition = uiState.currentPosition
+            currentPosition = uiState.currentPosition,
+            enabled = particlesEnabled
         )
 
         Column(
@@ -115,7 +128,7 @@ fun PlayerScreen(
                 actions = {
                     IconButton(onClick = onQueueClick) {
                         Icon(
-                            imageVector = Icons.Default.QueueMusic,
+                            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                             contentDescription = "播放队列",
                             tint = Color.White
                         )
@@ -126,19 +139,26 @@ fun PlayerScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 专辑封面
-            AlbumCover(
-                coverUrl = uiState.currentSong?.coverUrl,
-                isPlaying = uiState.isPlaying,
+            // 专辑封面（带动画）
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .padding(horizontal = 32.dp)
-            )
+                    .padding(horizontal = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedAlbumCover(
+                    coverUrl = uiState.currentSong?.coverUrl,
+                    isPlaying = uiState.isPlaying,
+                    coverStyle = coverStyle,
+                    showVisualizer = visualizerEnabled,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // 歌曲信息
             SongInfo(
@@ -148,7 +168,7 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 进度条
             ProgressBar(
@@ -157,7 +177,7 @@ fun PlayerScreen(
                 onSeek = viewModel::seekTo
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 控制按钮
             PlayerControls(
@@ -189,36 +209,6 @@ fun PlayerScreen(
 }
 
 @Composable
-private fun AlbumCover(
-    coverUrl: String?,
-    isPlaying: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF2A2A4A)),
-        contentAlignment = Alignment.Center
-    ) {
-        AsyncImage(
-            model = coverUrl,
-            contentDescription = "专辑封面",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        // 播放时显示的效果
-        if (isPlaying) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.15f))
-            )
-        }
-    }
-}
-
-@Composable
 private fun SongInfo(
     song: Song?,
     isFavorite: Boolean,
@@ -237,7 +227,7 @@ private fun SongInfo(
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = song?.artist ?: "",
             style = MaterialTheme.typography.bodyLarge,
@@ -374,7 +364,7 @@ private fun LyricsSection(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
+            .height(120.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(Color.Black.copy(alpha = 0.3f))
             .padding(16.dp)
@@ -395,6 +385,18 @@ private fun LyricsSection(
                 verticalArrangement = Arrangement.Center
             ) {
                 if (currentLineIndex >= 0 && currentLineIndex < lines.size) {
+                    // 上一行（淡出）
+                    if (currentLineIndex > 0) {
+                        Text(
+                            text = lines[currentLineIndex - 1].text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.4f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    // 当前行（高亮）
                     Text(
                         text = lines[currentLineIndex].text,
                         style = MaterialTheme.typography.bodyLarge,
@@ -402,13 +404,24 @@ private fun LyricsSection(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    // 下一行（淡出）
+                    if (currentLineIndex < lines.size - 1) {
+                        Text(
+                            text = lines[currentLineIndex + 1].text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.4f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun parseLyricLine(line: String): LyricLine? {
+private fun parseLyricLine(line: String): com.freemusic.domain.model.LyricLine? {
     val regex = Regex("""\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]""")
     val match = regex.find(line) ?: return null
 
@@ -423,7 +436,7 @@ private fun parseLyricLine(line: String): LyricLine? {
     val timeMs = (minutes * 60 + seconds) * 1000L + millis
     val text = line.substringAfter("]").trim()
 
-    return LyricLine(timeMs = timeMs, text = text, endTimeMs = null)
+    return com.freemusic.domain.model.LyricLine(timeMs = timeMs, text = text, endTimeMs = null)
 }
 
 private fun formatDuration(durationMs: Long): String {

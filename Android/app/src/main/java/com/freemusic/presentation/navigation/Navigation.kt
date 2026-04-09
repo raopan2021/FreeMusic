@@ -104,39 +104,24 @@ fun FreeMusicNavHost(
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onBackClick = { navController.popBackStack() },
-                onImportClick = { navController.navigate(Screen.Import.route) },
-                // 主题设置
-                isDarkTheme = settingsViewModel?.isDarkTheme?.value ?: false,
-                onDarkThemeToggle = { settingsViewModel?.setDarkTheme(it) },
-                isPureBlack = settingsViewModel?.isPureBlack?.value ?: false,
-                onPureBlackToggle = { settingsViewModel?.setPureBlack(it) },
-                // 视觉效果设置
-                particlesEnabled = particlesEnabled,
-                onParticlesToggle = { settingsViewModel?.setParticlesEnabled(it) },
-                particleIntensity = particleIntensity,
-                onParticleIntensityChange = { settingsViewModel?.setParticleIntensity(it) },
-                coverStyle = coverStyle,
-                onCoverStyleChange = { settingsViewModel?.setCoverStyle(it) },
-                visualizerEnabled = visualizerEnabled,
-                onVisualizerToggle = { settingsViewModel?.setVisualizerEnabled(it) },
-                // 音效设置
-                equalizerPreset = equalizerPreset,
-                onEqualizerPresetChange = { settingsViewModel?.setEqualizerPreset(it) },
-                bassBoost = bassBoost,
-                onBassBoostChange = { settingsViewModel?.setBassBoost(it) },
-                virtualizer = virtualizer,
-                onVirtualizerChange = { settingsViewModel?.setVirtualizer(it) },
-                // 播放设置
-                autoPlay = autoPlay,
-                onAutoPlayToggle = { settingsViewModel?.setAutoPlay(it) },
-                crossFadeEnabled = crossFadeEnabled,
-                onCrossFadeToggle = { settingsViewModel?.setCrossFadeEnabled(it) },
-                crossFadeDuration = crossFadeDuration,
-                onCrossFadeDurationChange = { settingsViewModel?.setCrossFadeDuration(it) },
-                // 歌词设置
-                lyricsFontSize = lyricsFontSize,
-                onLyricsFontSizeChange = { settingsViewModel?.setLyricsFontSize(it) }
+                currentTheme = "默认",
+                onThemeChange = { },
+                pureBlackEnabled = false,
+                onPureBlackToggle = { },
+                particleEffect = "无",
+                onParticleEffectChange = { },
+                coverStyle = "圆形",
+                onCoverStyleChange = { },
+                visualizerStyle = "无",
+                onVisualizerStyleChange = { },
+                equalizerPreset = "默认",
+                onEqualizerPresetChange = { },
+                autoPlayEnabled = true,
+                onAutoPlayToggle = { },
+                highQualityEnabled = false,
+                onHighQualityToggle = { },
+                onClearCache = { },
+                onAbout = { }
             )
         }
         composable(Screen.Import.route) {

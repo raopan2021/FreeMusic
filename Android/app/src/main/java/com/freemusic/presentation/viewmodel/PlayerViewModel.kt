@@ -12,6 +12,7 @@ import androidx.media3.session.SessionToken
 import com.freemusic.domain.model.Lyrics
 import com.freemusic.domain.model.Song
 import com.freemusic.domain.model.SongWithUrl
+import com.freemusic.data.local.LocalDataSource
 import com.freemusic.domain.usecase.GetLyricsUseCase
 import com.freemusic.domain.usecase.GetSongWithUrlUseCase
 import com.freemusic.service.PlaybackService
@@ -32,14 +33,16 @@ data class PlayerUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val playlist: List<Song> = emptyList(),
-    val currentIndex: Int = 0
+    val currentIndex: Int = 0,
+    val isFavorite: Boolean = false
 )
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val getSongWithUrlUseCase: GetSongWithUrlUseCase,
-    private val getLyricsUseCase: GetLyricsUseCase
+    private val getLyricsUseCase: GetLyricsUseCase,
+    private val localDataSource: LocalDataSource
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -98,6 +101,7 @@ class PlayerViewModel @Inject constructor(
                     onSuccess = { songWithUrl ->
                         playMediaItem(songWithUrl)
                         loadLyrics(song.id)
+                        observeFavoriteStatus(song.id)
                         _uiState.update { state ->
                             state.copy(
                                 currentSong = songWithUrl.song,
@@ -204,7 +208,23 @@ class PlayerViewModel @Inject constructor(
                 val newSong = playlist[newIndex]
                 _uiState.update { it.copy(currentIndex = newIndex, currentSong = newSong) }
                 loadLyrics(newSong.id)
+                observeFavoriteStatus(newSong.id)
             }
+        }
+    }
+
+    private fun observeFavoriteStatus(songId: String) {
+        viewModelScope.launch {
+            localDataSource.isFavorite(songId).collect { isFavorite ->
+                _uiState.update { it.copy(isFavorite = isFavorite) }
+            }
+        }
+    }
+
+    fun toggleFavorite() {
+        val song = _uiState.value.currentSong ?: return
+        viewModelScope.launch {
+            localDataSource.toggleFavorite(song)
         }
     }
 

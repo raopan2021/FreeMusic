@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -90,6 +91,8 @@ fun PlayerScreen(
             // 歌曲信息
             SongInfo(
                 song = uiState.currentSong,
+                isFavorite = uiState.isFavorite,
+                onFavoriteClick = viewModel::toggleFavorite,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -177,6 +180,8 @@ private fun AlbumCover(
 @Composable
 private fun SongInfo(
     song: Song?,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -199,6 +204,15 @@ private fun SongInfo(
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        // 收藏按钮
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (isFavorite) "取消收藏" else "收藏",
+                tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

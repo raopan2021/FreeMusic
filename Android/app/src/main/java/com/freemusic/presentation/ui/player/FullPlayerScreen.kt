@@ -370,7 +370,7 @@ fun VisualizerOverlay(
     primaryColor: Color = PrimaryIndigo
 ) {
     when (style) {
-        "SPECTRUM" -> SpectrumBars(
+        "SPECTRUM" -> SpectrumBars3D(
             amplitudes = amplitudes,
             modifier = modifier,
             barColor = primaryColor

@@ -13,108 +13,93 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.freemusic.domain.model.Song
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 /**
- * 悬浮播放栏（Mini Player）
+ * 悬浮播放栏
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FloatingPlayerBar(
     song: Song?,
     isPlaying: Boolean,
     progress: Float,
     onPlayPause: () -> Unit,
-    onNext: () -> Unit,
-    onClick: () -> Unit,
+    onExpand: () -> Unit,
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
     if (song == null) return
     
-    val infiniteTransition = rememberInfiniteTransition(label = "mini_player")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-    
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(72.dp)
-            .clickable(onClick = onClick),
+            .height(64.dp)
+            .clickable(onClick = onExpand),
         color = MaterialTheme.colorScheme.surfaceVariant,
         shadowElevation = 8.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 封面
-            Box(
+        Column {
+            // 进度条
+            LinearProgressIndicator(
+                progress = progress,
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .fillMaxWidth()
+                    .height(2.dp),
+                color = primaryColor,
+                trackColor = Color.Transparent
+            )
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = song.coverUrl,
-                    contentDescription = "专辑封面",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(12.dp))
-            
-            // 歌曲信息
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isPlaying) primaryColor else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = progress,
+                // 封面
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp),
-                    color = primaryColor,
-                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            Row {
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    AsyncImage(
+                        model = song.coverUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                // 歌曲信息
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = song.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                
+                // 播放按钮
                 IconButton(onClick = onPlayPause) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -123,40 +108,31 @@ fun FloatingPlayerBar(
                         modifier = Modifier.size(32.dp)
                     )
                 }
-                
-                IconButton(onClick = onNext) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = "下一首",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
             }
         }
     }
 }
 
 /**
- * 音乐节奏指示器
+ * 音乐播放指示器（跳动效果）
  */
 @Composable
 fun MusicBeatIndicator(
     isPlaying: Boolean,
     modifier: Modifier = Modifier,
-    barCount: Int = 4,
     primaryColor: Color = PrimaryIndigo
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "beat")
     
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalAlignment = Alignment.Bottom
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(barCount) { index ->
+        repeat(4) { index ->
             val height by infiniteTransition.animateFloat(
-                initialValue = 8f,
-                targetValue = if (isPlaying) 24f else 8f,
+                initialValue = 4f,
+                targetValue = if (isPlaying) 16f + (index * 2) else 4f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(
                         durationMillis = 300 + index * 100,
@@ -169,11 +145,11 @@ fun MusicBeatIndicator(
             
             Box(
                 modifier = Modifier
-                    .width(4.dp)
+                    .width(3.dp)
                     .height(height.dp)
                     .background(
-                        color = if (isPlaying) primaryColor else primaryColor.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(2.dp)
+                        if (isPlaying) primaryColor else primaryColor.copy(alpha = 0.3f),
+                        RoundedCornerShape(2.dp)
                     )
             )
         }
@@ -185,141 +161,132 @@ fun MusicBeatIndicator(
  */
 @Composable
 fun AudioWaveformIndicator(
-    amplitudes: List<Float>,
+    isPlaying: Boolean,
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        amplitudes.take(20).forEach { amplitude ->
-            val height = (amplitude * 40f).coerceIn(4f, 40f)
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(height.dp)
-                    .background(
-                        color = primaryColor,
-                        shape = RoundedCornerShape(1.dp)
-                    )
-            )
+    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase"
+    )
+    
+    if (isPlaying) {
+        Canvas(modifier = modifier.size(60.dp, 24.dp)) {
+            val centerY = size.height / 2
+            
+            for (i in 0..10) {
+                val x = (i * size.width / 10)
+                val amplitude = kotlin.math.sin((phase + i * 0.5).toDouble()).toFloat() * 8f + 8f
+                
+                drawLine(
+                    color = primaryColor,
+                    start = Offset(x, centerY - amplitude),
+                    end = Offset(x, centerY + amplitude),
+                    strokeWidth = 2.dp.toPx()
+                )
+            }
+        }
+    } else {
+        Row(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(5) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(8.dp)
+                        .background(
+                            primaryColor.copy(alpha = 0.3f),
+                            RoundedCornerShape(2.dp)
+                        )
+                )
+            }
         }
     }
 }
 
 /**
- * 音乐风格标签
+ * 音乐流派标签
  */
 @Composable
 fun MusicGenreChip(
     genre: String,
-    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) primaryColor else MaterialTheme.colorScheme.surfaceVariant,
-        label = "chip_bg"
-    )
-    val textColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "chip_text"
-    )
-    
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = backgroundColor
+        color = primaryColor.copy(alpha = 0.1f)
     ) {
         Text(
             text = genre,
             style = MaterialTheme.typography.labelMedium,
-            color = textColor,
+            color = primaryColor,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
 }
 
 /**
- * 音乐心情标签
+ * 心情标签
  */
 @Composable
 fun MoodChip(
-    mood: MusicMood,
-    isSelected: Boolean,
+    mood: String,
+    emoji: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (emoji, label, color) = when (mood) {
-        MusicMood.HAPPY -> Triple("😊", "欢快", Color(0xFFFFD93D))
-        MusicMood.SAD -> Triple("😢", "悲伤", Color(0xFF6B9ACA))
-        MusicMood.ENERGETIC -> Triple("🔥", "活力", Color(0xFFFF6B6B))
-        MusicMood.CALM -> Triple("🌙", "平静", Color(0xFF6DD5ED))
-        MusicMood.ROMANTIC -> Triple("💕", "浪漫", Color(0xFFEC4899))
-        MusicMood.DEFAULT -> Triple("🎵", "默认", Color(0xFF6366F1))
-    }
-    
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) color.copy(alpha = 0.2f) else Color.Transparent,
-        label = "mood_bg"
-    )
-    
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier,
         shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) color else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        ),
-        color = backgroundColor
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(text = emoji, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = label,
+                text = mood,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isSelected) color else MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-enum class MusicMood {
-    HAPPY, SAD, ENERGETIC, CALM, ROMANTIC, DEFAULT
-}
-
 /**
- * 音频质量标签
+ * 音频质量徽章
  */
 @Composable
 fun AudioQualityBadge(
     quality: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    primaryColor: Color = PrimaryIndigo
 ) {
-    val (text, color) = when (quality.uppercase()) {
-        "SQ" -> "SQ" to Color(0xFFFFD700)
-        "HQ" -> "HQ" to Color(0xFF10B981)
-        "SQ+" -> "SQ+" to Color(0xFF6366F1)
-        "LOSSLESS" -> "无损" to Color(0xFF8B5CF6)
-        else -> quality to Color.Gray
-    }
-    
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(4.dp),
-        color = color.copy(alpha = 0.2f)
+        color = primaryColor
     ) {
         Text(
-            text = text,
+            text = quality,
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = Color.White,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
@@ -327,47 +294,180 @@ fun AudioQualityBadge(
 }
 
 /**
- * 空状态占位
+ * 空状态视图
  */
 @Composable
 fun EmptyStateView(
-    icon: ImageVector,
+    icon: @Composable () -> Unit,
     title: String,
     message: String,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        icon()
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
+        
         Spacer(modifier = Modifier.height(8.dp))
+        
         Text(
             text = message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
         )
-        if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onAction) {
-                Text(actionLabel)
-            }
+        
+        if (action != null) {
+            Spacer(modifier = Modifier.height(24.dp))
+            action()
         }
+    }
+}
+
+/**
+ * 迷你播放按钮
+ */
+@Composable
+fun MiniPlayButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    primaryColor: Color = PrimaryIndigo
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(36.dp)
+            .background(
+                primaryColor.copy(alpha = 0.1f),
+                CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+            contentDescription = if (isPlaying) "暂停" else "播放",
+            tint = primaryColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+/**
+ * 喜欢按钮
+ */
+@Composable
+fun LikeButton(
+    isLiked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+            contentDescription = "喜欢",
+            tint = if (isLiked) Color.Red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+/**
+ * 下载按钮
+ */
+@Composable
+fun DownloadButton(
+    isDownloaded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = if (isDownloaded) Icons.Default.DownloadDone else Icons.Default.Download,
+            contentDescription = "下载",
+            tint = if (isDownloaded) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+/**
+ * 收藏数量徽章
+ */
+@Composable
+fun LikeCountBadge(
+    count: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Favorite,
+            contentDescription = null,
+            tint = Color.Red.copy(alpha = 0.7f),
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(2.dp))
+        Text(
+            text = formatCount(count),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
+}
+
+/**
+ * 播放数量徽章
+ */
+@Composable
+fun PlayCountBadge(
+    count: Long,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.PlayCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(2.dp))
+        Text(
+            text = formatCount(count.toInt()),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
+}
+
+private fun formatCount(count: Int): String {
+    return when {
+        count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
+        count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+        else -> count.toString()
     }
 }

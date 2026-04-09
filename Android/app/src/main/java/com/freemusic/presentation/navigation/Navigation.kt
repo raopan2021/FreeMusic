@@ -62,14 +62,23 @@ fun FreeMusicNavHost(
         }
         composable(Screen.Search.route) {
             SearchScreen(
-                onBackClick = { navController.popBackStack() },
+                query = "",
+                onQueryChange = { },
+                onSearch = { },
+                searchResults = emptyList(),
+                hotSearchTags = listOf("周杰伦", "Taylor Swift", "告白气球", "稻香"),
+                searchHistory = emptyList(),
                 onSongClick = { song ->
                     playerViewModel.playSong(song)
                     if (autoPlay) {
                         playerViewModel.togglePlayPause()
                     }
                     navController.navigate(Screen.Player.route)
-                }
+                },
+                onPlaylistClick = { },
+                onTagClick = { },
+                onHistoryItemClick = { },
+                onClearHistory = { }
             )
         }
         composable(Screen.Player.route) {

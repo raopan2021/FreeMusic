@@ -28,7 +28,6 @@ import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.domain.model.Song
 import com.freemusic.presentation.ui.player.cover.AnimatedAlbumCover
 import com.freemusic.presentation.ui.player.cover.CoverStyle
-import com.freemusic.presentation.ui.player.effects.LyricsParticleEffects
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,14 +98,6 @@ fun PlayerScreen(
                     )
             )
         }
-
-        // 歌词粒子特效
-        LyricsParticleEffects(
-            modifier = Modifier.fillMaxSize(),
-            lyricsContent = uiState.lyrics?.lrc,
-            currentPosition = uiState.currentPosition,
-            enabled = particlesEnabled
-        )
 
         Column(
             modifier = Modifier

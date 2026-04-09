@@ -39,9 +39,9 @@ data class Lyrics(
  */
 data class LyricLine(
     val timeMs: Long,      // 时间戳（毫秒）
-    val endTimeMs: Long?, // 结束时间（可选）
-    val words: List<LyricWord> = emptyList(),
-    val text: String       // 纯文本
+    val text: String,      // 纯文本
+    val endTimeMs: Long? = null, // 结束时间（可选）
+    val words: List<LyricWord> = emptyList()
 )
 
 /**

@@ -33,10 +33,10 @@ interface MusicRepository {
     fun getPlayUrl(songId: String): Flow<Result<String>>
 
     /**
-     * 获取歌词
-     * @param songId 歌曲 ID
+     * 获取歌词（优先 LRCLIB，兜底网易云）
+     * @param song 歌曲对象
      */
-    fun getLyrics(songId: String): Flow<Result<Lyrics>>
+    fun getLyrics(song: Song): Flow<Result<Lyrics>>
 
     /**
      * 获取歌曲和播放 URL

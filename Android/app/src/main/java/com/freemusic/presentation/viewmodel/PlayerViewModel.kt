@@ -100,8 +100,8 @@ class PlayerViewModel @Inject constructor(
                 result.fold(
                     onSuccess = { songWithUrl ->
                         playMediaItem(songWithUrl)
-                        loadLyrics(song.id)
-                        observeFavoriteStatus(song.id)
+                        loadLyrics(songWithUrl.song)
+                        observeFavoriteStatus(songWithUrl.song.id)
                         _uiState.update { state ->
                             state.copy(
                                 currentSong = songWithUrl.song,
@@ -152,9 +152,9 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun loadLyrics(songId: String) {
+    private fun loadLyrics(song: Song) {
         viewModelScope.launch {
-            getLyricsUseCase(songId).collect { result ->
+            getLyricsUseCase(song).collect { result ->
                 result.fold(
                     onSuccess = { lyrics ->
                         _uiState.update { it.copy(lyrics = lyrics) }
@@ -207,7 +207,7 @@ class PlayerViewModel @Inject constructor(
             if (newIndex in playlist.indices) {
                 val newSong = playlist[newIndex]
                 _uiState.update { it.copy(currentIndex = newIndex, currentSong = newSong) }
-                loadLyrics(newSong.id)
+                loadLyrics(newSong)
                 observeFavoriteStatus(newSong.id)
             }
         }

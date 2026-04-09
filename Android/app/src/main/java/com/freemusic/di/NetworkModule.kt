@@ -1,5 +1,6 @@
 package com.freemusic.di
 
+import com.freemusic.data.remote.api.LrclibApi
 import com.freemusic.data.remote.api.MetingApi
 import com.freemusic.data.remote.api.NeteaseApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -22,6 +23,7 @@ object NetworkModule {
 
     private const val NETEASE_BASE_URL = "https://zm.wwoyun.cn/"
     private const val METING_BASE_URL = "https://api.qijieya.cn/"
+    private const val LRCLIB_BASE_URL = "https://lrclib.net/"
 
     @Provides
     @Singleton
@@ -86,5 +88,25 @@ object NetworkModule {
     @Singleton
     fun provideMetingApi(@Named("meting") retrofit: Retrofit): MetingApi {
         return retrofit.create(MetingApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @Named("lrclib")
+    fun provideLrclibRetrofit(
+        okHttpClient: OkHttpClient,
+        json: Json
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(LRCLIB_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLrclibApi(@Named("lrclib") retrofit: Retrofit): LrclibApi {
+        return retrofit.create(LrclibApi::class.java)
     }
 }

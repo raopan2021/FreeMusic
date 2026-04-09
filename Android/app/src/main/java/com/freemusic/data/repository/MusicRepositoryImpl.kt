@@ -1,5 +1,6 @@
 package com.freemusic.data.repository
 
+import com.freemusic.data.remote.api.LrclibApi
 import com.freemusic.data.remote.api.MetingApi
 import com.freemusic.data.remote.api.NeteaseApi
 import com.freemusic.data.remote.dto.toDomain
@@ -15,7 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
     private val neteaseApi: NeteaseApi,
-    private val metingApi: MetingApi
+    private val metingApi: MetingApi,
+    private val lrclibApi: LrclibApi
 ) : MusicRepository {
 
     override fun searchSongs(
@@ -69,12 +71,41 @@ class MusicRepositoryImpl @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    override fun getLyrics(songId: String): Flow<Result<Lyrics>> = flow {
+    override fun getLyrics(song: Song): Flow<Result<Lyrics>> = flow {
+        // 优先使用 LRCLIB
         try {
-            val response = neteaseApi.getLyric(songId)
-            emit(Result.success(response.lyricToDomain(songId)))
+            val durationSeconds = (song.duration / 1000).toInt()
+            val results = lrclibApi.searchLyrics(
+                artistName = song.artist,
+                trackName = song.title,
+                duration = durationSeconds.takeIf { it > 0 }
+            )
+            
+            // 找到最佳匹配
+            val bestMatch = results.firstOrNull { !it.instrumental }
+            
+            if (bestMatch != null && (bestMatch.syncedLyrics != null || bestMatch.plainLyrics != null)) {
+                emit(Result.success(Lyrics(
+                    songId = song.id,
+                    lrc = bestMatch.syncedLyrics ?: bestMatch.plainLyrics,
+                    yrc = null,
+                    translation = null,
+                    ttml = null,
+                    metadata = listOf("来源: LRCLIB", "艺术家: ${bestMatch.artistName}", "专辑: ${bestMatch.albumName}")
+                )))
+                return@flow
+            }
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            // LRCLIB 失败，继续尝试网易云
+        }
+        
+        // 兜底：使用网易云歌词
+        try {
+            val neteaseId = song.neteaseId ?: song.id
+            val response = neteaseApi.getLyric(neteaseId)
+            emit(Result.success(response.lyricToDomain(song.id)))
+        } catch (e: Exception) {
+            emit(Result.failure(Exception("无法获取歌词: ${e.message}")))
         }
     }.flowOn(Dispatchers.IO)
 

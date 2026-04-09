@@ -43,13 +43,13 @@ class GetPlayUrlUseCase @Inject constructor(
 }
 
 /**
- * 获取歌词用例
+ * 获取歌词用例（优先使用 LRCLIB）
  */
 class GetLyricsUseCase @Inject constructor(
     private val repository: MusicRepository
 ) {
-    operator fun invoke(songId: String): Flow<Result<Lyrics>> {
-        return repository.getLyrics(songId)
+    operator fun invoke(song: Song): Flow<Result<Lyrics>> {
+        return repository.getLyrics(song)
     }
 }
 

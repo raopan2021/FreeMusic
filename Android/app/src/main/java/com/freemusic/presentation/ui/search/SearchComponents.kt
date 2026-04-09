@@ -1,12 +1,10 @@
 package com.freemusic.presentation.ui.search
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -18,81 +16,96 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.freemusic.domain.model.Song
+import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 /**
- * 搜索栏组件
+ * 搜索栏
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onClear: () -> Unit,
-    onVoiceClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    placeholder: String = "搜索音乐、歌手、专辑...",
+    modifier: Modifier = Modifier,
+    primaryColor: Color = PrimaryIndigo,
+    autoFocus: Boolean = false
 ) {
-    val focusManager = LocalFocusManager.current
-
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        placeholder = { Text("搜索歌曲、歌手...") },
-        leadingIcon = {
+    val focusRequester = remember { FocusRequester() }
+    
+    LaunchedEffect(Unit) {
+        if (autoFocus) {
+            focusRequester.requestFocus()
+        }
+    }
+    
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "搜索"
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
-        },
-        trailingIcon = {
-            Row {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = onClear) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "清除"
-                        )
-                    }
-                }
-                IconButton(onClick = onVoiceClick) {
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester),
+                placeholder = {
+                    Text(
+                        text = placeholder,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSearch() })
+            )
+            
+            if (query.isNotEmpty()) {
+                IconButton(onClick = onClear) {
                     Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "语音搜索"
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "清除",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
             }
-        },
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Search
-        ),
-        keyboardActions = KeyboardActions(
-            onSearch = {
-                onSearch()
-                focusManager.clearFocus()
-            }
-        ),
-        singleLine = true,
-        shape = RoundedCornerShape(24.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        )
-    )
+        }
+    }
 }
 
 /**
@@ -100,39 +113,44 @@ fun SearchBar(
  */
 @Composable
 fun SearchSuggestionItem(
+    icon: @Composable () -> Unit,
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    trailing: (@Composable (() -> Unit))? = null
 ) {
-    ListItem(
-        headlineContent = { Text(text) },
-        leadingContent = {
-            Icon(
-                imageVector = Icons.Default.History,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-        },
-        trailingContent = {
-            Icon(
-                imageVector = Icons.Default.NorthWest,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                modifier = Modifier.size(16.dp)
-            )
-        },
-        modifier = modifier.clickable(onClick = onClick)
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        icon()
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        
+        trailing?.invoke()
+    }
 }
 
 /**
  * 搜索历史
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SearchHistory(
-    history: List<String>,
-    onHistoryItemClick: (String) -> Unit,
+fun SearchHistoryList(
+    histories: List<String>,
+    onHistoryClick: (String) -> Unit,
     onClearHistory: () -> Unit,
+    onClearAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -148,15 +166,60 @@ fun SearchHistory(
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
-            TextButton(onClick = onClearHistory) {
-                Text("清除")
+            
+            Row {
+                if (histories.isNotEmpty()) {
+                    TextButton(onClick = onClearHistory) {
+                        Text("清除")
+                    }
+                }
+                TextButton(onClick = onClearAll) {
+                    Text("清空全部")
+                }
             }
         }
+        
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            histories.forEach { history ->
+                SearchHistoryChip(
+                    text = history,
+                    onClick = { onHistoryClick(history) }
+                )
+            }
+        }
+    }
+}
 
-        history.forEach { item ->
-            SearchSuggestionItem(
-                text = item,
-                onClick = { onHistoryItemClick(item) }
+@Composable
+private fun SearchHistoryChip(
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.History,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
@@ -168,292 +231,545 @@ fun SearchHistory(
 @Composable
 fun HotSearchList(
     hotSearches: List<HotSearchItem>,
-    onItemClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onItemClick: (HotSearchItem) -> Unit,
+    modifier: Modifier = Modifier,
+    primaryColor: Color = PrimaryIndigo
+) {
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.TrendingUp,
+                contentDescription = null,
+                tint = primaryColor
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "热门搜索",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
+        LazyColumn {
+            items(hotSearches.take(10)) { item ->
+                HotSearchItemRow(
+                    item = item,
+                    onClick = { onItemClick(item) },
+                    primaryColor = primaryColor
+                )
+            }
+        }
+    }
+}
+
+data class HotSearchItem(
+    val rank: Int,
+    val keyword: String,
+    val heat: Long,
+    val isHot: Boolean = false
+)
+
+@Composable
+private fun HotSearchItemRow(
+    item: HotSearchItem,
+    onClick: () -> Unit,
+    primaryColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 排名
+        Box(
+            modifier = Modifier.width(28.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when (item.rank) {
+                1 -> Text(
+                    text = "🔥",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                2 -> Text(
+                    text = "2",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFFF6B00),
+                    fontWeight = FontWeight.Bold
+                )
+                3 -> Text(
+                    text = "3",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFFF9800),
+                    fontWeight = FontWeight.Bold
+                )
+                else -> Text(
+                    text = "${item.rank}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        }
+        
+        // 内容
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.keyword,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (item.rank <= 3) FontWeight.Bold else FontWeight.Normal
+                )
+                
+                if (item.isHot) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color(0xFFFF3B30).copy(alpha = 0.1f)
+                    ) {
+                        Text(
+                            text = "热",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFF3B30),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+        }
+        
+        // 热度
+        Text(
+            text = formatHeat(item.heat),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+        )
+    }
+}
+
+private fun formatHeat(heat: Long): String {
+    return when {
+        heat >= 1_000_000 -> "%.1fW".format(heat / 1_000_000.0)
+        heat >= 1_000 -> "%.1fK".format(heat / 1_000.0)
+        else -> heat.toString()
+    }
+}
+
+/**
+ * 搜索结果 - 歌曲列表
+ */
+@Composable
+fun SearchResultSongs(
+    songs: List<Song>,
+    onSongClick: (Song) -> Unit,
+    onSongMoreClick: (Song) -> Unit,
+    modifier: Modifier = Modifier,
+    primaryColor: Color = PrimaryIndigo
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "热门搜索",
+            text = "歌曲",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
+        
+        songs.forEachIndexed { index, song ->
+            SearchResultSongItem(
+                song = song,
+                index = index + 1,
+                onClick = { onSongClick(song) },
+                onMoreClick = { onSongMoreClick(song) },
+                primaryColor = primaryColor
+            )
+        }
+    }
+}
 
-        hotSearches.forEachIndexed { index, item ->
-            ListItem(
-                headlineContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // 排名标签
-                        val rankColor = when (index) {
-                            0 -> Color(0xFFFF6B6B) // 红色
-                            1 -> Color(0xFFFFD93D) // 黄色
-                            2 -> Color(0xFF6BCB77) // 绿色
-                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        }
-                        
-                        Text(
-                            text = "${index + 1}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = rankColor,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.width(24.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-                        
-                        Text(
-                            text = item.title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        
-                        if (item.isHot) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                color = Color(0xFFFF6B6B).copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "HOT",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFFF6B6B),
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                },
-                leadingContent = {
-                    Icon(
-                        imageVector = Icons.Default.TrendingUp,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
-                },
-                modifier = Modifier.clickable { onItemClick(item.title) }
+@Composable
+private fun SearchResultSongItem(
+    song: Song,
+    index: Int,
+    onClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    primaryColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 索引
+        Text(
+            text = "$index",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.width(24.dp)
+        )
+        
+        // 封面
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            AsyncImage(
+                model = song.coverUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        // 信息
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        
+        // 更多
+        IconButton(onClick = onMoreClick) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "更多",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         }
     }
 }
 
 /**
- * 热门搜索项数据
- */
-data class HotSearchItem(
-    val title: String,
-    val isHot: Boolean = false
-)
-
-/**
- * 搜索结果歌曲项
+ * 搜索结果 - 歌手列表
  */
 @Composable
-fun SearchResultItem(
-    song: Song,
-    onClick: () -> Unit,
-    onAddToQueue: () -> Unit = {},
-    isPlaying: Boolean = false,
-    primaryColor: Color = Color(0xFF6366F1),
+fun SearchResultArtists(
+    artists: List<ArtistSearchResult>,
+    onArtistClick: (ArtistSearchResult) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0f,
-        animationSpec = tween(300),
-        label = "playing_alpha"
-    )
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isPlaying) {
-                primaryColor.copy(alpha = 0.1f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
+    Column(modifier = modifier) {
+        Text(
+            text = "歌手",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 封面
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
+            items(artists) { artist ->
+                ArtistCard(
+                    artist = artist,
+                    onClick = { onArtistClick(artist) }
+                )
+            }
+        }
+    }
+}
+
+data class ArtistSearchResult(
+    val id: Long,
+    val name: String,
+    val avatarUrl: String?,
+    val songCount: Int
+)
+
+@Composable
+private fun ArtistCard(
+    artist: ArtistSearchResult,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(80.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(onClick = onClick)
+        ) {
+            if (artist.avatarUrl != null) {
                 AsyncImage(
-                    model = song.coverUrl,
-                    contentDescription = "专辑封面",
+                    model = artist.avatarUrl,
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                
-                // 播放中指示器
-                if (isPlaying) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "正在播放",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // 歌曲信息
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isPlaying) primaryColor else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    modifier = Modifier.size(32.dp)
                 )
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // 操作按钮
-            Row {
-                IconButton(onClick = onAddToQueue) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "添加到队列",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
-                IconButton(onClick = { /* 更多选项 */ }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "更多",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
             }
         }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = artist.name,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 /**
- * 搜索分类标签
+ * 搜索结果 - 专辑列表
  */
 @Composable
-fun SearchCategoryTabs(
-    categories: List<String>,
-    selectedCategory: String?,
-    onCategorySelected: (String?) -> Unit,
+fun SearchResultAlbums(
+    albums: List<AlbumSearchResult>,
+    onAlbumClick: (AlbumSearchResult) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    ScrollableTabRow(
-        selectedTabIndex = categories.indexOf(selectedCategory ?: "").coerceAtLeast(0),
-        modifier = modifier,
-        edgePadding = 16.dp,
-        divider = {}
-    ) {
-        categories.forEachIndexed { index, category ->
-            Tab(
-                selected = selectedCategory == category,
-                onClick = { onCategorySelected(category) },
-                text = {
-                    Text(
-                        text = category,
-                        fontWeight = if (selectedCategory == category) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            )
+    Column(modifier = modifier) {
+        Text(
+            text = "专辑",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        
+        LazyHorizontalGrid(
+            rows = GridCells.Fixed(2),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.height(180.dp)
+        ) {
+            items(albums) { album ->
+                AlbumGridItem(
+                    album = album,
+                    onClick = { onAlbumClick(album) }
+                )
+            }
         }
     }
 }
 
+data class AlbumSearchResult(
+    val id: Long,
+    val name: String,
+    val coverUrl: String?,
+    val artistName: String
+)
+
+@Composable
+private fun AlbumGridItem(
+    album: AlbumSearchResult,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(100.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            if (album.coverUrl != null) {
+                AsyncImage(
+                    model = album.coverUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Album,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Text(
+            text = album.name,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        
+        Text(
+            text = album.artistName,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
 /**
- * 空搜索状态
+ * 搜索结果 - 歌单列表
  */
 @Composable
-fun EmptySearchState(
-    onHotSearchClick: (String) -> Unit,
+fun SearchResultPlaylists(
+    playlists: List<PlaylistSearchResult>,
+    onPlaylistClick: (PlaylistSearchResult) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = "歌单",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        
+        LazyColumn {
+            items(playlists) { playlist ->
+                PlaylistSearchItem(
+                    playlist = playlist,
+                    onClick = { onPlaylistClick(playlist) }
+                )
+            }
+        }
+    }
+}
+
+data class PlaylistSearchResult(
+    val id: Long,
+    val name: String,
+    val coverUrl: String?,
+    val songCount: Int,
+    val creatorName: String
+)
+
+@Composable
+private fun PlaylistSearchItem(
+    playlist: PlaylistSearchResult,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            if (playlist.coverUrl != null) {
+                AsyncImage(
+                    model = playlist.coverUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.QueueMusic,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = playlist.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "by ${playlist.creatorName} · ${playlist.songCount}首",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+        )
+    }
+}
+
+/**
+ * 空搜索结果
+ */
+@Composable
+fun EmptySearchResult(
+    keyword: String,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.Search,
+            imageVector = Icons.Default.SearchOff,
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            modifier = Modifier.size(80.dp)
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "搜索你喜欢的歌曲",
+            text = "未找到相关结果",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         
-        // 快捷搜索标签
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            listOf("周杰伦", "陈奕迅", "Taylor Swift", "告白气球").forEach { tag ->
-                SuggestionChip(
-                    onClick = { onHotSearchClick(tag) },
-                    label = { Text(tag) }
-                )
-            }
-        }
-    }
-}
-
-/**
- * 加载状态
- */
-@Composable
-fun SearchLoadingState(
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "搜索中...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
+        Text(
+            text = "试试其他关键词",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
     }
 }

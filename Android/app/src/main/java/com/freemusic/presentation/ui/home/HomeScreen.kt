@@ -40,12 +40,16 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            MiniPlayer(
-                song = playerState.currentSong,
-                isPlaying = playerState.isPlaying,
-                onPlayPause = playerViewModel::togglePlayPause,
-                onClick = onSongClick
-            )
+            playerState.currentSong?.let {
+                MiniPlayer(
+                    song = playerState.currentSong,
+                    isPlaying = playerState.isPlaying,
+                    progress = if (playerState.duration > 0) playerState.currentPosition.toFloat() / playerState.duration else 0f,
+                    onPlayPause = playerViewModel::togglePlayPause,
+                    onNext = playerViewModel::skipToNext,
+                    onClick = onSongClick
+                )
+            }
         }
     ) { paddingValues ->
         Box(

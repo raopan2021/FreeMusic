@@ -148,6 +148,76 @@ class PreferencesManager @Inject constructor(
         _lyricsAlignment.value = alignment
     }
 
+    // ============ 毛玻璃效果设置 ============
+
+    private val _blurEffectEnabled = MutableStateFlow(prefs.getBoolean(KEY_BLUR_EFFECT_ENABLED, true))
+    val blurEffectEnabled: StateFlow<Boolean> = _blurEffectEnabled.asStateFlow()
+
+    fun setBlurEffectEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_BLUR_EFFECT_ENABLED, enabled).apply()
+        _blurEffectEnabled.value = enabled
+    }
+
+    // ============ 背景动画设置 ============
+
+    private val _backgroundAnimationEnabled = MutableStateFlow(prefs.getBoolean(KEY_BACKGROUND_ANIMATION_ENABLED, true))
+    val backgroundAnimationEnabled: StateFlow<Boolean> = _backgroundAnimationEnabled.asStateFlow()
+
+    fun setBackgroundAnimationEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_BACKGROUND_ANIMATION_ENABLED, enabled).apply()
+        _backgroundAnimationEnabled.value = enabled
+    }
+
+    // ============ 歌词翻译设置 ============
+
+    private val _showLyricsTranslation = MutableStateFlow(prefs.getBoolean(KEY_SHOW_LYRICS_TRANSLATION, true))
+    val showLyricsTranslation: StateFlow<Boolean> = _showLyricsTranslation.asStateFlow()
+
+    fun setShowLyricsTranslation(show: Boolean) {
+        prefs.edit().putBoolean(KEY_SHOW_LYRICS_TRANSLATION, show).apply()
+        _showLyricsTranslation.value = show
+    }
+
+    // ============ 自动下一首设置 ============
+
+    private val _autoPlayNext = MutableStateFlow(prefs.getBoolean(KEY_AUTO_PLAY_NEXT, true))
+    val autoPlayNext: StateFlow<Boolean> = _autoPlayNext.asStateFlow()
+
+    fun setAutoPlayNext(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_PLAY_NEXT, enabled).apply()
+        _autoPlayNext.value = enabled
+    }
+
+    // ============ 播放模式设置 ============
+
+    private val _repeatMode = MutableStateFlow(
+        RepeatModeType.valueOf(prefs.getString(KEY_REPEAT_MODE, RepeatModeType.ALL.name) ?: RepeatModeType.ALL.name)
+    )
+    val repeatMode: StateFlow<RepeatModeType> = _repeatMode.asStateFlow()
+
+    fun setRepeatMode(mode: RepeatModeType) {
+        prefs.edit().putString(KEY_REPEAT_MODE, mode.name).apply()
+        _repeatMode.value = mode
+    }
+
+    // ============ 缓存设置 ============
+
+    private val _cacheEnabled = MutableStateFlow(prefs.getBoolean(KEY_CACHE_ENABLED, true))
+    val cacheEnabled: StateFlow<Boolean> = _cacheEnabled.asStateFlow()
+
+    fun setCacheEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_CACHE_ENABLED, enabled).apply()
+        _cacheEnabled.value = enabled
+    }
+
+    private val _cacheSize = MutableStateFlow(prefs.getInt(KEY_CACHE_SIZE, 500))
+    val cacheSize: StateFlow<Int> = _cacheSize.asStateFlow()
+
+    fun setCacheSize(sizeMb: Int) {
+        prefs.edit().putInt(KEY_CACHE_SIZE, sizeMb.coerceIn(100, 2000)).apply()
+        _cacheSize.value = sizeMb
+    }
+
     companion object {
         private const val PREFS_NAME = "freemusic_prefs"
 
@@ -160,6 +230,8 @@ class PreferencesManager @Inject constructor(
         private const val KEY_PARTICLE_INTENSITY = "particle_intensity"
         private const val KEY_COVER_STYLE = "cover_style"
         private const val KEY_VISUALIZER_ENABLED = "visualizer_enabled"
+        private const val KEY_BLUR_EFFECT_ENABLED = "blur_effect_enabled"
+        private const val KEY_BACKGROUND_ANIMATION_ENABLED = "background_animation_enabled"
 
         // Equalizer
         private const val KEY_EQUALIZER_PRESET = "equalizer_preset"
@@ -170,10 +242,17 @@ class PreferencesManager @Inject constructor(
         private const val KEY_AUTO_PLAY = "auto_play"
         private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
+        private const val KEY_AUTO_PLAY_NEXT = "auto_play_next"
+        private const val KEY_REPEAT_MODE = "repeat_mode"
 
         // Lyrics
         private const val KEY_LYRICS_FONT_SIZE = "lyrics_font_size"
         private const val KEY_LYRICS_ALIGNMENT = "lyrics_alignment"
+        private const val KEY_SHOW_LYRICS_TRANSLATION = "show_lyrics_translation"
+
+        // Cache
+        private const val KEY_CACHE_ENABLED = "cache_enabled"
+        private const val KEY_CACHE_SIZE = "cache_size"
     }
 }
 
@@ -191,6 +270,20 @@ enum class LyricsAlignment {
     LEFT,
     CENTER,
     RIGHT
+}
+
+enum class RepeatModeType {
+    ALL,      // 列表循环
+    ONE,      // 单曲循环
+    SHUFFLE   // 随机播放
+}
+
+enum class EqualizerStyleType {
+    AUTO,     // 自动（跟随封面样式）
+    SPECTRUM, // 频谱
+    CIRCULAR, // 圆形
+    BAR,      // 柱状
+    WAVEFORM, // 波形
 }
 
 /**

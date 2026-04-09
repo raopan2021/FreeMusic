@@ -1,9 +1,9 @@
 package com.freemusic.presentation.ui.player
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -39,11 +40,21 @@ fun PlayerScreen(
         viewModel.startProgressUpdates()
     }
 
-    // 获取当前播放歌曲的封面作为背景
+    // 动态颜色（从封面 URL 生成简单渐变）
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
-    val gradientColors = remember(uiState.currentSong?.coverUrl) {
-        listOf(surfaceColor, surfaceVariantColor)
+    val primaryColor = MaterialTheme.colorScheme.primary
+    
+    // 如果有封面，使用深色渐变背景模拟动态配色效果
+    val hasCover = !uiState.currentSong?.coverUrl.isNullOrEmpty()
+    
+    val gradientColors = if (hasCover) {
+        listOf(
+            Color(0xFF1A1A2E), // 深蓝紫色
+            Color(0xFF16213E), // 深蓝色
+            Color(0xFF0F3460)  // 中蓝色
+        )
+    } else {
+        listOf(surfaceColor, surfaceColor)
     }
 
     Box(
@@ -53,6 +64,28 @@ fun PlayerScreen(
                 brush = Brush.verticalGradient(gradientColors)
             )
     ) {
+        // 模糊的背景封面
+        if (hasCover) {
+            AsyncImage(
+                model = uiState.currentSong?.coverUrl,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(60.dp)
+                    .then(
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = 0.3f),
+                                    Color.Black.copy(alpha = 0.7f)
+                                )
+                            )
+                        )
+                    ),
+                contentScale = ContentScale.Crop
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -60,12 +93,13 @@ fun PlayerScreen(
         ) {
             // 顶部导航栏
             TopAppBar(
-                title = { Text("正在播放") },
+                title = { Text("正在播放", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
+                            contentDescription = "返回",
+                            tint = Color.White
                         )
                     }
                 },
@@ -117,7 +151,7 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 歌词显示区域（简化版）
+            // 歌词显示区域
             LyricsSection(
                 lyrics = uiState.lyrics?.lrc,
                 currentPosition = uiState.currentPosition
@@ -130,7 +164,7 @@ fun PlayerScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Color.White)
             }
         }
     }
@@ -142,21 +176,10 @@ private fun AlbumCover(
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(20000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(Color(0xFF2A2A4A)),
         contentAlignment = Alignment.Center
     ) {
         AsyncImage(
@@ -166,12 +189,12 @@ private fun AlbumCover(
             contentScale = ContentScale.Crop
         )
 
-        // 播放时显示的圆环效果
+        // 播放时显示的效果
         if (isPlaying) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.1f))
+                    .background(Color.Black.copy(alpha = 0.15f))
             )
         }
     }
@@ -191,6 +214,7 @@ private fun SongInfo(
         Text(
             text = song?.title ?: "未选择歌曲",
             style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
@@ -199,7 +223,7 @@ private fun SongInfo(
         Text(
             text = song?.artist ?: "",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color.White.copy(alpha = 0.7f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
@@ -210,7 +234,7 @@ private fun SongInfo(
             Icon(
                 imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (isFavorite) "取消收藏" else "收藏",
-                tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (isFavorite) Color.Red else Color.White.copy(alpha = 0.7f)
             )
         }
     }
@@ -242,7 +266,11 @@ private fun ProgressBar(
                 isDragging = false
                 onSeek((sliderPosition * duration).toLong())
             },
-            modifier = Modifier.fillMaxWidth()
+            colors = SliderDefaults.colors(
+                thumbColor = Color.White,
+                activeTrackColor = Color.White,
+                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+            )
         )
 
         Row(
@@ -252,12 +280,12 @@ private fun ProgressBar(
             Text(
                 text = formatDuration(currentPosition),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
             Text(
                 text = formatDuration(duration),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
         }
     }
@@ -280,6 +308,7 @@ private fun PlayerControls(
             Icon(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "上一首",
+                tint = Color.White,
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -287,11 +316,15 @@ private fun PlayerControls(
         // 播放/暂停
         FilledIconButton(
             onClick = onPlayPause,
-            modifier = Modifier.size(64.dp)
+            modifier = Modifier.size(64.dp),
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = Color.White
+            )
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = if (isPlaying) "暂停" else "播放",
+                tint = Color.Black,
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -301,6 +334,7 @@ private fun PlayerControls(
             Icon(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "下一首",
+                tint = Color.White,
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -324,14 +358,14 @@ private fun LyricsSection(
             .fillMaxWidth()
             .height(150.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .background(Color.Black.copy(alpha = 0.3f))
             .padding(16.dp)
     ) {
         if (lines.isEmpty()) {
             Text(
                 text = "暂无歌词",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.5f),
                 modifier = Modifier.align(Alignment.Center)
             )
         } else {
@@ -346,7 +380,7 @@ private fun LyricsSection(
                     Text(
                         text = lines[currentLineIndex].text,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color.White,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -357,7 +391,6 @@ private fun LyricsSection(
 }
 
 private fun parseLyricLine(line: String): LyricLine? {
-    // 解析 [mm:ss.xx] 格式的时间戳
     val regex = Regex("""\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]""")
     val match = regex.find(line) ?: return null
 

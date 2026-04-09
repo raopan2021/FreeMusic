@@ -1,6 +1,7 @@
 package com.freemusic.presentation.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -8,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.freemusic.presentation.ui.home.HomeScreen
 import com.freemusic.presentation.ui.player.PlayerScreen
 import com.freemusic.presentation.ui.search.SearchScreen
+import com.freemusic.presentation.viewmodel.PlayerViewModel
 
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
@@ -17,7 +19,8 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun FreeMusicNavHost(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     NavHost(
         navController = navController,
@@ -26,18 +29,23 @@ fun FreeMusicNavHost(
         composable(Screen.Home.route) {
             HomeScreen(
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onSongClick = { navController.navigate(Screen.Player.route) }
+                onSongClick = { navController.navigate(Screen.Player.route) },
+                playerViewModel = playerViewModel
             )
         }
         composable(Screen.Search.route) {
             SearchScreen(
                 onBackClick = { navController.popBackStack() },
-                onSongClick = { navController.navigate(Screen.Player.route) }
+                onSongClick = { song ->
+                    playerViewModel.playSong(song)
+                    navController.navigate(Screen.Player.route)
+                }
             )
         }
         composable(Screen.Player.route) {
             PlayerScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                viewModel = playerViewModel
             )
         }
     }

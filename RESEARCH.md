@@ -508,3 +508,299 @@ https://github.com/search?q=music+player+jetpack+compose&type=repositories
 - Spotify Developer: https://developer.spotify.com/
 - SoundCloud Developers: https://developers.soundcloud.com/
 - Genius Developers: https://docs.genius.com/
+
+---
+
+## 7. YouTube Music 相关项目（补充流媒体播放方案）
+
+> 以下项目均为**无需 Premium 账号**即可播放完整歌曲的开源 Android 项目，基于 YouTube/YouTube Music 非官方 API 实现。
+
+### 7.1 InnerTune
+
+- **Stars**: 估计 3,000+（活跃开发中）
+- **GitHub**: https://github.com/z-huang/InnerTune
+- **License**: GPL-3.0
+- **语言**: Kotlin, Jetpack Compose
+- **特点**:
+  - Material 3 设计语言
+  - YouTube Music 作为音频源（无需 Premium）
+  - 搜索、播放列表、收藏、歌手页面完整
+  - 后台播放、通知栏控制
+  - 引用 ViMusic 作为 Compose 学习示例
+- **适合 FreeMusic 的点**: 流媒体播放架构、YouTube Music 私有 API 调用方式
+- **状态**: 活跃开发
+
+### 7.2 ViMusic
+
+- **GitHub**: https://github.com/vfsfitvnm/ViMusic
+- **License**: AGPL-3.0
+- **语言**: Kotlin, Jetpack Compose
+- **特点**:
+  - 被多个项目（InnerTune、OuterTune）引用为参考的早期 Compose 音乐播放器
+  - YouTube Music 非官方 API
+  - 简洁架构，适合学习 Compose + ExoPlayer 集成
+- **状态**: 维护中（2024 年有更新）
+
+### 7.3 SimpMusic
+
+- **F-Droid**: https://f-droid.org/packages/com.maxrave.simpmusic/
+- **GitHub**: https://github.com/maxrava/SimpMusic
+- **语言**: Kotlin, Jetpack Compose
+- **特点**:
+  - YouTube Music + YouTube 免费播放（无广告）
+  - 后台播放
+  - Home/Charts/Podcast/Moods 浏览
+  - 1080p 视频选项
+  - 播放数据统计 + 自定义播放列表
+  - Spotify Canvas 支持
+- **状态**: 活跃开发
+
+### 7.4 Spotube
+
+- **GitHub**: https://github.com/KiokoBui/Spotube
+- **语言**: Kotlin
+- **特点**:
+  - Spotify 歌曲直接通过 YouTube 播放（无需 Premium）
+  - 开源跨平台
+- **状态**: 建议核实最新仓库地址
+
+---
+
+## 8. QQ Music / 咪咕音乐 API（非官方）
+
+### 8.1 QQ Music 非官方 API（推荐自部署）
+
+| 项目 | 地址 | 备注 |
+|-----|------|------|
+| **qq-music-api (copws)** | https://github.com/copws/qq-music-api | Koa2 开发，接口丰富 |
+| **QQ音乐 API (Cloudflare Workers)** | https://doc.ygking.top/ | 免费部署，全球加速 |
+| **QQ音乐 API (sansenjian)** | https://sansenjian.github.io/qq-music-api/api/ | 完整接口文档 |
+| **QQ音乐官方开放平台** | https://developer.y.qq.com/docs/openapi | 需申请，需企业资质 |
+
+**非官方 API 能力（以 copws/qq-music-api 为例）**:
+```bash
+# 搜索歌曲
+GET /search?key=周杰伦
+# 获取播放链接
+GET /song/{songId}/url
+# 获取歌词
+GET /lyric/{songId}
+# 获取专辑信息
+GET /album/{albumId}
+```
+
+**Pros**: 中文歌曲最全（周杰伦、林俊杰等华语歌手）；有官方和非官方两种方案
+**Cons**: 
+- 官方 API 需要企业资质，个人开发者难以申请
+- 非官方 API 有被封禁风险，需自部署
+- 咪咕音乐暂无成熟的非官方 API
+
+### 8.2 咪咕音乐（补充）
+
+- **官网**: https://music.migu.cn/
+- **官方开发者平台**: 未找到公开的个人开发者 API
+- **非官方方案**: 咪咕音乐暂无成熟的非官方 API，建议参考 QQ Music 或使用 Deezer/Spotify 作为中文音乐补充
+
+**结论**: 华语音乐建议以 **QQ Music 非官方 API（自部署）** 作为后端，配合 Deezer/Spotify 补全国际曲目。
+
+---
+
+## 9. lyrics.ovh API（免费歌词 API）
+
+**文档**: https://lyrics.ovh/
+
+**特点**:
+- 完全免费，**无需 API Key**
+- 极简 REST API
+- 支持 artist/song 直接查询
+
+**端点**:
+```
+GET https://api.lyrics.ovh/v1/{artist}/{title}
+```
+
+**示例请求**:
+```bash
+curl "https://api.lyrics.ovh/v1/the%20weeknd/blinding%20lights"
+```
+
+**示例响应**:
+```json
+{
+  "lyrics": "Yeah\n\nI've been tryna call\nI've been on my own for long enough..."
+}
+```
+
+**Pros**: 零门槛，免费，无需注册
+**Cons**: 
+- **仅普通歌词（非同步歌词）** — 无时间轴
+- 曲库相对较小，不如 LRCLIB 全
+- 部分歌曲可能缺失
+
+**对比 LRCLIB**:
+
+| 特性 | lyrics.ovh | LRCLIB |
+|-----|-----------|--------|
+| 是否需要 Key | ❌ 否 | ❌ 否 |
+| 是否免费 | ✅ 是 | ✅ 是 |
+| 同步歌词 | ❌ 否 | ✅ 是 |
+| 曲库规模 | 中等 | 较大 |
+| 开源 | ❌ 否 | ✅ 是 |
+
+**推荐**: 主要用 **LRCLIB**（同步歌词），备选 **lyrics.ovh**（普通歌词兜底）
+
+---
+
+## 10. Orthrus-Android 调查结果
+
+**结论**: 未找到名为 "Orthrus-Android" 或 "Orthrus" 的活跃开源 Android 音乐播放器项目。
+
+可能的情况:
+1. 项目已被重命名（可能是 InnerTune/OuterTune 的前身）
+2. 项目已下线
+3. 名称拼写有误（可能是 "Orchis" 或其他类似名称）
+
+**建议**: 如果需要类似项目，推荐参考 **Auxio**（极简本地音乐）或 **InnerTune/OuterTune**（YouTube Music 流媒体）。
+
+---
+
+## 11. UI/UX 设计趋势（音乐播放器 2024-2025）
+
+基于对 Dribbble、Behance 及上述开源项目分析：
+
+### 11.1 主流设计模式
+
+1. **全屏播放器 → 迷你播放器**
+   - 上滑/下滑切换
+   - 底部进度条始终可见
+   - 专辑封面模糊背景
+
+2. **Material Design 3 (Material You)**
+   - 动态配色（从专辑封面提取主色）
+   - 参考: Auxio, OuterTune, InnerTune
+   - 圆角卡片 + 大面积留白
+
+3. **极简 vs 丰富功能**
+   - 极简派: Auxio（无广告、无社交、专注播放）
+   - 功能派: RetroMusicPlayer（均衡器、歌词、封面动画）
+
+### 11.2 关键 UI 组件布局
+
+```
+┌──────────────────────────────────────┐
+│  ← Back            ⋮ Menu    ❤️ Save │  导航栏 + 收藏
+├──────────────────────────────────────┤
+│                                      │
+│         ╭────────────────╮          │
+│         │                │          │
+│         │   专辑封面      │          │  大面积封面，圆角+阴影
+│         │   (圆角/阴影)   │          │
+│         │                │          │
+│         ╰────────────────╯          │
+│                                      │
+│     歌曲名称 (大标题, 18-22sp)        │
+│     艺术家名 (副标题, 14-16sp)        │
+│                                      │
+│  0:00  ═══════════●═══════  3:21   │  进度条
+│                                      │
+│       ⏮      ▶/⏸      ⏭           │  播放控制，居中大按钮
+│                                      │
+│   🔀 Shuffle  🔁 Repeat  📋 Queue  │  功能按钮
+│                                      │
+│         ════════════════           │  迷你歌词预览(可选)
+└──────────────────────────────────────┘
+```
+
+### 11.3 Jetpack Compose 音乐播放器 UI 参考
+
+| 项目 | GitHub | Stars | 特点 | 适合参考 |
+|-----|--------|-------|------|---------|
+| **OmarNofal/Material-3-Music-Player** | https://github.com/OmarNofal/Material-3-Music-Player | 67 | 纯离线播放器, Material 3 | 基础 UI 组件布局 |
+| **Auxio** | https://github.com/OxygenCobalt/Auxio | 3,700 | 极简, Compose, ExoPlayer | UI 架构 + 状态管理 |
+| **InnerTune** | https://github.com/z-huang/InnerTune | 3,000+ | Material 3, YouTube Music | 列表/搜索 UI |
+| **OuterTune** | https://github.com/OuterTune/OuterTune | 4,928 | Material 3, YouTube Music | 完整功能参考 |
+
+### 11.4 UI 设计资源
+
+- **Dribbble 搜索**: https://dribbble.com/search/music-player?q=music+player+app
+- **Dribbble Material Music**: https://dribbble.com/search/material+music+player
+- **Auxio F-Droid**: https://f-droid.org/packages/org.oxycblt.auxio/
+- **Material Design 3**: https://m3.material.io/
+
+### 11.5 UI 设计趋势关键词
+
+- `music player android ui` → 通用播放器设计
+- `jetpack compose music app` → Compose 实现参考
+- `spotify clone ui` → 流媒体播放器设计
+- `material you music player` → Material 3 设计趋势
+- `dark mode music app` → 暗黑模式设计
+
+---
+
+## 12. 综合 API + 开源项目推荐（最终推荐）
+
+### 音频 API 优先级
+
+| 优先级 | API | 原因 | 是否需要 Key |
+|-------|-----|------|-------------|
+| 1 | **Deezer API** | 无需 Key，开箱即用，30秒预览 | ❌ |
+| 2 | **Spotify Web API** | 曲库最全，元数据丰富 | ✅ (免费) |
+| 3 | **QQ Music 非官方 API** | 华语歌曲最全，需自部署 | ❌ |
+| 4 | **YouTube Music (InnerTune 架构)** | 可免费播放完整歌曲 | ❌ (非官方 API) |
+| 5 | **SoundCloud API** | 独立音乐多 | ✅ |
+| 6 | **Jamendo API** | 免版税音乐 | ✅ |
+
+### 歌词 API 优先级
+
+| 优先级 | API | 原因 | 是否需要 Key |
+|-------|-----|------|-------------|
+| 1 | **LRCLIB** | 同步歌词，免费开源，无需 Key | ❌ |
+| 2 | **lyrics.ovh** | 普通歌词，零门槛 | ❌ |
+| 3 | **Genius API** | 歌词+注释，需 Token | ✅ (免费) |
+
+### 开源项目参考优先级
+
+| 优先级 | 项目 | 适合参考 |
+|-------|------|---------|
+| 1 | **Auxio** | UI 架构、极简设计、ExoPlayer 集成 |
+| 2 | **InnerTune** | YouTube Music 流媒体架构 |
+| 3 | **OuterTune** | 完整功能集、Material 3 实现 |
+| 4 | **RetroMusicPlayer** | 功能最完整参考 |
+| 5 | **OmarNofal/Material-3-Music-Player** | 基础 Compose UI 组件 |
+
+### 推荐技术栈组合（FreeMusic）
+
+```
+音频播放:     Media3 ExoPlayer (AndroidX)
+歌词:         LRCLIB API (同步) + lyrics.ovh (兜底)
+搜索/元数据:   Deezer API (无需 Key) + Spotify Web API (注册免费)
+华语补充:     QQ Music 非官方 API (自部署)
+UI 框架:     Jetpack Compose + Material 3
+状态管理:     ViewModel + StateFlow
+DI:          Hilt 或 Koin
+本地存储:     Room Database
+图片加载:     Coil (Compose 友好)
+```
+
+---
+
+## 13. 更新日志
+
+### 2026-04-10 (本次更新)
+
+**新增内容**:
+- YouTube Music 生态项目: InnerTune, ViMusic, SimpMusic, Spotube
+- QQ Music / 咪咕音乐 API（非官方）详解
+- lyrics.ovh 免费歌词 API（对比 LRCLIB）
+- Orthrus-Android 调查结果（未找到）
+- UI/UX 设计趋势详细分析
+- Material 3 Music Player by OmarNofal
+- 综合 API + 开源项目最终推荐表
+- FreeMusic 推荐技术栈组合
+
+**API 优先级最终推荐**:
+1. 音频: **Deezer API**（无需 Key）+ **QQ Music 非官方 API**（自部署，华语）
+2. 歌词: **LRCLIB**（同步歌词）+ **lyrics.ovh**（兜底）
+3. 流媒体架构参考: **InnerTune / OuterTune**（YouTube Music）
+
+*研究完成时间: 2026-04-10 00:08 GMT+8*

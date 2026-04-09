@@ -1,98 +1,78 @@
 package com.freemusic.presentation.ui.player.visualizer
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.dp
 import kotlin.math.*
-import kotlin.random.Random
 
 /**
  * 3D频谱可视化器
  */
 @Composable
-fun Spectrum3DVisualizer(
+fun SpectrumBars3D(
     amplitudes: List<Float>,
     modifier: Modifier = Modifier,
     barColor: Color = Color(0xFF6366F1),
     barCount: Int = 32
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "spectrum_3d")
-    
-    val animatedAmplitudes = remember {
-        mutableStateListOf<Float>().apply {
-            repeat(barCount) { add(0.1f) }
-        }
-    }
-    
-    LaunchedEffect(amplitudes) {
-        if (amplitudes.isNotEmpty()) {
-            amplitudes.forEachIndexed { index, amp ->
-                if (index < animatedAmplitudes.size) {
-                    animatedAmplitudes[index] = amp.coerceIn(0.1f, 1f)
-                }
-            }
-        }
-    }
-    
-    val phase by infiniteTransition.animateFloat(
+    val infiniteTransition = rememberInfiniteTransition(label = "spectrum")
+    val time by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 2f * PI.toFloat(),
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(500),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "phase"
+        label = "time"
     )
-
-    Canvas(modifier = modifier) {
-        val barWidth = size.width / barCount
-        val maxBarHeight = size.height * 0.8f
-        
-        animatedAmplitudes.forEachIndexed { index, amplitude ->
-            val x = index * barWidth
+    
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val barWidth = size.width / barCount
+            val maxHeight = size.height * 0.8f
             
-            // 3D效果 - 多层叠加
-            for (layer in 0..2) {
-                val layerOffset = layer * 3f
-                val alpha = 1f - (layer * 0.25f)
-                val depth = 8f - (layer * 2f)
+            for (index in 0 until barCount) {
+                val amplitude = amplitudes.getOrElse(index) { 0.3f }
+                val animatedAmp = amplitude * (0.7f + time * 0.3f * ((index % 3) + 1) / 3f)
                 
-                // 计算高度
-                val waveOffset = sin(phase + index * 0.3f) * 0.1f
-                val height = (amplitude + waveOffset) * maxBarHeight
+                val barHeight = maxHeight * animatedAmp.coerceIn(0.1f, 1f)
                 
-                // 绘制3D柱体
-                val color = barColor.copy(alpha = alpha)
-                
-                // 正面
+                // 3D效果 - 背面
                 drawRect(
-                    color = color,
-                    topLeft = Offset(x + layerOffset, size.height - height),
-                    size = Size(barWidth * 0.7f, height)
+                    color = barColor.copy(alpha = 0.3f),
+                    topLeft = Offset(index * barWidth + 2, size.height - barHeight + 4),
+                    size = Size(barWidth - 4, barHeight)
                 )
                 
-                // 顶面
+                // 主条
                 drawRect(
-                    color = color.copy(alpha = alpha * 0.8f),
-                    topLeft = Offset(x + layerOffset, size.height - height),
-                    size = Size(barWidth * 0.7f, 4f)
-                )
-                
-                // 侧面
-                drawRect(
-                    color = color.copy(alpha = alpha * 0.6f),
-                    topLeft = Offset(x + layerOffset + barWidth * 0.7f, size.height - height),
-                    size = Size(depth, height)
+                    brush = Brush.verticalGradient(
+                        colors = listOf(barColor, barColor.copy(alpha = 0.5f)),
+                        startY = size.height - barHeight,
+                        endY = size.height
+                    ),
+                    topLeft = Offset(index * barWidth, size.height - barHeight),
+                    size = Size(barWidth - 4, barHeight)
                 )
             }
         }
@@ -100,17 +80,15 @@ fun Spectrum3DVisualizer(
 }
 
 /**
- * 圆形玫瑰花瓣可视化器
+ * 圆形玫瑰图可视化器
  */
 @Composable
-fun CircularRoseVisualizer(
+fun AudioRoseChart(
     amplitudes: List<Float>,
     modifier: Modifier = Modifier,
-    primaryColor: Color = Color(0xFF6366F1),
-    secondaryColor: Color = Color(0xFFEC4899)
+    primaryColor: Color = Color(0xFF6366F1)
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "circular_rose")
-    
+    val infiniteTransition = rememberInfiniteTransition(label = "rose")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
@@ -120,145 +98,102 @@ fun CircularRoseVisualizer(
         ),
         label = "rotation"
     )
-
-    Canvas(modifier = modifier) {
-        val centerX = size.width / 2
-        val centerY = size.height / 2
-        val maxRadius = minOf(centerX, centerY) * 0.8f
-        
-        // 绘制多个花瓣层
-        for (layer in 0..3) {
-            val layerAlpha = 1f - (layer * 0.2f)
-            val layerRadius = maxRadius * (1f - layer * 0.15f)
-            val petalCount = 6 + layer * 2
+    
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .size(250.dp)
+                .rotate(rotation)
+        ) {
+            val centerX = size.width / 2
+            val centerY = size.height / 2
+            val maxRadius = size.minDimension / 2 - 20
             
-            for (i in 0 until petalCount) {
-                val angle = (i * 360f / petalCount) + rotation + (layer * 15f)
-                val amplitude = if (amplitudes.isNotEmpty()) {
-                    amplitudes[i % amplitudes.size]
-                } else 0.3f
+            for (index in 0 until 64) {
+                val angle = (index * 360f / 64) * (PI / 180f)
+                val amplitude = amplitudes.getOrElse(index) { 0.5f }
+                val radius = maxRadius * amplitude.coerceIn(0.1f, 1f)
                 
-                val petalLength = layerRadius * (0.5f + amplitude * 0.5f)
-                val petalWidth = 20f + amplitude * 30f
+                val x = centerX + radius * cos(angle).toFloat()
+                val y = centerY + radius * sin(angle).toFloat()
                 
-                val path = Path().apply {
-                    val startAngle = Math.toRadians(angle - 90.0)
-                    val midAngle = Math.toRadians(angle - 45.0)
-                    val endAngle = Math.toRadians(angle.toDouble())
-                    
-                    val startX = centerX + cos(startAngle).toFloat() * layerRadius * 0.3f
-                    val startY = centerY + sin(startAngle).toFloat() * layerRadius * 0.3f
-                    
-                    val tipX = centerX + cos(endAngle).toFloat() * petalLength
-                    val tipY = centerY + sin(endAngle).toFloat() * petalLength
-                    
-                    val controlX = centerX + cos(midAngle).toFloat() * petalLength * 0.7f
-                    val controlY = centerY + sin(midAngle).toFloat() * petalLength * 0.7f
-                    
-                    moveTo(startX, startY)
-                    quadraticBezierTo(controlX, controlY, tipX, tipY)
-                    quadraticBezierTo(
-                        centerX + cos(Math.toRadians(angle + 45.0)).toFloat() * petalLength * 0.7f,
-                        centerY + sin(Math.toRadians(angle + 45.0)).toFloat() * petalLength * 0.7f,
-                        startX, startY
-                    )
-                    close()
-                }
+                val particleSize = 8f + amplitude * 12f
                 
-                val gradient = Brush.radialGradient(
-                    colors = listOf(
-                        if (layer % 2 == 0) primaryColor else secondaryColor,
-                        (if (layer % 2 == 0) primaryColor else secondaryColor).copy(alpha = 0.3f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.8f),
+                            primaryColor.copy(alpha = 0.2f)
+                        ),
+                        center = Offset(centerX, centerY),
+                        radius = maxRadius
                     ),
-                    center = Offset(centerX, centerY),
-                    radius = petalLength
-                )
-                
-                drawPath(
-                    path = path,
-                    brush = gradient,
-                    alpha = layerAlpha * (0.5f + amplitude * 0.5f)
+                    radius = particleSize,
+                    center = Offset(x, y)
                 )
             }
-        }
-        
-        // 中心圆
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    primaryColor.copy(alpha = 0.8f),
-                    primaryColor.copy(alpha = 0.2f)
+            
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(primaryColor, primaryColor.copy(alpha = 0.3f))
                 ),
-                center = Offset(centerX, centerY),
-                radius = maxRadius * 0.2f
-            ),
-            radius = maxRadius * 0.15f,
-            center = Offset(centerX, centerY)
-        )
+                radius = 30f,
+                center = Offset(centerX, centerY)
+            )
+        }
     }
 }
 
 /**
- * 波浪线可视化器
+ * 波形可视化器
  */
 @Composable
 fun WaveformVisualizer(
     amplitudes: List<Float>,
     modifier: Modifier = Modifier,
-    waveColor: Color = Color(0xFF6366F1),
-    backgroundColor: Color = Color.Transparent
+    waveColor: Color = Color(0xFF6366F1)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "waveform")
-    
     val phase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 2f * PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
+            animation = tween(2000),
             repeatMode = RepeatMode.Restart
         ),
         label = "phase"
     )
     
-    Canvas(modifier = modifier) {
-        val centerY = size.height / 2
-        val maxAmplitude = size.height / 2 * 0.8f
-        
-        // 背景
-        if (backgroundColor != Color.Transparent) {
-            drawRect(backgroundColor)
-        }
-        
-        // 绘制多层波浪
-        for (layer in 0..2) {
-            val layerPhase = phase + (layer * PI.toFloat() / 3f)
-            val layerAlpha = 1f - (layer * 0.3f)
-            val layerAmplitude = maxAmplitude * (1f - layer * 0.2f)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val centerY = size.height / 2
+            val amplitude = size.height * 0.3f
             
-            val path = Path().apply {
-                moveTo(0f, centerY)
+            val path = Path()
+            path.moveTo(0f, centerY)
+            
+            for (x in 0..size.width.toInt() step 2) {
+                val normalizedX = x / size.width
+                val wave1 = sin((normalizedX * 4 * PI + phase).toDouble()).toFloat() * amplitude * 0.5f
+                val wave2 = sin((normalizedX * 8 * PI + phase * 1.5).toDouble()).toFloat() * amplitude * 0.3f
                 
-                for (x in 0..size.width.toInt() step 2) {
-                    val index = x.toFloat() / size.width
-                    val amp = if (amplitudes.isNotEmpty()) {
-                        amplitudes[(x / 2) % amplitudes.size]
-                    } else 0.3f
-                    
-                    val wave = sin(index * 8 * PI.toFloat() + layerPhase) * amp
-                    val y = centerY - (wave * layerAmplitude)
-                    
-                    if (x == 0) {
-                        moveTo(x.toFloat(), y)
-                    } else {
-                        lineTo(x.toFloat(), y)
-                    }
-                }
+                val y = centerY + wave1 + wave2
+                path.lineTo(x.toFloat(), y)
             }
             
             drawPath(
                 path = path,
-                color = waveColor.copy(alpha = layerAlpha),
-                style = Stroke(width = 3f - layer)
+                color = waveColor,
+                style = Stroke(width = 3f)
             )
         }
     }
@@ -271,122 +206,60 @@ fun WaveformVisualizer(
 fun ParticleRingVisualizer(
     amplitudes: List<Float>,
     modifier: Modifier = Modifier,
-    primaryColor: Color = Color(0xFF6366F1),
-    particleCount: Int = 60
+    primaryColor: Color = Color(0xFF6366F1)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "particle_ring")
-    
-    val rotation by infiniteTransition.animateFloat(
+    val time by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 360f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(10000, easing = LinearEasing),
+            animation = tween(3000),
             repeatMode = RepeatMode.Restart
         ),
-        label = "rotation"
+        label = "time"
     )
     
-    val pulse by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-
-    Canvas(modifier = modifier) {
-        val centerX = size.width / 2
-        val centerY = size.height / 2
-        val maxRadius = minOf(centerX, centerY) * 0.7f
-        
-        // 绘制多个圆环
-        for (ring in 0..2) {
-            val ringRadius = maxRadius * (0.6f + ring * 0.2f)
-            val ringAlpha = 1f - (ring * 0.3f)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(300.dp)) {
+            val centerX = size.width / 2
+            val centerY = size.height / 2
+            val baseRadius = size.minDimension / 3
             
-            // 绘制粒子点
-            for (i in 0 until particleCount / 3) {
-                val angle = (i * 360f / (particleCount / 3)) + rotation + (ring * 30f)
-                val amplitude = if (amplitudes.isNotEmpty()) {
-                    amplitudes[i % amplitudes.size]
-                } else 0.5f
+            for (ring in 0..2) {
+                val ringRadius = baseRadius + ring * 30
+                val particleCount = 32 + ring * 8
                 
-                val rad = Math.toRadians(angle.toDouble())
-                val distance = ringRadius + (amplitude * 30f * pulse)
-                
-                val x = centerX + cos(rad).toFloat() * distance
-                val y = centerY + sin(rad).toFloat() * distance
-                
-                val particleSize = 4f + amplitude * 8f
-                
-                // 绘制粒子光晕
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            primaryColor,
-                            primaryColor.copy(alpha = 0f)
+                for (index in 0 until particleCount) {
+                    val angle = (index * 360f / particleCount + time * 360 * (if (ring % 2 == 0) 1 else -1)) * (PI / 180f)
+                    val wobble = sin((time * 4 * PI + index * 0.5).toDouble()).toFloat() * 10f
+                    val radius = ringRadius + wobble
+                    
+                    val x = centerX + radius * cos(angle).toFloat()
+                    val y = centerY + radius * sin(angle).toFloat()
+                    
+                    val amplitude = amplitudes.getOrElse(index % amplitudes.size) { 0.5f }
+                    val particleSize = 4f + amplitude * 8f
+                    
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.8f - ring * 0.2f),
+                                Color.Transparent
+                            ),
+                            center = Offset(x, y),
+                            radius = particleSize * 2
                         ),
-                        center = Offset(x, y),
-                        radius = particleSize * 2
-                    ),
-                    radius = particleSize * 2,
-                    center = Offset(x, y)
-                )
-                
-                // 绘制粒子核心
-                drawCircle(
-                    color = Color.White,
-                    radius = particleSize * 0.3f,
-                    center = Offset(x, y)
-                )
-            }
-            
-            // 绘制连接线
-            for (i in 0 until particleCount / 3) {
-                val angle1 = (i * 360f / (particleCount / 3)) + rotation + (ring * 30f)
-                val amplitude1 = if (amplitudes.isNotEmpty()) amplitudes[i % amplitudes.size] else 0.5f
-                
-                val rad1 = Math.toRadians(angle1.toDouble())
-                val dist1 = ringRadius + (amplitude1 * 30f * pulse)
-                
-                val x1 = centerX + cos(rad1).toFloat() * dist1
-                val y1 = centerY + sin(rad1).toFloat() * dist1
-                
-                // 连接到下一个点
-                val nextI = (i + 1) % (particleCount / 3)
-                val angle2 = ((nextI) * 360f / (particleCount / 3)) + rotation + (ring * 30f)
-                val amplitude2 = if (amplitudes.isNotEmpty()) amplitudes[nextI % amplitudes.size] else 0.5f
-                
-                val rad2 = Math.toRadians(angle2.toDouble())
-                val dist2 = ringRadius + (amplitude2 * 30f * pulse)
-                
-                val x2 = centerX + cos(rad2).toFloat() * dist2
-                val y2 = centerY + sin(rad2).toFloat() * dist2
-                
-                drawLine(
-                    color = primaryColor.copy(alpha = ringAlpha * 0.3f * amplitude1),
-                    start = Offset(x1, y1),
-                    end = Offset(x2, y2),
-                    strokeWidth = 1f
-                )
+                        radius = particleSize,
+                        center = Offset(x, y)
+                    )
+                }
             }
         }
-        
-        // 中心发光
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    primaryColor.copy(alpha = 0.5f),
-                    Color.Transparent
-                ),
-                center = Offset(centerX, centerY),
-                radius = maxRadius * 0.3f
-            ),
-            radius = maxRadius * 0.3f * pulse,
-            center = Offset(centerX, centerY)
-        )
     }
 }
 
@@ -400,118 +273,104 @@ fun PulseRingVisualizer(
     primaryColor: Color = Color(0xFF6366F1)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_ring")
-    
-    val globalPulse by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.1f,
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(1500),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "global_pulse"
+        label = "pulse"
     )
-
-    Canvas(modifier = modifier) {
-        val centerX = size.width / 2
-        val centerY = size.height / 2
-        val maxRadius = minOf(centerX, centerY) * 0.8f
+    
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f)),
+        contentAlignment = Alignment.Center
+    ) {
+        val avgAmplitude = amplitudes.take(8).average().toFloat()
         
-        val avgAmplitude = if (amplitudes.isNotEmpty()) amplitudes.average().toFloat() else 0.5f
-        
-        // 绘制多个脉冲环
-        for (ring in 5 downTo 0) {
-            val ringDelay = ring * 0.15f
-            val animatedScale = globalPulse - ringDelay
-            val ringRadius = maxRadius * animatedScale
+        for (ringIndex in 0..2) {
+            val ringPulse = (pulse + ringIndex * 0.33f) % 1f
+            val alpha = 0.6f - ringIndex * 0.15f - ringPulse * 0.3f
+            val scale = 0.3f + ringIndex * 0.2f + ringPulse * 0.5f + avgAmplitude * 0.2f
             
-            val ringAlpha = ((1f - ringDelay) * 0.3f * avgAmplitude).coerceIn(0f, 0.5f)
-            
-            drawCircle(
-                color = primaryColor.copy(alpha = ringAlpha),
-                radius = ringRadius,
-                center = Offset(centerX, centerY),
-                style = Stroke(width = 3f)
-            )
-        }
-        
-        // 频谱条
-        val barCount = 8
-        val barLength = maxRadius * 0.3f
-        
-        for (i in 0 until barCount) {
-            val angle = (i * 360f / barCount) - 90f
-            val amplitude = if (amplitudes.isNotEmpty()) {
-                amplitudes[i % amplitudes.size]
-            } else 0.5f
-            
-            val rad = Math.toRadians(angle.toDouble())
-            val barHeight = barLength * amplitude
-            
-            val startX = centerX + cos(rad).toFloat() * maxRadius * 0.5f
-            val startY = centerY + sin(rad).toFloat() * maxRadius * 0.5f
-            val endX = centerX + cos(rad).toFloat() * (maxRadius * 0.5f + barHeight)
-            val endY = centerY + sin(rad).toFloat() * (maxRadius * 0.5f + barHeight)
-            
-            drawLine(
-                color = primaryColor,
-                start = Offset(startX, startY),
-                end = Offset(endX, endY),
-                strokeWidth = 6f,
-                cap = StrokeCap.Round
-            )
-        }
-        
-        // 中心圆
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    primaryColor,
-                    primaryColor.copy(alpha = 0.3f)
+            Canvas(modifier = Modifier.size(250.dp)) {
+                val centerX = size.width / 2
+                val centerY = size.height / 2
+                val maxRadius = size.minDimension / 2 * scale
+                
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = alpha.coerceAtLeast(0.1f)),
+                            primaryColor.copy(alpha = 0f)
+                        )
+                    ),
+                    radius = maxRadius,
+                    center = Offset(centerX, centerY),
+                    style = Stroke(width = 3f)
                 )
-            ),
-            radius = maxRadius * 0.15f,
-            center = Offset(centerX, centerY)
-        )
+            }
+        }
     }
 }
 
 /**
- * 音频数据生成器（模拟）
+ * 音频波形圆形
  */
-object AudioDataGenerator {
+@Composable
+fun AudioWaveCircle(
+    amplitudes: List<Float>,
+    modifier: Modifier = Modifier,
+    primaryColor: Color = Color(0xFF6366F1)
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "wave_circle")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(10000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
     
-    fun generateSineWave(sampleCount: Int, frequency: Float = 0.1f): List<Float> {
-        return (0 until sampleCount).map { i ->
-            val t = i.toFloat() / sampleCount
-            (sin(t * frequency * 2 * PI.toFloat()) + 1f) / 2f
-        }
-    }
-    
-    fun generateMusicWave(sampleCount: Int): List<Float> {
-        return (0 until sampleCount).map { i ->
-            val base = Random.nextFloat() * 0.3f
-            val wave1 = sin(i.toFloat() * 0.2f) * 0.3f
-            val wave2 = sin(i.toFloat() * 0.5f) * 0.2f
-            val noise = Random.nextFloat() * 0.2f
-            (base + wave1 + wave2 + noise).coerceIn(0.1f, 1f)
-        }
-    }
-    
-    fun generateBeatWave(sampleCount: Int, bpm: Float = 120f): List<Float> {
-        val beatInterval = 60f / bpm
-        return (0 until sampleCount).map { i ->
-            val t = i.toFloat() / sampleCount
-            val beatPhase = (t % beatInterval) / beatInterval
-            val beat = if (beatPhase < 0.1f) 1f else 0.2f
-            (beat + Random.nextFloat() * 0.2f).coerceIn(0.1f, 1f)
-        }
-    }
-    
-    fun generateFrequencyBars(barCount: Int, intensity: Float = 1f): List<Float> {
-        return (0 until barCount).map { i ->
-            val base = Random.nextFloat()
-            val frequency = sin(i.toFloat() / barCount * PI.toFloat())
-            (base * 0.3f + frequency * 0.5f + 0.2f) * intensity
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.3f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .size(280.dp)
+                .rotate(rotation)
+        ) {
+            val centerX = size.width / 2
+            val centerY = size.height / 2
+            val baseRadius = size.minDimension / 3
+            
+            val barCount = amplitudes.size.coerceIn(16, 64)
+            
+            for (i in 0 until barCount) {
+                val angle = (i * 360f / barCount) * (PI / 180f)
+                val amplitude = amplitudes.getOrElse(i % amplitudes.size) { 0.5f }
+                val barLength = baseRadius * amplitude.coerceIn(0.2f, 1f)
+                
+                val startX = centerX + baseRadius * cos(angle).toFloat()
+                val startY = centerY + baseRadius * sin(angle).toFloat()
+                val endX = centerX + (baseRadius + barLength) * cos(angle).toFloat()
+                val endY = centerY + (baseRadius + barLength) * sin(angle).toFloat()
+                
+                drawLine(
+                    color = primaryColor.copy(alpha = 0.5f + amplitude * 0.5f),
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = 4f + amplitude * 4f
+                )
+            }
         }
     }
 }

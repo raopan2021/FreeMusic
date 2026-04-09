@@ -31,6 +31,7 @@ import com.freemusic.presentation.viewmodel.PlayerViewModel
 @Composable
 fun PlayerScreen(
     onBackClick: () -> Unit,
+    onQueueClick: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -99,6 +100,15 @@ fun PlayerScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onQueueClick) {
+                        Icon(
+                            imageVector = Icons.Default.QueueMusic,
+                            contentDescription = "播放队列",
                             tint = Color.White
                         )
                     }

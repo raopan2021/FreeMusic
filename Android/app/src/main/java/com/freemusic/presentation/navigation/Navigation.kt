@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.freemusic.presentation.ui.home.HomeScreen
 import com.freemusic.presentation.ui.player.PlayerScreen
+import com.freemusic.presentation.ui.queue.QueueScreen
 import com.freemusic.presentation.ui.search.SearchScreen
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 
@@ -15,6 +16,7 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object Search : Screen("search")
     data object Player : Screen("player")
+    data object Queue : Screen("queue")
 }
 
 @Composable
@@ -45,7 +47,17 @@ fun FreeMusicNavHost(
         composable(Screen.Player.route) {
             PlayerScreen(
                 onBackClick = { navController.popBackStack() },
+                onQueueClick = { navController.navigate(Screen.Queue.route) },
                 viewModel = playerViewModel
+            )
+        }
+        composable(Screen.Queue.route) {
+            QueueScreen(
+                onBackClick = { navController.popBackStack() },
+                onSongClick = { index ->
+                    playerViewModel.playFromQueue(index)
+                    navController.popBackStack()
+                }
             )
         }
     }

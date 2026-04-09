@@ -131,6 +131,14 @@ class PlayerViewModel @Inject constructor(
         playSong(songs[startIndex])
     }
 
+    fun playFromQueue(index: Int) {
+        val playlist = _uiState.value.playlist
+        if (index in playlist.indices) {
+            _uiState.update { it.copy(currentIndex = index) }
+            playSong(playlist[index])
+        }
+    }
+
     private fun playMediaItem(songWithUrl: SongWithUrl) {
         mediaController?.let { controller ->
             val mediaItem = MediaItem.Builder()

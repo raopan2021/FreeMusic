@@ -1,3 +1,6 @@
+
+
+
 # FreeMusic - Android 音乐播放器
 
 一个基于 Jetpack Compose 的第三方网易云音乐 Android 客户端。
@@ -45,13 +48,65 @@
 
 ## 📋 功能规划
 
-### 🔜 下一步开发
-- [ ] 桌面组件 (Widget)
+### 🔜 高优先级
+- [ ] **歌单添加歌曲选择器** - 搜索页选择歌曲添加到歌单
+- [ ] **自定义主题色** - RGB颜色选择器，预设主题色
+- [ ] **播放历史加入歌单** - 历史歌曲可添加到歌单
+- [ ] **本地音乐播放稳定性** - MediaController 就绪等待机制
+- [ ] **外部音频打开稳定性** - Intent 处理机制完善
+
+### 🎵 播放体验
+- [ ] 播放速度控制（0.5x - 2.0x）
+- [ ] 睡眠定时器（15/30/45/60/90分钟）
+- [ ] 跳过静音 (Skip Silence)
+- [ ] 耳机控制优化（单击/双击/三击）
+- [ ] 蓝牙切歌支持
+- [ ] 播放队列管理（拖拽排序）
+
+### 🎤 歌词与评论
+- [ ] 歌词翻译/双语歌词
+- [ ] 歌词编辑/纠错
+- [ ] 歌曲评论查看
+- [ ] 锁屏歌词显示 (MediaSession)
+
+### 📊 数据统计
+- [ ] 听歌时长统计
+- [ ] 播放次数统计
+- [ ] 最近播放/常听歌曲
+- [ ] 每日推荐算法
+
+### 🖼️ UI/UX 优化
+- [ ] 渐变背景效果
+- [ ] 封面模糊背景
+- [ ] 深色/纯黑主题细化
+- [ ] 动态主题色 (Material You)
+- [ ] 动画过渡效果优化
+
+### 🗂️ 音乐库管理
+- [ ] 文件夹浏览模式
+- [ ] 艺术家视图
+- [ ] 专辑视图
+- [ ] 批量编辑（多选）
+- [ ] 歌曲信息编辑（标题/艺术家/专辑）
+
+### 📱 系统集成
+- [ ] 桌面组件 (Widget) - 4x1/4x2 尺寸
+- [ ] Android Auto 支持
 - [ ] 锁屏显示控制
 - [ ] 灵动岛 (Dynamic Island) 支持
 - [ ] 状态栏歌词
-- [ ] 自定义主题色
-- [ ] 歌单添加歌曲选择器
+- [ ] 通知栏沉浸模式
+
+### 🔊 音频增强
+- [ ] 系统均衡器集成
+- [ ] 音量平衡调节
+- [ ] 音频闪避 (Audio Ducking)
+- [ ] 声道平衡
+
+### 🌐 社交功能
+- [ ] 歌单分享
+- [ ] 分享到社交平台
+- [ ] 歌单分类浏览
 
 ### ⚠️ 待解决/注意事项
 - [ ] 版权合规 - 所有音乐来源需合法，避免侵权问题
@@ -60,10 +115,10 @@
 - [ ] 权限授予 - 部分设备权限弹窗可能不生效
 
 ### 📝 长期规划
-- [ ] 听歌统计与每日推荐
-- [ ] 歌词翻译（双语歌词）
-- [ ] 睡眠定时器
-- [ ] 蓝牙控制优化
+- [ ] ChromeCast 支持
+- [ ] 铃声制作
+- [ ] 音频格式转换
+- [ ] 云端同步（收藏/歌单）
 
 ## 🛠️ 技术栈
 
@@ -114,6 +169,10 @@ Android/
 ## 🔗 参考项目
 
 - [aura-music](https://github.com/dingyi222666/aura-music) - Web 音乐播放器，API 方案参考
+- [RetroMusicPlayer](https://github.com/RetroMusicPlayer/RetroMusicPlayer) - Material You 设计参考
+- [MusicLake](https://github.com/Moriafly/MusicLake) - 本地音乐处理参考
+- [ViMusic](https://github.com/vfsfitvnm/vimusic) - Jetpack Compose 参考
+- [SimpMusic](https://github.com/maxrave-dev/SimpMusic) - YouTube Music 集成参考
 - [NetEaseCloudMusicApi](https://github.com/Binaryify/NeteaseCloudMusicApi) - 网易云音乐 Node.js API
 
 ## 📄 License

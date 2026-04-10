@@ -135,9 +135,6 @@ fun FreeMusicNavHost(
                 isLoading = searchState.isLoading,
                 onSongClick = { song ->
                     playerViewModel.playSong(song)
-                    if (autoPlay) {
-                        playerViewModel.togglePlayPause()
-                    }
                     navController.navigate(Screen.Player.route)
                 },
                 onPlaylistClick = { navController.navigate(Screen.Playlist.route) },
@@ -241,9 +238,6 @@ fun FreeMusicNavHost(
                 onBackClick = { navController.popBackStack() },
                 onSongClick = { song ->
                     playerViewModel.playSong(song)
-                    if (autoPlay) {
-                        playerViewModel.togglePlayPause()
-                    }
                     navController.navigate(Screen.Player.route)
                 },
                 viewModel = localMusicViewModel
@@ -279,9 +273,6 @@ fun FreeMusicNavHost(
                     onBackClick = { navController.popBackStack() },
                     onSongClick = { song ->
                         playerViewModel.playSong(song)
-                        if (autoPlay) {
-                            playerViewModel.togglePlayPause()
-                        }
                         navController.navigate(Screen.Player.route)
                     },
                     onAddSongs = {
@@ -305,9 +296,6 @@ fun FreeMusicNavHost(
                 onBackClick = { navController.popBackStack() },
                 onSongClick = { song ->
                     playerViewModel.playSong(song)
-                    if (autoPlay) {
-                        playerViewModel.togglePlayPause()
-                    }
                     navController.navigate(Screen.Player.route)
                 },
                 onAddToPlaylist = { song ->

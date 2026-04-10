@@ -7,12 +7,10 @@ import com.freemusic.domain.model.Song
 import com.freemusic.domain.repository.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,7 +65,7 @@ class SearchViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
-                // 保存搜索历史（使用 withContext 避免阻塞）
+                // 保存搜索历史
                 withContext(Dispatchers.IO) {
                     try {
                         localDataSource.addSearchHistory(query)
@@ -76,45 +74,39 @@ class SearchViewModel @Inject constructor(
                     }
                 }
                 
-                // 搜索（使用 firstOrNull 获取一次结果）
+                // 搜索 - 使用 first() 而不是 firstOrNull() 确保能取到结果
                 val result = withContext(Dispatchers.IO) {
                     try {
-                        musicRepository.searchSongs(query).firstOrNull()
+                        musicRepository.searchSongs(query).first()
                     } catch (e: Exception) {
-                        null
+                        // 搜索失败返回空结果
+                        Result.success(com.freemusic.domain.model.SearchResult(
+                            songs = emptyList(),
+                            hasMore = false,
+                            total = 0
+                        ))
                     }
                 }
                 
-                if (result != null) {
-                    result.fold(
-                        onSuccess = { searchResult ->
-                            _uiState.update { 
-                                it.copy(
-                                    results = searchResult.songs,
-                                    isLoading = false
-                                )
-                            }
-                        },
-                        onFailure = { error ->
-                            _uiState.update { 
-                                it.copy(
-                                    error = error.message,
-                                    isLoading = false,
-                                    results = emptyList()
-                                )
-                            }
+                result.fold(
+                    onSuccess = { searchResult ->
+                        _uiState.update { 
+                            it.copy(
+                                results = searchResult.songs,
+                                isLoading = false
+                            )
                         }
-                    )
-                } else {
-                    // 网络错误，返回空结果
-                    _uiState.update { 
-                        it.copy(
-                            error = "网络请求失败，请检查网络连接",
-                            isLoading = false,
-                            results = emptyList()
-                        )
+                    },
+                    onFailure = { error ->
+                        _uiState.update { 
+                            it.copy(
+                                error = error.message,
+                                isLoading = false,
+                                results = emptyList()
+                            )
+                        }
                     }
-                }
+                )
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
@@ -134,13 +126,13 @@ class SearchViewModel @Inject constructor(
             try {
                 val result = withContext(Dispatchers.IO) {
                     try {
-                        musicRepository.getPlaylist(playlistId).firstOrNull()
+                        musicRepository.getPlaylist(playlistId).first()
                     } catch (e: Exception) {
-                        null
+                        Result.failure(e)
                     }
                 }
                 
-                result?.fold(
+                result.fold(
                     onSuccess = { playlist ->
                         _uiState.update { 
                             it.copy(
@@ -157,7 +149,7 @@ class SearchViewModel @Inject constructor(
                             )
                         }
                     }
-                ) ?: _uiState.update { it.copy(isLoading = false) }
+                )
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(

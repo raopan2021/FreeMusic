@@ -9,8 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.freemusic.presentation.navigation.FreeMusicNavHost
 import com.freemusic.presentation.theme.FreeMusicTheme
@@ -20,12 +19,16 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
+    // 使用 mutableStateOf 确保 recomposition
+    private val _pendingAudioUri = androidx.compose.runtime.mutableStateOf<Uri?>(null)
+    private val pendingAudioUri: Uri? get() = _pendingAudioUri.value
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // 处理音频文件intent - 传递给 NavHost 处理
-        val pendingAudioUri = handleAudioIntent(intent)
+        // 处理初始音频文件intent
+        _pendingAudioUri.value = handleAudioIntent(intent)
         
         setContent {
             val settingsViewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
@@ -72,7 +75,9 @@ class MainActivity : ComponentActivity() {
                         lyricsFontSize = lyricsFontSize,
                         // 处理外部音频文件
                         pendingAudioUri = pendingAudioUri,
-                        onPendingAudioUriConsumed = { }
+                        onPendingAudioUriConsumed = { 
+                            _pendingAudioUri.value = null 
+                        }
                     )
                 }
             }
@@ -81,8 +86,11 @@ class MainActivity : ComponentActivity() {
     
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // 处理新的音频文件intent - 会被 NavHost 的 LaunchedEffect 捕获
-        setIntent(intent)
+        // 处理新的音频文件intent
+        val uri = handleAudioIntent(intent)
+        if (uri != null) {
+            _pendingAudioUri.value = uri
+        }
     }
     
     private fun handleAudioIntent(intent: Intent?): Uri? {

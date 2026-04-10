@@ -38,8 +38,7 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp)
-            .clickable(onClick = onPlayerClick)
-            .navigationBarsPadding(),
+            .clickable(onClick = onPlayerClick),
         tonalElevation = 4.dp,
         shadowElevation = 4.dp
     ) {

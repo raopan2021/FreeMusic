@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,7 +41,7 @@ fun LocalMusicScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     
-    // 使用 rememberUpdatedState 确保状态变化能触发 recomposition
+    // 权限状态
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -50,32 +51,19 @@ fun LocalMusicScreen(
         )
     }
     
-    // 权限请求回调
-    val permissionCallback: (Boolean) -> Unit = { granted ->
-        hasPermission = granted
-        if (granted) {
-            viewModel.scanLocalMusic()
-        }
-    }
-    
     // 权限请求 launcher
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = permissionCallback
-    )
-    
-    // 首次检查权限 - 使用 LaunchedEffect 确保只在组合时执行一次
-    LaunchedEffect(Unit) {
-        if (!hasPermission) {
-            permissionLauncher.launch(permission)
-        } else {
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasPermission = isGranted
+        if (isGranted) {
             viewModel.scanLocalMusic()
         }
     }
     
-    // 当权限状态变化时重新检查
-    LaunchedEffect(hasPermission) {
-        if (hasPermission && uiState.songs.isEmpty()) {
+    // 首次加载时检查权限并扫描
+    LaunchedEffect(Unit) {
+        if (hasPermission) {
             viewModel.scanLocalMusic()
         }
     }
@@ -86,7 +74,7 @@ fun LocalMusicScreen(
                 title = { Text("本地音乐") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -107,127 +95,38 @@ fun LocalMusicScreen(
             when {
                 !hasPermission -> {
                     // 没有权限
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FolderOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "需要存储权限",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "请授予存储权限以扫描本地音乐",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Button(
-                            onClick = { permissionLauncher.launch(permission) }
-                        ) {
-                            Text("授予权限")
+                    PermissionRequest(
+                        onRequestPermission = {
+                            permissionLauncher.launch(permission)
                         }
-                    }
+                    )
                 }
                 
                 uiState.isLoading -> {
                     // 加载中
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(color = PrimaryIndigo)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "正在扫描本地音乐...",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        if (uiState.scannedCount > 0) {
-                            Text(
-                                text = "已扫描 ${uiState.scannedCount} 首",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    LoadingState(scannedCount = uiState.scannedCount)
+                }
+                
+                uiState.error != null -> {
+                    // 错误状态
+                    ErrorState(
+                        error = uiState.error!!,
+                        onRetry = { viewModel.scanLocalMusic() }
+                    )
                 }
                 
                 uiState.songs.isEmpty() -> {
                     // 没有音乐
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicOff,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "没有找到本地音乐",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "请将音乐文件放入手机存储的Music文件夹",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        OutlinedButton(onClick = { viewModel.scanLocalMusic() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("重新扫描")
-                        }
-                    }
+                    EmptyState(onRetry = { viewModel.scanLocalMusic() })
                 }
                 
                 else -> {
                     // 显示音乐列表
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        item {
-                            ListItem(
-                                headlineContent = { Text("共 ${uiState.songs.size} 首歌曲") },
-                                supportingContent = { Text("总时长: ${uiState.totalDuration}") },
-                                leadingContent = {
-                                    Icon(
-                                        imageVector = Icons.Default.MusicNote,
-                                        contentDescription = null,
-                                        tint = PrimaryIndigo
-                                    )
-                                }
-                            )
-                            Divider()
-                        }
-                        
-                        items(uiState.songs) { song ->
-                            LocalMusicItem(
-                                song = song,
-                                onClick = { onSongClick(song) }
-                            )
-                        }
-                    }
+                    SongList(
+                        songs = uiState.songs,
+                        totalDuration = uiState.totalDuration,
+                        onSongClick = onSongClick
+                    )
                 }
             }
         }
@@ -235,7 +134,175 @@ fun LocalMusicScreen(
 }
 
 @Composable
-private fun LocalMusicItem(
+private fun PermissionRequest(
+    onRequestPermission: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.FolderOff,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "需要存储权限",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "请授予存储权限以扫描本地音乐",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onRequestPermission) {
+            Text("授予权限")
+        }
+    }
+}
+
+@Composable
+private fun LoadingState(scannedCount: Int) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(color = PrimaryIndigo)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "正在扫描本地音乐...",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        if (scannedCount > 0) {
+            Text(
+                text = "已扫描 $scannedCount 首",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(
+    error: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "扫描失败",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = error,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        OutlinedButton(onClick = onRetry) {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("重试")
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.MusicOff,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "没有找到本地音乐",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "请将音乐文件放入手机存储的Music文件夹",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        OutlinedButton(onClick = onRetry) {
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("重新扫描")
+        }
+    }
+}
+
+@Composable
+private fun SongList(
+    songs: List<Song>,
+    totalDuration: String,
+    onSongClick: (Song) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp)
+    ) {
+        item {
+            ListItem(
+                headlineContent = { Text("共 ${songs.size} 首歌曲") },
+                supportingContent = { Text("总时长: $totalDuration") },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = PrimaryIndigo
+                    )
+                }
+            )
+            Divider()
+        }
+        
+        items(songs) { song ->
+            SongItem(
+                song = song,
+                onClick = { onSongClick(song) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SongItem(
     song: Song,
     onClick: () -> Unit
 ) {

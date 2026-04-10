@@ -96,14 +96,20 @@ fun FreeMusicNavHost(
     val currentSong = playerState.currentSong
     val isPlaying = playerState.isPlaying
     
+    // 获取当前路由
+    val currentRoute = navController.currentBackStackEntry?.destination?.route
+    
     // 判断是否显示迷你播放器（不在Player页面且有当前歌曲）
-    val showMiniPlayer = currentSong != null && !navController.currentBackStackEntry?.destination?.route.equals(Screen.Player.route)
+    val showMiniPlayer = currentSong != null && currentRoute != Screen.Player.route
     
     // 使用 Box 确保 MiniPlayer 可以覆盖在内容之上
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route
+            startDestination = Screen.Home.route,
+            modifier = Modifier.padding(
+                bottom = if (showMiniPlayer) 64.dp else 0.dp
+            )
         ) {
         composable(Screen.Home.route) {
             // 简化版首页 - 直接导航到搜索

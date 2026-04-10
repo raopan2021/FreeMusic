@@ -1,7 +1,15 @@
 package com.freemusic.presentation.navigation
 
 import android.net.Uri
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -9,8 +17,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.presentation.ui.history.PlayHistoryScreen
+import com.freemusic.presentation.ui.home.HomeScreen
 import com.freemusic.presentation.ui.import.ImportScreen
 import com.freemusic.presentation.ui.local.LocalMusicScreen
+import com.freemusic.presentation.ui.player.MiniPlayer
 import com.freemusic.presentation.ui.player.PlayerScreen
 import com.freemusic.presentation.ui.playlist.PlaylistDetailScreen
 import com.freemusic.presentation.ui.playlist.PlaylistScreen
@@ -91,10 +101,20 @@ fun FreeMusicNavHost(
         }
     }
     
-    NavHost(
-        navController = navController,
-        startDestination = Screen.Home.route
-    ) {
+    // 收集播放状态
+    val playerState by playerViewModel.uiState.collectAsState()
+    val currentSong = playerState.currentSong
+    val isPlaying = playerState.isPlaying
+    
+    // 判断是否显示迷你播放器（不在Player页面且有当前歌曲）
+    val showMiniPlayer = currentSong != null && !navController.currentBackStackEntry?.destination?.route.equals(Screen.Player.route)
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Home.route,
+            modifier = Modifier.padding(bottom = if (showMiniPlayer) 64.dp else 0.dp)
+        ) {
         composable(Screen.Home.route) {
             // 简化版首页 - 直接导航到搜索
             com.freemusic.presentation.ui.home.HomeScreen(
@@ -284,4 +304,18 @@ fun FreeMusicNavHost(
             )
         }
     }
+    
+    // 底部迷你播放器
+    if (showMiniPlayer && currentSong != null) {
+        MiniPlayer(
+            currentSong = currentSong,
+            isPlaying = isPlaying,
+            onPlayPauseClick = { playerViewModel.togglePlayPause() },
+            onNextClick = { playerViewModel.skipToNext() },
+            onPreviousClick = { playerViewModel.skipToPrevious() },
+            onPlayerClick = { navController.navigate(Screen.Player.route) },
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+        )
+    }
+}
 }

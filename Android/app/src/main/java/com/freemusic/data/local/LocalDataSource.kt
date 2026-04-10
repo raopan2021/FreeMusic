@@ -1,11 +1,14 @@
 package com.freemusic.data.local
 
 import com.freemusic.data.local.dao.FavoriteSongDao
+import com.freemusic.data.local.dao.PlayHistoryDao
 import com.freemusic.data.local.dao.SearchHistoryDao
 import com.freemusic.data.local.entity.FavoriteSongEntity
+import com.freemusic.data.local.entity.PlayHistoryEntity
 import com.freemusic.data.local.entity.SearchHistoryEntity
 import com.freemusic.data.local.entity.toDomain
 import com.freemusic.data.local.entity.toFavoriteEntity
+import com.freemusic.data.local.entity.toPlayHistoryEntity
 import com.freemusic.domain.model.Song
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,7 +18,8 @@ import javax.inject.Singleton
 @Singleton
 class LocalDataSource @Inject constructor(
     private val favoriteSongDao: FavoriteSongDao,
-    private val searchHistoryDao: SearchHistoryDao
+    private val searchHistoryDao: SearchHistoryDao,
+    private val playHistoryDao: PlayHistoryDao
 ) {
 
     // ============ 收藏歌曲 ============
@@ -67,5 +71,32 @@ class LocalDataSource @Inject constructor(
 
     suspend fun clearSearchHistory() {
         searchHistoryDao.clearHistory()
+    }
+
+    // ============ 播放历史 ============
+
+    fun getPlayHistory(limit: Int = 50): Flow<List<Song>> {
+        return playHistoryDao.getRecentPlays(limit).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    fun getMostPlayed(limit: Int = 50): Flow<List<Song>> {
+        return playHistoryDao.getMostPlayed(limit).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    suspend fun addToPlayHistory(song: Song) {
+        val existing = playHistoryDao.getPlayHistoryById(song.id)
+        if (existing != null) {
+            playHistoryDao.incrementPlayCount(song.id)
+        } else {
+            playHistoryDao.insertPlayHistory(song.toPlayHistoryEntity())
+        }
+    }
+
+    suspend fun clearPlayHistory() {
+        playHistoryDao.clearHistory()
     }
 }

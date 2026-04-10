@@ -249,8 +249,18 @@ class SettingsViewModel @Inject constructor(
         
         // 根据主题名称设置深色模式
         when (theme) {
-            "暗色", "纯黑" -> preferencesManager.setDarkTheme(true)
-            "默认", "亮色" -> preferencesManager.setDarkTheme(false)
+            "暗色" -> {
+                preferencesManager.setDarkTheme(true)
+                preferencesManager.setPureBlack(false)
+            }
+            "纯黑" -> {
+                preferencesManager.setDarkTheme(true)
+                preferencesManager.setPureBlack(true)
+            }
+            "默认", "亮色" -> {
+                preferencesManager.setDarkTheme(false)
+                preferencesManager.setPureBlack(false)
+            }
         }
     }
 

@@ -30,3 +30,28 @@ fun Song.toFavoriteEntity(): FavoriteSongEntity {
         neteaseId = neteaseId
     )
 }
+
+fun PlayHistoryEntity.toDomain(): Song {
+    return Song(
+        id = id,
+        title = title,
+        artist = artist,
+        album = album,
+        coverUrl = coverUrl,
+        duration = duration,
+        neteaseId = neteaseId,
+        isNetease = neteaseId != null
+    )
+}
+
+fun Song.toPlayHistoryEntity(): PlayHistoryEntity {
+    return PlayHistoryEntity(
+        id = id,
+        title = title,
+        artist = artist,
+        album = album,
+        coverUrl = coverUrl,
+        duration = duration,
+        neteaseId = neteaseId
+    )
+}

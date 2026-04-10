@@ -50,6 +50,7 @@ class LocalMusicViewModel @Inject constructor(
                     it.copy(
                         songs = songs,
                         isLoading = false,
+                        scannedCount = songs.size,
                         totalDuration = duration
                     )
                 }
@@ -57,7 +58,7 @@ class LocalMusicViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message
+                        error = e.message ?: "扫描失败"
                     )
                 }
             }
@@ -86,58 +87,65 @@ class LocalMusicViewModel @Inject constructor(
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
         val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
         
-        context.contentResolver.query(
-            collection,
-            projection,
-            selection,
-            null,
-            sortOrder
-        )?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-            val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-            val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            
-            var count = 0
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idColumn)
-                val title = cursor.getString(titleColumn) ?: "未知标题"
-                val artist = cursor.getString(artistColumn) ?: "未知艺术家"
-                val album = cursor.getString(albumColumn) ?: "未知专辑"
-                val albumId = cursor.getLong(albumIdColumn)
-                val duration = cursor.getLong(durationColumn)
+        try {
+            context.contentResolver.query(
+                collection,
+                projection,
+                selection,
+                null,
+                sortOrder
+            )?.use { cursor ->
+                if (cursor.count == 0) {
+                    return emptyList()
+                }
                 
-                val contentUri = ContentUris.withAppendedId(
-                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    id
-                )
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+                val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+                val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                 
-                // 获取专辑封面
-                val albumArtUri = ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
-                    albumId
-                ).toString()
-                
-                songs.add(
-                    Song(
-                        id = id.toString(),
-                        title = title,
-                        artist = artist,
-                        album = album,
-                        coverUrl = albumArtUri,
-                        duration = duration,
-                        neteaseId = null,
-                        isNetease = false
-                    )
-                )
-                
-                count++
-                if (count % 100 == 0) {
-                    _uiState.update { it.copy(scannedCount = count) }
+                while (cursor.moveToNext()) {
+                    try {
+                        val id = cursor.getLong(idColumn)
+                        val title = cursor.getString(titleColumn) ?: "未知标题"
+                        val artist = cursor.getString(artistColumn) ?: "未知艺术家"
+                        val album = cursor.getString(albumColumn) ?: "未知专辑"
+                        val albumId = cursor.getLong(albumIdColumn)
+                        val duration = cursor.getLong(durationColumn)
+                        
+                        val contentUri = ContentUris.withAppendedId(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            id
+                        )
+                        
+                        // 获取专辑封面
+                        val albumArtUri = ContentUris.withAppendedId(
+                            Uri.parse("content://media/external/audio/albumart"),
+                            albumId
+                        ).toString()
+                        
+                        songs.add(
+                            Song(
+                                id = id.toString(),
+                                title = title,
+                                artist = artist,
+                                album = album,
+                                coverUrl = albumArtUri,
+                                duration = duration,
+                                neteaseId = null,
+                                isNetease = false
+                            )
+                        )
+                    } catch (e: Exception) {
+                        // Skip this song if there's an error
+                        continue
+                    }
                 }
             }
+        } catch (e: Exception) {
+            // Return empty list on error
         }
         
         return songs

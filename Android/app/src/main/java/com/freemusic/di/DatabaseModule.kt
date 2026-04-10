@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.freemusic.data.local.FreeMusicDatabase
 import com.freemusic.data.local.dao.FavoriteSongDao
+import com.freemusic.data.local.dao.PlayHistoryDao
 import com.freemusic.data.local.dao.SearchHistoryDao
 import dagger.Module
 import dagger.Provides
@@ -38,5 +39,11 @@ object DatabaseModule {
     @Singleton
     fun provideSearchHistoryDao(database: FreeMusicDatabase): SearchHistoryDao {
         return database.searchHistoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providePlayHistoryDao(database: FreeMusicDatabase): PlayHistoryDao {
+        return database.playHistoryDao()
     }
 }

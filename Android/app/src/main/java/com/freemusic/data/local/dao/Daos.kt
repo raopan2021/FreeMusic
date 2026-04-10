@@ -2,6 +2,7 @@ package com.freemusic.data.local.dao
 
 import androidx.room.*
 import com.freemusic.data.local.entity.FavoriteSongEntity
+import com.freemusic.data.local.entity.PlayHistoryEntity
 import com.freemusic.data.local.entity.SearchHistoryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -49,5 +50,33 @@ interface SearchHistoryDao {
     suspend fun deleteSearch(keyword: String)
 
     @Query("DELETE FROM search_history")
+    suspend fun clearHistory()
+}
+
+/**
+ * 播放历史 DAO
+ */
+@Dao
+interface PlayHistoryDao {
+
+    @Query("SELECT * FROM play_history ORDER BY playedAt DESC LIMIT :limit")
+    fun getRecentPlays(limit: Int = 50): Flow<List<PlayHistoryEntity>>
+
+    @Query("SELECT * FROM play_history ORDER BY playCount DESC LIMIT :limit")
+    fun getMostPlayed(limit: Int = 50): Flow<List<PlayHistoryEntity>>
+
+    @Query("SELECT * FROM play_history WHERE id = :songId")
+    suspend fun getPlayHistoryById(songId: String): PlayHistoryEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPlayHistory(history: PlayHistoryEntity)
+
+    @Query("UPDATE play_history SET playCount = playCount + 1, playedAt = :playedAt WHERE id = :songId")
+    suspend fun incrementPlayCount(songId: String, playedAt: Long = System.currentTimeMillis())
+
+    @Query("DELETE FROM play_history WHERE id = :songId")
+    suspend fun deletePlayHistory(songId: String)
+
+    @Query("DELETE FROM play_history")
     suspend fun clearHistory()
 }

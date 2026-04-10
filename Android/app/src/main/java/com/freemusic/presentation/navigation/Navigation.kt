@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.freemusic.data.preferences.CoverStyleType
+import com.freemusic.presentation.ui.history.PlayHistoryScreen
 import com.freemusic.presentation.ui.import.ImportScreen
 import com.freemusic.presentation.ui.local.LocalMusicScreen
 import com.freemusic.presentation.ui.player.PlayerScreen
@@ -18,6 +19,7 @@ import com.freemusic.presentation.ui.search.SearchScreen
 import com.freemusic.presentation.ui.settings.SettingsScreen
 import com.freemusic.presentation.viewmodel.ImportViewModel
 import com.freemusic.presentation.viewmodel.LocalMusicViewModel
+import com.freemusic.presentation.viewmodel.PlayHistoryViewModel
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 import com.freemusic.presentation.viewmodel.PlaylistViewModel
 import com.freemusic.presentation.viewmodel.SearchViewModel
@@ -35,6 +37,7 @@ sealed class Screen(val route: String) {
     data object PlaylistDetail : Screen("playlist_detail/{playlistId}") {
         fun createRoute(playlistId: String) = "playlist_detail/$playlistId"
     }
+    data object PlayHistory : Screen("play_history")
 }
 
 @Composable
@@ -67,7 +70,23 @@ fun FreeMusicNavHost(
     // 处理外部音频文件
     LaunchedEffect(pendingAudioUri) {
         if (pendingAudioUri != null) {
-            // TODO: 解析URI并播放
+            // 播放外部音频文件
+            val song = com.freemusic.domain.model.Song(
+                id = pendingAudioUri.toString(),
+                title = "本地文件",
+                artist = "未知艺术家",
+                album = "本地音乐",
+                coverUrl = null,
+                duration = 0,
+                neteaseId = null,
+                isNetease = false
+            )
+            playerViewModel.playSong(song)
+            playerViewModel.togglePlayPause()
+            
+            // 导航到播放页面
+            navController.navigate(Screen.Player.route)
+            
             onPendingAudioUriConsumed()
         }
     }
@@ -244,6 +263,25 @@ fun FreeMusicNavHost(
                     }
                 )
             }
+        }
+        
+        composable(Screen.PlayHistory.route) {
+            val playHistoryViewModel: PlayHistoryViewModel = hiltViewModel()
+            val playHistoryState by playHistoryViewModel.uiState.collectAsState()
+            
+            PlayHistoryScreen(
+                recentPlays = playHistoryState.recentPlays,
+                mostPlayed = playHistoryState.mostPlayed,
+                onBackClick = { navController.popBackStack() },
+                onSongClick = { song ->
+                    playerViewModel.playSong(song)
+                    if (autoPlay) {
+                        playerViewModel.togglePlayPause()
+                    }
+                    navController.navigate(Screen.Player.route)
+                },
+                onClearHistory = { playHistoryViewModel.clearHistory() }
+            )
         }
     }
 }

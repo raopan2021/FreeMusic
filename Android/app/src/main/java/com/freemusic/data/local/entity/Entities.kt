@@ -28,3 +28,20 @@ data class SearchHistoryEntity(
     val keyword: String,
     val searchedAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * 播放历史实体
+ */
+@Entity(tableName = "play_history")
+data class PlayHistoryEntity(
+    @PrimaryKey
+    val id: String,
+    val title: String,
+    val artist: String,
+    val album: String,
+    val coverUrl: String?,
+    val duration: Long,
+    val neteaseId: String?,
+    val playedAt: Long = System.currentTimeMillis(),
+    val playCount: Int = 1
+)

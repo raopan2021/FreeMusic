@@ -95,7 +95,14 @@ class PlayerViewModel @Inject constructor(
     fun playSong(song: Song) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-
+            
+            // 记录播放历史
+            try {
+                localDataSource.addToPlayHistory(song)
+            } catch (e: Exception) {
+                // Ignore history errors
+            }
+            
             getSongWithUrlUseCase(song.id).collect { result ->
                 result.fold(
                     onSuccess = { songWithUrl ->

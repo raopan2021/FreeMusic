@@ -11,6 +11,7 @@ import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.presentation.ui.import.ImportScreen
 import com.freemusic.presentation.ui.local.LocalMusicScreen
 import com.freemusic.presentation.ui.player.PlayerScreen
+import com.freemusic.presentation.ui.playlist.PlaylistDetailScreen
 import com.freemusic.presentation.ui.playlist.PlaylistScreen
 import com.freemusic.presentation.ui.queue.QueueScreen
 import com.freemusic.presentation.ui.search.SearchScreen
@@ -31,6 +32,9 @@ sealed class Screen(val route: String) {
     data object Import : Screen("import")
     data object LocalMusic : Screen("local_music")
     data object Playlist : Screen("playlist")
+    data object PlaylistDetail : Screen("playlist_detail/{playlistId}") {
+        fun createRoute(playlistId: String) = "playlist_detail/$playlistId"
+    }
 }
 
 @Composable
@@ -205,8 +209,7 @@ fun FreeMusicNavHost(
                 playlists = playlistState.playlists,
                 onBackClick = { navController.popBackStack() },
                 onPlaylistClick = { playlist ->
-                    playerViewModel.playPlaylist(playlist.songs)
-                    navController.navigate(Screen.Player.route)
+                    navController.navigate(Screen.PlaylistDetail.createRoute(playlist.id))
                 },
                 onCreatePlaylist = { name ->
                     playlistViewModel.createPlaylist(name, emptyList())
@@ -215,6 +218,32 @@ fun FreeMusicNavHost(
                     playlistViewModel.deletePlaylist(playlistId)
                 }
             )
+        }
+        
+        composable(Screen.PlaylistDetail.route) { backStackEntry ->
+            val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
+            val playlistState by playlistViewModel.uiState.collectAsState()
+            val playlist = playlistState.playlists.find { it.id == playlistId }
+            
+            if (playlist != null) {
+                PlaylistDetailScreen(
+                    playlist = playlist,
+                    onBackClick = { navController.popBackStack() },
+                    onSongClick = { song ->
+                        playerViewModel.playSong(song)
+                        if (autoPlay) {
+                            playerViewModel.togglePlayPause()
+                        }
+                        navController.navigate(Screen.Player.route)
+                    },
+                    onAddSongs = {
+                        // TODO: 显示添加歌曲对话框或导航到搜索页
+                    },
+                    onRemoveSong = { song ->
+                        playlistViewModel.removeFromPlaylist(playlistId, song.id)
+                    }
+                )
+            }
         }
     }
 }

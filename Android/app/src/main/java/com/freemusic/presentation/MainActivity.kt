@@ -1,5 +1,7 @@
 package com.freemusic.presentation
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,16 +13,26 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.freemusic.domain.model.Song
 import com.freemusic.presentation.navigation.FreeMusicNavHost
+import com.freemusic.presentation.navigation.Screen
 import com.freemusic.presentation.theme.FreeMusicTheme
+import com.freemusic.presentation.viewmodel.PlayerViewModel
 import com.freemusic.presentation.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    private var pendingAudioUri: Uri? = null
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // 处理音频文件intent
+        handleIntent(intent)
+        
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
             
@@ -63,8 +75,37 @@ class MainActivity : ComponentActivity() {
                         crossFadeEnabled = crossFadeEnabled,
                         crossFadeDuration = crossFadeDuration,
                         // 歌词设置
-                        lyricsFontSize = lyricsFontSize
+                        lyricsFontSize = lyricsFontSize,
+                        // 处理外部音频文件
+                        pendingAudioUri = pendingAudioUri,
+                        onPendingAudioUriConsumed = { pendingAudioUri = null }
                     )
+                }
+            }
+        }
+    }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+    
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        
+        when (intent.action) {
+            Intent.ACTION_VIEW -> {
+                intent.data?.let { uri ->
+                    if (uri.toString().startsWith("content://") || 
+                        uri.toString().startsWith("file://")) {
+                        pendingAudioUri = uri
+                    }
+                }
+            }
+            "com.freemusic.PLAY_MUSIC" -> {
+                // 处理来自其他应用的播放请求
+                intent.data?.let { uri ->
+                    pendingAudioUri = uri
                 }
             }
         }

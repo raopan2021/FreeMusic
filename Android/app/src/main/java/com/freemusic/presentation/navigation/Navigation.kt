@@ -1,5 +1,6 @@
 package com.freemusic.presentation.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -54,8 +55,19 @@ fun FreeMusicNavHost(
     crossFadeEnabled: Boolean = false,
     crossFadeDuration: Int = 3000,
     // 歌词设置
-    lyricsFontSize: Int = 16
+    lyricsFontSize: Int = 16,
+    // 外部音频文件
+    pendingAudioUri: Uri? = null,
+    onPendingAudioUriConsumed: () -> Unit = {}
 ) {
+    // 处理外部音频文件
+    LaunchedEffect(pendingAudioUri) {
+        if (pendingAudioUri != null) {
+            // TODO: 解析URI并播放
+            onPendingAudioUriConsumed()
+        }
+    }
+    
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route

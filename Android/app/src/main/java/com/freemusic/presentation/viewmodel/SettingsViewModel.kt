@@ -245,8 +245,13 @@ class SettingsViewModel @Inject constructor(
 
     // ============ 其他设置 ============
     fun setTheme(theme: String) {
-        // TODO: 实现主题切换
         _uiState.update { it.copy(currentThemeName = theme) }
+        
+        // 根据主题名称设置深色模式
+        when (theme) {
+            "暗色", "纯黑" -> preferencesManager.setDarkTheme(true)
+            "默认", "亮色" -> preferencesManager.setDarkTheme(false)
+        }
     }
 
     fun setParticleEffect(effect: String) {

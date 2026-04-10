@@ -12,6 +12,14 @@
 
     <!-- Wake lock for background playback -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Query for audio files to appear in share menu -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="audio/*" />
+        </intent>
+    </queries>
 
     <application
         android:name=".FreeMusicApp"
@@ -30,6 +38,28 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <!-- 处理音频文件 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+            
+            <!-- 处理播放列表 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/x-mpegURL" />
+            </intent-filter>
+            
+            <!-- 处理来自其他应用的音乐播放请求 -->
+            <intent-filter>
+                <action android:name="com.freemusic.PLAY_MUSIC" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

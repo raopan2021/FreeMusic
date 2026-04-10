@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.freemusic.data.preferences.CoverStyleType
+import com.freemusic.data.preferences.EqualizerPreset
 import com.freemusic.presentation.ui.history.PlayHistoryScreen
 import com.freemusic.presentation.ui.home.HomeScreen
 import com.freemusic.presentation.ui.import.ImportScreen
@@ -139,7 +140,7 @@ fun FreeMusicNavHost(
                     }
                     navController.navigate(Screen.Player.route)
                 },
-                onPlaylistClick = { /* TODO */ },
+                onPlaylistClick = { navController.navigate(Screen.Playlist.route) },
                 onTagClick = { tag ->
                     searchViewModel.onQueryChange(tag)
                     searchViewModel.search()
@@ -187,11 +188,23 @@ fun FreeMusicNavHost(
                 particleEffect = settingsState.particleEffectName,
                 onParticleEffectChange = settingsViewModel::setParticleEffect,
                 coverStyle = settingsState.coverStyleName,
-                onCoverStyleChange = { /* TODO: 显示风格选择对话框 */ },
+                onCoverStyleChange = { styleName: String ->
+                    try {
+                        val style = CoverStyleType.valueOf(styleName)
+                        settingsViewModel.setCoverStyle(style)
+                    } catch (e: Exception) {
+                        // Ignore invalid style names
+                    }
+                },
                 visualizerStyle = settingsState.visualizerStyleName,
                 onVisualizerStyleChange = settingsViewModel::setVisualizerStyle,
                 equalizerPreset = settingsState.equalizerPresetName,
-                onEqualizerPresetChange = { /* TODO: 均衡器预设选择 */ },
+                onEqualizerPresetChange = { presetName: String ->
+                    val index = EqualizerPreset.entries.indexOfFirst { it.displayName == presetName }
+                    if (index >= 0) {
+                        settingsViewModel.setEqualizerPreset(index)
+                    }
+                },
                 autoPlayEnabled = settingsState.autoPlayEnabled,
                 onAutoPlayToggle = settingsViewModel::setAutoPlay,
                 highQualityEnabled = settingsState.highQualityEnabled,

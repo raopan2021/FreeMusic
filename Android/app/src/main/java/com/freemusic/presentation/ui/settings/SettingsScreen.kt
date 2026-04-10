@@ -48,6 +48,7 @@ fun SettingsScreen(
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showParticleDialog by remember { mutableStateOf(false) }
+    var showCoverStyleDialog by remember { mutableStateOf(false) }
     var showVisualizerDialog by remember { mutableStateOf(false) }
     var showEqualizerDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -91,7 +92,7 @@ fun SettingsScreen(
                         icon = Icons.Default.Image,
                         title = "封面样式",
                         subtitle = coverStyle,
-                        onClick = { /* TODO */ }
+                        onClick = { showCoverStyleDialog = true }
                     )
                 }
             }
@@ -180,6 +181,46 @@ fun SettingsScreen(
                     )
                 }
             }
+        }
+
+        // 封面样式对话框
+        if (showCoverStyleDialog) {
+            AlertDialog(
+                onDismissRequest = { showCoverStyleDialog = false },
+                title = { Text("选择封面样式") },
+                text = {
+                    Column {
+                        listOf("圆形", "圆角方形", "方形", "菱形", "带边框圆形", "六边形", "平行四边形").forEachIndexed { index, style ->
+                            val coverStyleValues = listOf("ROUND", "SQUARE", "SQUARE_NO_ROUND", "DIAMOND", "BORDER_ROUND", "HEXAGON", "PARALLELOGRAM")
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onCoverStyleChange(coverStyleValues[index])
+                                        showCoverStyleDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = style == coverStyle,
+                                    onClick = {
+                                        onCoverStyleChange(coverStyleValues[index])
+                                        showCoverStyleDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = style)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showCoverStyleDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
 
         // 粒子效果对话框

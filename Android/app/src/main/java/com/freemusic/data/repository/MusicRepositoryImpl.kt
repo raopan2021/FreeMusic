@@ -8,7 +8,7 @@ import com.freemusic.data.remote.dto.toDomainList
 import com.freemusic.data.remote.dto.toDomain as lyricToDomain
 import com.freemusic.domain.model.*
 import com.freemusic.domain.repository.MusicRepository
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,21 +27,11 @@ class MusicRepositoryImpl @Inject constructor(
     ): Flow<Result<SearchResult>> = flow {
         try {
             val offset = page * pageSize
-            val response = try {
-                neteaseApi.searchSongs(
-                    keywords = keyword,
-                    limit = pageSize,
-                    offset = offset
-                )
-            } catch (e: Exception) {
-                // 网络请求失败，返回空结果
-                emit(Result.success(SearchResult(
-                    songs = emptyList(),
-                    hasMore = false,
-                    total = 0
-                )))
-                return@flow
-            }
+            val response = neteaseApi.searchSongs(
+                keywords = keyword,
+                limit = pageSize,
+                offset = offset
+            )
             
             // 检查响应是否有效
             if (response.result == null) {
@@ -53,48 +43,28 @@ class MusicRepositoryImpl @Inject constructor(
                 return@flow
             }
             
-            val songs = try {
-                response.result?.songs?.toDomainList() ?: emptyList()
-            } catch (e: Exception) {
-                emptyList()
-            }
+            val songs = response.result.songs?.toDomainList() ?: emptyList()
             val hasMore = songs.size == pageSize
             
             emit(Result.success(SearchResult(
                 songs = songs,
                 hasMore = hasMore,
-                total = response.result?.songs?.size ?: 0
+                total = response.result.songs?.size ?: 0
             )))
         } catch (e: Exception) {
+            // 网络错误，返回空结果
             emit(Result.success(SearchResult(
                 songs = emptyList(),
                 hasMore = false,
                 total = 0
             )))
         }
-    }.catch { e ->
-        // 捕获任何异常，返回空结果
-        emit(Result.success(SearchResult(
-            songs = emptyList(),
-            hasMore = false,
-            total = 0
-        )))
     }.flowOn(Dispatchers.IO)
 
     override fun getSongDetail(songId: String): Flow<Result<Song>> = flow {
         try {
-            val response = try {
-                neteaseApi.getSongDetail(songId)
-            } catch (e: Exception) {
-                emit(Result.failure(Exception("无法获取歌曲详情: ${e.message}")))
-                return@flow
-            }
-            
-            val song = try {
-                response.songs?.firstOrNull()?.toDomain()
-            } catch (e: Exception) {
-                null
-            }
+            val response = neteaseApi.getSongDetail(songId)
+            val song = response.songs?.firstOrNull()?.toDomain()
             
             if (song != null) {
                 emit(Result.success(song))
@@ -104,63 +74,42 @@ class MusicRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             emit(Result.failure(Exception("获取歌曲详情失败: ${e.message}")))
         }
-    }.catch { e ->
-        emit(Result.failure(e))
     }.flowOn(Dispatchers.IO)
 
     override fun getPlayUrl(songId: String): Flow<Result<String>> = flow {
         try {
             // Meting API 直接返回 URL
-            val responseBody = try {
-                metingApi.getPlayUrl(id = songId)
-            } catch (e: Exception) {
-                emit(Result.failure(Exception("无法获取播放链接: ${e.message}")))
-                return@flow
-            }
-            
-            try {
-                val url = responseBody.string()
-                emit(Result.success(url))
-            } catch (e: Exception) {
-                emit(Result.failure(Exception("解析播放链接失败")))
-            }
+            val responseBody = metingApi.getPlayUrl(id = songId)
+            val url = responseBody.string()
+            emit(Result.success(url))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            emit(Result.failure(Exception("无法获取播放链接: ${e.message}")))
         }
-    }.catch { e ->
-        emit(Result.failure(e))
     }.flowOn(Dispatchers.IO)
 
     override fun getLyrics(song: Song): Flow<Result<Lyrics>> = flow {
         // 优先使用 LRCLIB
         try {
             val durationSeconds = (song.duration / 1000).toInt()
-            val results = try {
-                lrclibApi.searchLyrics(
-                    artistName = song.artist,
-                    trackName = song.title,
-                    duration = durationSeconds.takeIf { it > 0 }
-                )
-            } catch (e: Exception) {
-                // LRCLIB 失败，继续尝试网易云
-                null
-            }
+            val results = lrclibApi.searchLyrics(
+                artistName = song.artist,
+                trackName = song.title,
+                duration = durationSeconds.takeIf { it > 0 }
+            )
             
-            if (results != null) {
-                // 找到最佳匹配
-                val bestMatch = results.firstOrNull { !it.instrumental }
-                
-                if (bestMatch != null && (bestMatch.syncedLyrics != null || bestMatch.plainLyrics != null)) {
-                    emit(Result.success(Lyrics(
-                        songId = song.id,
-                        lrc = bestMatch.syncedLyrics ?: bestMatch.plainLyrics,
-                        yrc = null,
-                        translation = null,
-                        ttml = null,
-                        metadata = listOf("来源: LRCLIB", "艺术家: ${bestMatch.artistName}", "专辑: ${bestMatch.albumName}")
-                    )))
-                    return@flow
-                }
+            // 找到最佳匹配
+            val bestMatch = results.firstOrNull { !it.instrumental }
+            
+            if (bestMatch != null && (bestMatch.syncedLyrics != null || bestMatch.plainLyrics != null)) {
+                emit(Result.success(Lyrics(
+                    songId = song.id,
+                    lrc = bestMatch.syncedLyrics ?: bestMatch.plainLyrics,
+                    yrc = null,
+                    translation = null,
+                    ttml = null,
+                    metadata = listOf("来源: LRCLIB", "艺术家: ${bestMatch.artistName}", "专辑: ${bestMatch.albumName}")
+                )))
+                return@flow
             }
         } catch (e: Exception) {
             // LRCLIB 失败，继续尝试网易云
@@ -169,69 +118,35 @@ class MusicRepositoryImpl @Inject constructor(
         // 兜底：使用网易云歌词
         try {
             val neteaseId = song.neteaseId ?: song.id
-            val response = try {
-                neteaseApi.getLyric(neteaseId)
-            } catch (e: Exception) {
-                emit(Result.failure(Exception("无法获取歌词: ${e.message}")))
-                return@flow
-            }
+            val response = neteaseApi.getLyric(neteaseId)
             emit(Result.success(response.lyricToDomain(song.id)))
         } catch (e: Exception) {
             emit(Result.failure(Exception("获取歌词失败: ${e.message}")))
         }
-    }.catch { e ->
-        emit(Result.failure(e))
     }.flowOn(Dispatchers.IO)
 
     override fun getSongWithUrl(songId: String): Flow<Result<SongWithUrl>> = flow {
         try {
-            // 并行获取歌曲详情和播放 URL
-            val songDeferred = async { 
-                try {
-                    neteaseApi.getSongDetail(songId)
-                } catch (e: Exception) {
-                    null
+            // 获取歌曲详情
+            val songResponse = neteaseApi.getSongDetail(songId)
+            val song = songResponse.songs?.firstOrNull()?.toDomain()
+                ?: run {
+                    emit(Result.failure(Exception("歌曲不存在")))
+                    return@flow
                 }
-            }
-            val urlDeferred = async { 
-                try {
-                    metingApi.getPlayUrl(id = songId)
-                } catch (e: Exception) {
-                    null
-                }
-            }
             
-            val songResponse = songDeferred.await()
-            val urlResponse = urlDeferred.await()
+            // 获取播放 URL
+            val urlResponse = metingApi.getPlayUrl(id = songId)
+            val url = urlResponse.string()
             
-            // 检查响应
-            if (songResponse == null || urlResponse == null) {
-                emit(Result.failure(Exception("网络请求失败")))
-                return@flow
-            }
-            
-            val song = try {
-                songResponse.songs?.firstOrNull()?.toDomain()
-            } catch (e: Exception) {
-                null
-            }
-            
-            val url = try {
-                urlResponse.string()
-            } catch (e: Exception) {
-                null
-            }
-            
-            if (song != null && url != null) {
+            if (url.isNotBlank()) {
                 emit(Result.success(SongWithUrl(song, url)))
             } else {
-                emit(Result.failure(Exception("获取播放信息失败")))
+                emit(Result.failure(Exception("播放链接无效")))
             }
         } catch (e: Exception) {
             emit(Result.failure(Exception("播放失败: ${e.message}")))
         }
-    }.catch { e ->
-        emit(Result.failure(e))
     }.flowOn(Dispatchers.IO)
 
     override fun getPlaylist(playlistId: String): Flow<Result<Playlist>> = flow {
@@ -242,22 +157,13 @@ class MusicRepositoryImpl @Inject constructor(
             var hasMore = true
 
             while (hasMore) {
-                val response = try {
-                    neteaseApi.getPlaylistTracks(
-                        id = playlistId,
-                        limit = limit,
-                        offset = offset
-                    )
-                } catch (e: Exception) {
-                    emit(Result.failure(Exception("获取歌单失败: ${e.message}")))
-                    return@flow
-                }
+                val response = neteaseApi.getPlaylistTracks(
+                    id = playlistId,
+                    limit = limit,
+                    offset = offset
+                )
                 
-                val songs = try {
-                    response.songs?.toDomainList() ?: emptyList()
-                } catch (e: Exception) {
-                    emptyList()
-                }
+                val songs = response.songs?.toDomainList() ?: emptyList()
                 allSongs.addAll(songs)
                 
                 hasMore = songs.size == limit
@@ -266,24 +172,12 @@ class MusicRepositoryImpl @Inject constructor(
 
             emit(Result.success(Playlist(
                 id = playlistId,
-                name = "", // 歌单名称需要单独 API 获取
+                name = "",
                 coverUrl = allSongs.firstOrNull()?.coverUrl,
                 songs = allSongs
             )))
         } catch (e: Exception) {
             emit(Result.failure(Exception("获取歌单失败: ${e.message}")))
         }
-    }.catch { e ->
-        emit(Result.failure(e))
     }.flowOn(Dispatchers.IO)
-
-    private suspend fun <T> async(block: suspend () -> T): Deferred<T?> {
-        return CoroutineScope(Dispatchers.IO).async { 
-            try {
-                block()
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
 }

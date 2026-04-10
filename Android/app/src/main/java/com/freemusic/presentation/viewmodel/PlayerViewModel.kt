@@ -162,30 +162,47 @@ class PlayerViewModel @Inject constructor(
             // 判断是本地歌曲还是网易云歌曲
             if (song.isNetease && song.neteaseId != null) {
                 // 网易云歌曲 - 需要获取播放链接
-                getSongWithUrlUseCase(song.id).collect { result ->
-                    result.fold(
-                        onSuccess = { songWithUrl ->
-                            playMediaItem(songWithUrl)
-                            loadLyrics(songWithUrl.song)
-                            observeFavoriteStatus(songWithUrl.song.id)
-                            _uiState.update { state ->
-                                state.copy(
-                                    currentSong = songWithUrl.song,
-                                    isLoading = false,
-                                    playlist = listOf(songWithUrl.song),
-                                    currentIndex = 0
-                                )
+                try {
+                    getSongWithUrlUseCase(song.id).firstOrNull()?.let { result ->
+                        result.fold(
+                            onSuccess = { songWithUrl ->
+                                playMediaItem(songWithUrl)
+                                loadLyrics(songWithUrl.song)
+                                observeFavoriteStatus(songWithUrl.song.id)
+                                _uiState.update { state ->
+                                    state.copy(
+                                        currentSong = songWithUrl.song,
+                                        isLoading = false,
+                                        playlist = listOf(songWithUrl.song),
+                                        currentIndex = 0
+                                    )
+                                }
+                            },
+                            onFailure = { exception ->
+                                _uiState.update { 
+                                    it.copy(
+                                        isLoading = false,
+                                        error = exception.message ?: "播放失败"
+                                    )
+                                }
                             }
-                        },
-                        onFailure = { exception ->
-                            _uiState.update { 
-                                it.copy(
-                                    isLoading = false,
-                                    error = exception.message ?: "播放失败"
-                                )
-                            }
+                        )
+                    } ?: run {
+                        // flow 为空或没有发射
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                error = "播放失败"
+                            )
                         }
-                    )
+                    }
+                } catch (e: Exception) {
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = e.message ?: "播放失败"
+                        )
+                    }
                 }
             } else {
                 // 本地歌曲 - 直接使用 Content URI 播放
@@ -369,7 +386,7 @@ class PlayerViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                getLyricsUseCase(song).collect { result ->
+                getLyricsUseCase(song).firstOrNull()?.let { result ->
                     result.onSuccess { lyrics ->
                         _uiState.update { it.copy(lyrics = lyrics) }
                     }

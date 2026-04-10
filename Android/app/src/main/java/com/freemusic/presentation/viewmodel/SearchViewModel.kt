@@ -10,10 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class SearchUiState(
@@ -64,49 +63,49 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            // 保存搜索历史（不阻塞搜索）
+            launch(Dispatchers.IO) {
+                try {
+                    localDataSource.addSearchHistory(query)
+                } catch (e: Exception) {
+                    // Ignore history save errors
+                }
+            }
+            
+            // 搜索 - 使用 firstOrNull() 更安全，避免 flow 为空时崩溃
             try {
-                // 保存搜索历史
-                withContext(Dispatchers.IO) {
-                    try {
-                        localDataSource.addSearchHistory(query)
-                    } catch (e: Exception) {
-                        // Ignore history save errors
+                val result = musicRepository.searchSongs(query).firstOrNull()
+                
+                if (result != null) {
+                    result.fold(
+                        onSuccess = { searchResult ->
+                            _uiState.update { 
+                                it.copy(
+                                    results = searchResult.songs,
+                                    isLoading = false
+                                )
+                            }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { 
+                                it.copy(
+                                    error = error.message,
+                                    isLoading = false,
+                                    results = emptyList()
+                                )
+                            }
+                        }
+                    )
+                } else {
+                    // result 为 null，说明 flow 没有发射任何元素
+                    _uiState.update { 
+                        it.copy(
+                            error = "搜索失败",
+                            isLoading = false,
+                            results = emptyList()
+                        )
                     }
                 }
-                
-                // 搜索 - 使用 first() 而不是 firstOrNull() 确保能取到结果
-                val result = withContext(Dispatchers.IO) {
-                    try {
-                        musicRepository.searchSongs(query).first()
-                    } catch (e: Exception) {
-                        // 搜索失败返回空结果
-                        Result.success(com.freemusic.domain.model.SearchResult(
-                            songs = emptyList(),
-                            hasMore = false,
-                            total = 0
-                        ))
-                    }
-                }
-                
-                result.fold(
-                    onSuccess = { searchResult ->
-                        _uiState.update { 
-                            it.copy(
-                                results = searchResult.songs,
-                                isLoading = false
-                            )
-                        }
-                    },
-                    onFailure = { error ->
-                        _uiState.update { 
-                            it.copy(
-                                error = error.message,
-                                isLoading = false,
-                                results = emptyList()
-                            )
-                        }
-                    }
-                )
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(
@@ -124,32 +123,35 @@ class SearchViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
-                val result = withContext(Dispatchers.IO) {
-                    try {
-                        musicRepository.getPlaylist(playlistId).first()
-                    } catch (e: Exception) {
-                        Result.failure(e)
+                val result = musicRepository.getPlaylist(playlistId).firstOrNull()
+                
+                if (result != null) {
+                    result.fold(
+                        onSuccess = { playlist ->
+                            _uiState.update { 
+                                it.copy(
+                                    results = playlist.songs,
+                                    isLoading = false
+                                )
+                            }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { 
+                                it.copy(
+                                    error = error.message,
+                                    isLoading = false
+                                )
+                            }
+                        }
+                    )
+                } else {
+                    _uiState.update { 
+                        it.copy(
+                            error = "获取歌单失败",
+                            isLoading = false
+                        )
                     }
                 }
-                
-                result.fold(
-                    onSuccess = { playlist ->
-                        _uiState.update { 
-                            it.copy(
-                                results = playlist.songs,
-                                isLoading = false
-                            )
-                        }
-                    },
-                    onFailure = { error ->
-                        _uiState.update { 
-                            it.copy(
-                                error = error.message,
-                                isLoading = false
-                            )
-                        }
-                    }
-                )
             } catch (e: Exception) {
                 _uiState.update { 
                     it.copy(

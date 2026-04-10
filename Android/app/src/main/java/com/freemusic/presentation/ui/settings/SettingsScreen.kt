@@ -91,7 +91,7 @@ fun SettingsScreen(
                     SettingsItem(
                         icon = Icons.Default.Image,
                         title = "封面样式",
-                        subtitle = coverStyle,
+                        subtitle = coverStyleToDisplayName(coverStyle),
                         onClick = { showCoverStyleDialog = true }
                     )
                 }
@@ -190,27 +190,38 @@ fun SettingsScreen(
                 title = { Text("选择封面样式") },
                 text = {
                     Column {
-                        listOf("圆形", "圆角方形", "方形", "菱形", "带边框圆形", "六边形", "平行四边形").forEachIndexed { index, style ->
-                            val coverStyleValues = listOf("ROUND", "SQUARE", "SQUARE_NO_ROUND", "DIAMOND", "BORDER_ROUND", "HEXAGON", "PARALLELOGRAM")
+                        val coverStyleMap = mapOf(
+                            "圆形" to "ROUND",
+                            "圆角方形" to "SQUARE",
+                            "方形" to "SQUARE_NO_ROUND",
+                            "菱形" to "DIAMOND",
+                            "带边框圆形" to "BORDER_ROUND",
+                            "六边形" to "HEXAGON",
+                            "平行四边形" to "PARALLELOGRAM"
+                        )
+                        val displayNames = coverStyleMap.keys.toList()
+                        val enumNames = coverStyleMap.values.toList()
+                        
+                        displayNames.forEachIndexed { index, displayName ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        onCoverStyleChange(coverStyleValues[index])
+                                        onCoverStyleChange(enumNames[index])
                                         showCoverStyleDialog = false
                                     }
                                     .padding(vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 RadioButton(
-                                    selected = style == coverStyle,
+                                    selected = coverStyle == enumNames[index],
                                     onClick = {
-                                        onCoverStyleChange(coverStyleValues[index])
+                                        onCoverStyleChange(enumNames[index])
                                         showCoverStyleDialog = false
                                     }
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = style)
+                                Text(text = displayName)
                             }
                         }
                     }
@@ -535,5 +546,21 @@ private fun SettingsSwitchItem(
                 onCheckedChange = onCheckedChange
             )
         }
+    }
+}
+
+/**
+ * 将封面样式枚举名称转换为显示名称
+ */
+private fun coverStyleToDisplayName(style: String): String {
+    return when (style) {
+        "ROUND" -> "圆形"
+        "SQUARE" -> "圆角方形"
+        "SQUARE_NO_ROUND" -> "方形"
+        "DIAMOND" -> "菱形"
+        "BORDER_ROUND" -> "带边框圆形"
+        "HEXAGON" -> "六边形"
+        "PARALLELOGRAM" -> "平行四边形"
+        else -> style
     }
 }

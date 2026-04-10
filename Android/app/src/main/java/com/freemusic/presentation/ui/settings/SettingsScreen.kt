@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -352,26 +353,33 @@ private fun SettingsThemeSelector(
         Text(
             text = "主题",
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 12.dp)
         )
         
-        themes.forEach { theme ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onThemeChange(theme) }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RadioButton(
-                    selected = theme == currentTheme,
-                    onClick = { onThemeChange(theme) }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = theme,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            themes.forEach { theme ->
+                OutlinedButton(
+                    onClick = { onThemeChange(theme) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (theme == currentTheme) 
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
+                        else 
+                            Color.Transparent
+                    ),
+                    border = if (theme == currentTheme) 
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    else
+                        ButtonDefaults.outlinedButtonBorder
+                ) {
+                    Text(
+                        text = theme,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }

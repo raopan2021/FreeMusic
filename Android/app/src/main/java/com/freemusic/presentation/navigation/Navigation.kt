@@ -7,14 +7,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.freemusic.data.preferences.CoverStyleType
-import com.freemusic.presentation.ui.home.HomeScreen
 import com.freemusic.presentation.ui.import.ImportScreen
+import com.freemusic.presentation.ui.local.LocalMusicScreen
 import com.freemusic.presentation.ui.player.PlayerScreen
+import com.freemusic.presentation.ui.playlist.PlaylistScreen
 import com.freemusic.presentation.ui.queue.QueueScreen
 import com.freemusic.presentation.ui.search.SearchScreen
 import com.freemusic.presentation.ui.settings.SettingsScreen
 import com.freemusic.presentation.viewmodel.ImportViewModel
+import com.freemusic.presentation.viewmodel.LocalMusicViewModel
 import com.freemusic.presentation.viewmodel.PlayerViewModel
+import com.freemusic.presentation.viewmodel.PlaylistViewModel
+import com.freemusic.presentation.viewmodel.SearchViewModel
 import com.freemusic.presentation.viewmodel.SettingsViewModel
 
 sealed class Screen(val route: String) {
@@ -24,14 +28,18 @@ sealed class Screen(val route: String) {
     data object Queue : Screen("queue")
     data object Settings : Screen("settings")
     data object Import : Screen("import")
+    data object LocalMusic : Screen("local_music")
+    data object Playlist : Screen("playlist")
 }
 
 @Composable
 fun FreeMusicNavHost(
     navController: NavHostController = rememberNavController(),
     playerViewModel: PlayerViewModel = hiltViewModel(),
+    searchViewModel: SearchViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel(),
     importViewModel: ImportViewModel = hiltViewModel(),
-    settingsViewModel: SettingsViewModel? = null,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     // 视觉效果设置
     particlesEnabled: Boolean = true,
     particleIntensity: Float = 1f,
@@ -53,21 +61,26 @@ fun FreeMusicNavHost(
         startDestination = Screen.Home.route
     ) {
         composable(Screen.Home.route) {
-            HomeScreen(
+            // 简化版首页 - 直接导航到搜索
+            com.freemusic.presentation.ui.home.HomeScreen(
                 onSearchClick = { navController.navigate(Screen.Search.route) },
-                onSongClick = { navController.navigate(Screen.Player.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
-                playerViewModel = playerViewModel
+                onLocalMusicClick = { navController.navigate(Screen.LocalMusic.route) },
+                onPlaylistClick = { navController.navigate(Screen.Playlist.route) }
             )
         }
+        
         composable(Screen.Search.route) {
+            val searchState by searchViewModel.uiState.collectAsState()
+            
             SearchScreen(
-                query = "",
-                onQueryChange = { },
-                onSearch = { },
-                searchResults = emptyList(),
-                hotSearchTags = listOf("周杰伦", "Taylor Swift", "告白气球", "稻香"),
-                searchHistory = emptyList(),
+                query = searchState.query,
+                onQueryChange = searchViewModel::onQueryChange,
+                onSearch = { searchViewModel.search() },
+                searchResults = searchState.results,
+                hotSearchTags = searchState.hotSearchTags,
+                searchHistory = searchState.history,
+                isLoading = searchState.isLoading,
                 onSongClick = { song ->
                     playerViewModel.playSong(song)
                     if (autoPlay) {
@@ -75,12 +88,20 @@ fun FreeMusicNavHost(
                     }
                     navController.navigate(Screen.Player.route)
                 },
-                onPlaylistClick = { },
-                onTagClick = { },
-                onHistoryItemClick = { },
-                onClearHistory = { }
+                onPlaylistClick = { /* TODO */ },
+                onTagClick = { tag ->
+                    searchViewModel.onQueryChange(tag)
+                    searchViewModel.search()
+                },
+                onHistoryItemClick = { keyword ->
+                    searchViewModel.onQueryChange(keyword)
+                    searchViewModel.search()
+                },
+                onClearHistory = { searchViewModel.clearHistory() },
+                onBackClick = { navController.popBackStack() }
             )
         }
+        
         composable(Screen.Player.route) {
             PlayerScreen(
                 onBackClick = { navController.popBackStack() },
@@ -93,6 +114,7 @@ fun FreeMusicNavHost(
                 visualizerEnabled = visualizerEnabled
             )
         }
+        
         composable(Screen.Queue.route) {
             QueueScreen(
                 onBackClick = { navController.popBackStack() },
@@ -102,28 +124,35 @@ fun FreeMusicNavHost(
                 }
             )
         }
+        
         composable(Screen.Settings.route) {
+            val settingsState by settingsViewModel.uiState.collectAsState()
+            
             SettingsScreen(
-                currentTheme = "默认",
-                onThemeChange = { },
-                pureBlackEnabled = false,
-                onPureBlackToggle = { },
-                particleEffect = "无",
-                onParticleEffectChange = { },
-                coverStyle = "圆形",
-                onCoverStyleChange = { },
-                visualizerStyle = "无",
-                onVisualizerStyleChange = { },
-                equalizerPreset = "默认",
-                onEqualizerPresetChange = { },
-                autoPlayEnabled = true,
-                onAutoPlayToggle = { },
-                highQualityEnabled = false,
-                onHighQualityToggle = { },
-                onClearCache = { },
-                onAbout = { }
+                currentTheme = settingsState.currentThemeName,
+                onThemeChange = settingsViewModel::setTheme,
+                pureBlackEnabled = settingsState.pureBlackEnabled,
+                onPureBlackToggle = settingsViewModel::setPureBlack,
+                particleEffect = settingsState.particleEffectName,
+                onParticleEffectChange = settingsViewModel::setParticleEffect,
+                coverStyle = settingsState.coverStyleName,
+                onCoverStyleChange = { /* TODO: 显示风格选择对话框 */ },
+                visualizerStyle = settingsState.visualizerStyleName,
+                onVisualizerStyleChange = settingsViewModel::setVisualizerStyle,
+                equalizerPreset = settingsState.equalizerPresetName,
+                onEqualizerPresetChange = { /* TODO: 均衡器预设选择 */ },
+                autoPlayEnabled = settingsState.autoPlayEnabled,
+                onAutoPlayToggle = settingsViewModel::setAutoPlay,
+                highQualityEnabled = settingsState.highQualityEnabled,
+                onHighQualityToggle = settingsViewModel::setHighQuality,
+                cacheSize = settingsState.cacheSize,
+                onClearCache = settingsViewModel::clearCache,
+                onBackClick = { navController.popBackStack() },
+                onImportClick = { navController.navigate(Screen.Import.route) },
+                onAboutClick = settingsViewModel::showAboutDialog
             )
         }
+        
         composable(Screen.Import.route) {
             ImportScreen(
                 onBackClick = { navController.popBackStack() },
@@ -135,8 +164,43 @@ fun FreeMusicNavHost(
                     importViewModel.searchSongs(songNames)
                 },
                 onCreatePlaylist = { name, songs ->
-                    // TODO: 保存到本地歌单
+                    playlistViewModel.createPlaylist(name, songs)
                     navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.LocalMusic.route) {
+            val localMusicViewModel: LocalMusicViewModel = hiltViewModel()
+            
+            LocalMusicScreen(
+                onBackClick = { navController.popBackStack() },
+                onSongClick = { song ->
+                    playerViewModel.playSong(song)
+                    if (autoPlay) {
+                        playerViewModel.togglePlayPause()
+                    }
+                    navController.navigate(Screen.Player.route)
+                },
+                viewModel = localMusicViewModel
+            )
+        }
+        
+        composable(Screen.Playlist.route) {
+            val playlistState by playlistViewModel.uiState.collectAsState()
+            
+            PlaylistScreen(
+                playlists = playlistState.playlists,
+                onBackClick = { navController.popBackStack() },
+                onPlaylistClick = { playlist ->
+                    playerViewModel.playPlaylist(playlist.songs)
+                    navController.navigate(Screen.Player.route)
+                },
+                onCreatePlaylist = { name ->
+                    playlistViewModel.createPlaylist(name, emptyList())
+                },
+                onDeletePlaylist = { playlistId ->
+                    playlistViewModel.deletePlaylist(playlistId)
                 }
             )
         }

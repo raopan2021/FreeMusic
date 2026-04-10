@@ -1,27 +1,26 @@
 package com.freemusic.presentation.ui.home
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.freemusic.presentation.ui.components.MiniPlayer
-import com.freemusic.presentation.viewmodel.PlayerViewModel
+import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onSearchClick: () -> Unit,
-    onSongClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
-    playerViewModel: PlayerViewModel = hiltViewModel()
+    onLocalMusicClick: () -> Unit = {},
+    onPlaylistClick: () -> Unit = {}
 ) {
-    val playerState by playerViewModel.uiState.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -33,49 +32,87 @@ fun HomeScreen(
                             contentDescription = "设置"
                         )
                     }
-                    TextButton(onClick = onSearchClick) {
-                        Text("搜索")
-                    }
                 }
             )
-        },
-        bottomBar = {
-            playerState.currentSong?.let {
-                MiniPlayer(
-                    song = playerState.currentSong,
-                    isPlaying = playerState.isPlaying,
-                    progress = if (playerState.duration > 0) playerState.currentPosition.toFloat() / playerState.duration else 0f,
-                    onPlayPause = playerViewModel::togglePlayPause,
-                    onNext = playerViewModel::skipToNext,
-                    onClick = onSongClick
-                )
-            }
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+            Text(
+                text = "欢迎使用 FreeMusic",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // 快捷入口
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "🎵 FreeMusic",
-                    style = MaterialTheme.typography.headlineMedium
+                QuickAccessCard(
+                    icon = Icons.Default.Folder,
+                    title = "本地音乐",
+                    onClick = onLocalMusicClick,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "点击搜索开始听歌",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                QuickAccessCard(
+                    icon = Icons.Default.QueueMusic,
+                    title = "歌单",
+                    onClick = onPlaylistClick,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onSearchClick) {
-                    Text("搜索歌曲")
-                }
             }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Button(
+                onClick = onSearchClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Search, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("搜索在线歌曲")
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickAccessCard(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp)),
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PrimaryIndigo,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

@@ -39,15 +39,17 @@ import com.freemusic.presentation.ui.theme.PrimaryIndigo
 fun SearchScreen(
     query: String,
     onQueryChange: (String) -> Unit,
-    onSearch: (String) -> Unit,
+    onSearch: () -> Unit,
     searchResults: List<Song>,
     hotSearchTags: List<String>,
     searchHistory: List<String>,
+    isLoading: Boolean = false,
     onSongClick: (Song) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
     onTagClick: (String) -> Unit,
     onHistoryItemClick: (String) -> Unit,
     onClearHistory: () -> Unit,
+    onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
@@ -60,7 +62,7 @@ fun SearchScreen(
             query = query,
             onQueryChange = onQueryChange,
             onSearch = {
-                onSearch(query)
+                onSearch()
                 focusManager.clearFocus()
             },
             onClear = { onQueryChange("") },
@@ -74,11 +76,21 @@ fun SearchScreen(
         
         if (query.isNotEmpty()) {
             // 搜索结果
-            SearchResults(
-                results = searchResults,
-                onSongClick = onSongClick,
-                modifier = Modifier.weight(1f)
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                SearchResults(
+                    results = searchResults,
+                    onSongClick = onSongClick
+                )
+                
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = primaryColor)
+                    }
+                }
+            }
         } else {
             // 热搜和历史
             LazyColumn(

@@ -39,8 +39,11 @@ fun SettingsScreen(
     onAutoPlayToggle: (Boolean) -> Unit,
     highQualityEnabled: Boolean,
     onHighQualityToggle: (Boolean) -> Unit,
-    onClearCache: () -> Unit,
-    onAbout: () -> Unit,
+    cacheSize: String = "0 MB",
+    onClearCache: () -> Unit = {},
+    onBackClick: () -> Unit = {},
+    onImportClick: () -> Unit = {},
+    onAboutClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
@@ -48,6 +51,17 @@ fun SettingsScreen(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
+        // 顶部导航
+        item {
+            TopAppBar(
+                title = { Text("设置") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                }
+            )
+        }
         // 外观设置
         item {
             SettingsSection(title = "外观") {
@@ -134,8 +148,15 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.DeleteSweep,
                     title = "清理缓存",
-                    subtitle = "清除临时文件和缩略图",
+                    subtitle = "当前缓存: $cacheSize",
                     onClick = onClearCache
+                )
+                
+                SettingsItem(
+                    icon = Icons.Default.Download,
+                    title = "导入歌单",
+                    subtitle = "从链接或文件导入",
+                    onClick = onImportClick
                 )
             }
         }
@@ -147,7 +168,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Info,
                     title = "关于 FreeMusic",
                     subtitle = "版本 0.1.0",
-                    onClick = onAbout
+                    onClick = onAboutClick
                 )
                 
                 SettingsItem(

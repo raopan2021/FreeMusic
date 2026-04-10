@@ -1,6 +1,5 @@
 package com.freemusic.presentation.ui.settings
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -11,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,139 +43,340 @@ fun SettingsScreen(
     onImportClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    primaryColor: Color = PrimaryIndigo
+    primaryColor: androidx.compose.ui.graphics.Color = PrimaryIndigo
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 16.dp)
-    ) {
-        // 顶部导航
-        item {
-            TopAppBar(
-                title = { Text("设置") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+    var showThemeDialog by remember { mutableStateOf(false) }
+    var showParticleDialog by remember { mutableStateOf(false) }
+    var showVisualizerDialog by remember { mutableStateOf(false) }
+    var showEqualizerDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
+
+    val themes = listOf("默认", "暗色", "纯黑")
+    val particleEffects = listOf("无", "星星", "泡泡", "烟花")
+    val visualizerStyles = listOf("无", "条形", "圆形", "波形")
+    val equalizerPresets = listOf("平坦", "低音增强", "高音增强", "人声", "古典", "摇滚")
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 16.dp)
+        ) {
+            // 顶部导航
+            item {
+                TopAppBar(
+                    title = { Text("设置") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
+                    }
+                )
+            }
+            
+            // 外观设置
+            item {
+                SettingsSection(title = "外观") {
+                    SettingsItem(
+                        icon = Icons.Default.Palette,
+                        title = "主题",
+                        subtitle = currentTheme,
+                        onClick = { showThemeDialog = true }
+                    )
+                    
+                    SettingsSwitchItem(
+                        icon = Icons.Default.DarkMode,
+                        title = "深色纯黑模式",
+                        subtitle = "使用纯黑色背景，省电护眼",
+                        checked = pureBlackEnabled,
+                        onCheckedChange = onPureBlackToggle
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Image,
+                        title = "封面样式",
+                        subtitle = coverStyle,
+                        onClick = { /* TODO */ }
+                    )
+                }
+            }
+            
+            // 视觉效果
+            item {
+                SettingsSection(title = "视觉效果") {
+                    SettingsItem(
+                        icon = Icons.Default.AutoAwesome,
+                        title = "粒子效果",
+                        subtitle = particleEffect,
+                        onClick = { showParticleDialog = true }
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Equalizer,
+                        title = "可视化器",
+                        subtitle = visualizerStyle,
+                        onClick = { showVisualizerDialog = true }
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Tune,
+                        title = "均衡器",
+                        subtitle = equalizerPreset,
+                        onClick = { showEqualizerDialog = true }
+                    )
+                }
+            }
+            
+            // 播放设置
+            item {
+                SettingsSection(title = "播放设置") {
+                    SettingsSwitchItem(
+                        icon = Icons.Default.PlayCircle,
+                        title = "自动播放",
+                        subtitle = "启动时自动播放",
+                        checked = autoPlayEnabled,
+                        onCheckedChange = onAutoPlayToggle
+                    )
+                    
+                    SettingsSwitchItem(
+                        icon = Icons.Default.HighQuality,
+                        title = "高质量音频",
+                        subtitle = "优先播放SQ/HQ音质",
+                        checked = highQualityEnabled,
+                        onCheckedChange = onHighQualityToggle
+                    )
+                }
+            }
+            
+            // 存储
+            item {
+                SettingsSection(title = "存储") {
+                    SettingsItem(
+                        icon = Icons.Default.DeleteSweep,
+                        title = "清理缓存",
+                        subtitle = "当前缓存: $cacheSize",
+                        onClick = onClearCache
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Download,
+                        title = "导入歌单",
+                        subtitle = "从链接或文件导入",
+                        onClick = onImportClick
+                    )
+                }
+            }
+            
+            // 关于
+            item {
+                SettingsSection(title = "关于") {
+                    SettingsItem(
+                        icon = Icons.Default.Info,
+                        title = "关于 FreeMusic",
+                        subtitle = "版本 0.1.0",
+                        onClick = { showAboutDialog = true }
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Code,
+                        title = "开源许可",
+                        subtitle = "查看项目依赖的许可",
+                        onClick = { }
+                    )
+                }
+            }
+        }
+
+        // 主题选择对话框
+        if (showThemeDialog) {
+            AlertDialog(
+                onDismissRequest = { showThemeDialog = false },
+                title = { Text("选择主题") },
+                text = {
+                    Column {
+                        themes.forEach { theme ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onThemeChange(theme)
+                                        showThemeDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = theme == currentTheme,
+                                    onClick = {
+                                        onThemeChange(theme)
+                                        showThemeDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = theme)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showThemeDialog = false }) {
+                        Text("取消")
                     }
                 }
             )
         }
-        // 外观设置
-        item {
-            SettingsSection(title = "外观") {
-                // 主题选择
-                SettingsItem(
-                    icon = Icons.Default.Palette,
-                    title = "主题",
-                    subtitle = currentTheme,
-                    onClick = { }
-                )
-                
-                // 纯黑模式
-                SettingsSwitchItem(
-                    icon = Icons.Default.DarkMode,
-                    title = "深色纯黑模式",
-                    subtitle = "使用纯黑色背景，省电护眼",
-                    checked = pureBlackEnabled,
-                    onCheckedChange = onPureBlackToggle
-                )
-                
-                // 封面样式
-                SettingsItem(
-                    icon = Icons.Default.Image,
-                    title = "封面样式",
-                    subtitle = coverStyle,
-                    onClick = { }
-                )
-            }
+
+        // 粒子效果对话框
+        if (showParticleDialog) {
+            AlertDialog(
+                onDismissRequest = { showParticleDialog = false },
+                title = { Text("选择粒子效果") },
+                text = {
+                    Column {
+                        particleEffects.forEach { effect ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onParticleEffectChange(effect)
+                                        showParticleDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = effect == particleEffect,
+                                    onClick = {
+                                        onParticleEffectChange(effect)
+                                        showParticleDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = effect)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showParticleDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
-        
-        // 视觉效果
-        item {
-            SettingsSection(title = "视觉效果") {
-                // 粒子效果
-                SettingsItem(
-                    icon = Icons.Default.AutoAwesome,
-                    title = "粒子效果",
-                    subtitle = particleEffect,
-                    onClick = { }
-                )
-                
-                // 可视化器样式
-                SettingsItem(
-                    icon = Icons.Default.Equalizer,
-                    title = "可视化器",
-                    subtitle = visualizerStyle,
-                    onClick = { }
-                )
-                
-                // 均衡器预设
-                SettingsItem(
-                    icon = Icons.Default.Tune,
-                    title = "均衡器",
-                    subtitle = equalizerPreset,
-                    onClick = { }
-                )
-            }
+
+        // 可视化器对话框
+        if (showVisualizerDialog) {
+            AlertDialog(
+                onDismissRequest = { showVisualizerDialog = false },
+                title = { Text("选择可视化器") },
+                text = {
+                    Column {
+                        visualizerStyles.forEach { style ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onVisualizerStyleChange(style)
+                                        showVisualizerDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = style == visualizerStyle,
+                                    onClick = {
+                                        onVisualizerStyleChange(style)
+                                        showVisualizerDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = style)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVisualizerDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
-        
-        // 播放设置
-        item {
-            SettingsSection(title = "播放设置") {
-                SettingsSwitchItem(
-                    icon = Icons.Default.PlayCircle,
-                    title = "自动播放",
-                    subtitle = "启动时自动播放",
-                    checked = autoPlayEnabled,
-                    onCheckedChange = onAutoPlayToggle
-                )
-                
-                SettingsSwitchItem(
-                    icon = Icons.Default.HighQuality,
-                    title = "高质量音频",
-                    subtitle = "优先播放SQ/HQ音质",
-                    checked = highQualityEnabled,
-                    onCheckedChange = onHighQualityToggle
-                )
-            }
+
+        // 均衡器对话框
+        if (showEqualizerDialog) {
+            AlertDialog(
+                onDismissRequest = { showEqualizerDialog = false },
+                title = { Text("选择均衡器预设") },
+                text = {
+                    Column {
+                        equalizerPresets.forEach { preset ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onEqualizerPresetChange(preset)
+                                        showEqualizerDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = preset == equalizerPreset,
+                                    onClick = {
+                                        onEqualizerPresetChange(preset)
+                                        showEqualizerDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = preset)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showEqualizerDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
-        
-        // 存储
-        item {
-            SettingsSection(title = "存储") {
-                SettingsItem(
-                    icon = Icons.Default.DeleteSweep,
-                    title = "清理缓存",
-                    subtitle = "当前缓存: $cacheSize",
-                    onClick = onClearCache
-                )
-                
-                SettingsItem(
-                    icon = Icons.Default.Download,
-                    title = "导入歌单",
-                    subtitle = "从链接或文件导入",
-                    onClick = onImportClick
-                )
-            }
-        }
-        
-        // 关于
-        item {
-            SettingsSection(title = "关于") {
-                SettingsItem(
-                    icon = Icons.Default.Info,
-                    title = "关于 FreeMusic",
-                    subtitle = "版本 0.1.0",
-                    onClick = onAboutClick
-                )
-                
-                SettingsItem(
-                    icon = Icons.Default.Code,
-                    title = "开源许可",
-                    subtitle = "查看项目依赖的许可",
-                    onClick = { }
-                )
-            }
+
+        // 关于对话框
+        if (showAboutDialog) {
+            AlertDialog(
+                onDismissRequest = { showAboutDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("FreeMusic")
+                    }
+                },
+                text = {
+                    Column {
+                        Text("版本: 0.1.0")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("一个优雅的音乐播放器，支持多种音频格式和视觉效果。")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(text = "功能特点：", fontWeight = FontWeight.Bold)
+                        Text("• 多种粒子视觉效果")
+                        Text("• 歌词同步显示")
+                        Text("• 均衡器调节")
+                        Text("• 歌单导入")
+                        Text("• 深色/纯黑主题")
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showAboutDialog = false }) {
+                        Text("确定")
+                    }
+                }
+            )
         }
     }
 }
@@ -292,142 +491,4 @@ private fun SettingsSwitchItem(
             )
         }
     }
-}
-
-/**
- * 主题选择对话框
- */
-@Composable
-fun ThemeSelectionDialog(
-    currentTheme: String,
-    themes: List<String>,
-    onThemeSelect: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("选择主题") },
-        text = {
-            Column {
-                themes.forEach { theme ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onThemeSelect(theme)
-                                onDismiss()
-                            }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = theme == currentTheme,
-                            onClick = {
-                                onThemeSelect(theme)
-                                onDismiss()
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = theme)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
-        }
-    )
-}
-
-/**
- * 粒子效果选择对话框
- */
-@Composable
-fun ParticleEffectSelectionDialog(
-    currentEffect: String,
-    effects: List<String>,
-    onEffectSelect: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("选择粒子效果") },
-        text = {
-            LazyColumn {
-                items(effects.size) { index ->
-                    val effect = effects[index]
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onEffectSelect(effect)
-                                onDismiss()
-                            }
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = effect == currentEffect,
-                            onClick = {
-                                onEffectSelect(effect)
-                                onDismiss()
-                            }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = effect)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
-        }
-    )
-}
-
-/**
- * 关于对话框
- */
-@Composable
-fun AboutDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("FreeMusic")
-            }
-        },
-        text = {
-            Column {
-                Text("版本: 0.1.0")
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("一个优雅的音乐播放器，支持多种音频格式和视觉效果。")
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "功能特点：",
-                    fontWeight = FontWeight.Bold
-                )
-                Text("• 多种粒子视觉效果")
-                Text("• 歌词同步显示")
-                Text("• 均衡器调节")
-                Text("• 歌单导入")
-                Text("• 深色/纯黑主题")
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("确定")
-            }
-        }
-    )
 }

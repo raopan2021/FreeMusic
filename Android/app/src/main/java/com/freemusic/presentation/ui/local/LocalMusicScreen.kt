@@ -3,6 +3,8 @@ package com.freemusic.presentation.ui.local
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,23 +33,37 @@ fun LocalMusicScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
-    // 检查权限
-    val hasPermission = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    // 权限状态
+    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_AUDIO
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+    
+    var hasPermission by remember {
+        mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.READ_MEDIA_AUDIO
+                permission
             ) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    
+    // 权限请求 launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasPermission = isGranted
+        if (isGranted) {
+            viewModel.scanLocalMusic()
         }
     }
     
-    LaunchedEffect(hasPermission) {
-        if (hasPermission) {
+    // 首次检查权限
+    LaunchedEffect(Unit) {
+        if (!hasPermission) {
+            permissionLauncher.launch(permission)
+        } else {
             viewModel.scanLocalMusic()
         }
     }
@@ -100,10 +116,14 @@ fun LocalMusicScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "请在设置中授予存储权限以扫描本地音乐",
+                            text = "请授予存储权限以扫描本地音乐",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(onClick = { permissionLauncher.launch(permission) }) {
+                            Text("授予权限")
+                        }
                     }
                 }
                 
@@ -120,11 +140,13 @@ fun LocalMusicScreen(
                             text = "正在扫描本地音乐...",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        Text(
-                            text = "已扫描 ${uiState.scannedCount} 首",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (uiState.scannedCount > 0) {
+                            Text(
+                                text = "已扫描 ${uiState.scannedCount} 首",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
                 
@@ -155,6 +177,12 @@ fun LocalMusicScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        OutlinedButton(onClick = { viewModel.scanLocalMusic() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("重新扫描")
+                        }
                     }
                 }
                 

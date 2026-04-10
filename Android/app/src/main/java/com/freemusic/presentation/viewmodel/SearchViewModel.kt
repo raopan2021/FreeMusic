@@ -40,8 +40,12 @@ class SearchViewModel @Inject constructor(
 
     private fun loadSearchHistory() {
         viewModelScope.launch {
-            localDataSource.getSearchHistory(10).collect { history ->
-                _uiState.update { it.copy(history = history) }
+            try {
+                localDataSource.getSearchHistory(10).collect { history ->
+                    _uiState.update { it.copy(history = history) }
+                }
+            } catch (e: Exception) {
+                // Ignore errors loading history
             }
         }
     }
@@ -57,28 +61,38 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
-            // 保存搜索历史
-            localDataSource.addSearchHistory(query)
-            
-            musicRepository.searchSongs(query).collect { result ->
-                result.fold(
-                    onSuccess = { searchResult ->
-                        _uiState.update { 
-                            it.copy(
-                                results = searchResult.songs,
-                                isLoading = false
-                            )
+            try {
+                // 保存搜索历史
+                localDataSource.addSearchHistory(query)
+                
+                musicRepository.searchSongs(query).collect { result ->
+                    result.fold(
+                        onSuccess = { searchResult ->
+                            _uiState.update { 
+                                it.copy(
+                                    results = searchResult.songs,
+                                    isLoading = false
+                                )
+                            }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { 
+                                it.copy(
+                                    error = error.message,
+                                    isLoading = false,
+                                    results = emptyList()
+                                )
+                            }
                         }
-                    },
-                    onFailure = { error ->
-                        _uiState.update { 
-                            it.copy(
-                                error = error.message,
-                                isLoading = false
-                            )
-                        }
-                    }
-                )
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        error = e.message,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
@@ -112,7 +126,11 @@ class SearchViewModel @Inject constructor(
 
     fun clearHistory() {
         viewModelScope.launch {
-            localDataSource.clearSearchHistory()
+            try {
+                localDataSource.clearSearchHistory()
+            } catch (e: Exception) {
+                // Ignore errors
+            }
         }
     }
 }

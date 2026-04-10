@@ -310,6 +310,10 @@ fun FreeMusicNavHost(
                     }
                     navController.navigate(Screen.Player.route)
                 },
+                onAddToPlaylist = { song ->
+                    // 添加到"我喜欢的音乐"歌单
+                    playlistViewModel.addToPlaylist("favorites", song)
+                },
                 onClearHistory = { playHistoryViewModel.clearHistory() }
             )
         }

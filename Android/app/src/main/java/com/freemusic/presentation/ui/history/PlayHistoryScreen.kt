@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +29,7 @@ fun PlayHistoryScreen(
     mostPlayed: List<Song>,
     onBackClick: () -> Unit,
     onSongClick: (Song) -> Unit,
+    onAddToPlaylist: (Song) -> Unit,
     onClearHistory: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -38,7 +41,7 @@ fun PlayHistoryScreen(
                 title = { Text("播放历史") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -101,7 +104,8 @@ fun PlayHistoryScreen(
                     items(songs) { song ->
                         HistorySongItem(
                             song = song,
-                            onClick = { onSongClick(song) }
+                            onClick = { onSongClick(song) },
+                            onMoreClick = { onAddToPlaylist(song) }
                         )
                     }
                 }
@@ -113,8 +117,11 @@ fun PlayHistoryScreen(
 @Composable
 private fun HistorySongItem(
     song: Song,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMoreClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -171,11 +178,31 @@ private fun HistorySongItem(
                 )
             }
             
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = "播放",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "更多",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("加入歌单") },
+                        onClick = {
+                            showMenu = false
+                            onMoreClick()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
+                        }
+                    )
+                }
+            }
         }
     }
 }

@@ -103,29 +103,81 @@ class PlayerViewModel @Inject constructor(
                 // Ignore history errors
             }
             
-            getSongWithUrlUseCase(song.id).collect { result ->
-                result.fold(
-                    onSuccess = { songWithUrl ->
-                        playMediaItem(songWithUrl)
-                        loadLyrics(songWithUrl.song)
-                        observeFavoriteStatus(songWithUrl.song.id)
-                        _uiState.update { state ->
-                            state.copy(
-                                currentSong = songWithUrl.song,
-                                isLoading = false,
-                                playlist = listOf(songWithUrl.song),
-                                currentIndex = 0
-                            )
+            // 判断是本地歌曲还是网易云歌曲
+            if (song.isNetease && song.neteaseId != null) {
+                // 网易云歌曲 - 需要获取播放链接
+                getSongWithUrlUseCase(song.id).collect { result ->
+                    result.fold(
+                        onSuccess = { songWithUrl ->
+                            playMediaItem(songWithUrl)
+                            loadLyrics(songWithUrl.song)
+                            observeFavoriteStatus(songWithUrl.song.id)
+                            _uiState.update { state ->
+                                state.copy(
+                                    currentSong = songWithUrl.song,
+                                    isLoading = false,
+                                    playlist = listOf(songWithUrl.song),
+                                    currentIndex = 0
+                                )
+                            }
+                        },
+                        onFailure = { exception ->
+                            _uiState.update { 
+                                it.copy(
+                                    isLoading = false,
+                                    error = exception.message ?: "播放失败"
+                                )
+                            }
                         }
-                    },
-                    onFailure = { exception ->
-                        _uiState.update { 
-                            it.copy(
-                                isLoading = false,
-                                error = exception.message ?: "播放失败"
-                            )
-                        }
-                    }
+                    )
+                }
+            } else {
+                // 本地歌曲 - 直接使用 Content URI 播放
+                playLocalSong(song)
+            }
+        }
+    }
+    
+    /**
+     * 播放本地歌曲
+     */
+    private fun playLocalSong(song: Song) {
+        mediaController?.let { controller ->
+            // 本地歌曲使用 content:// URI
+            val uri = if (song.id.contains("/")) {
+                // 如果 ID 已经是完整 URI
+                android.net.Uri.parse(song.id)
+            } else {
+                // 如果 ID 只是数字，构建 content URI
+                android.net.Uri.withAppendedPath(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    song.id
+                )
+            }
+            
+            val mediaItem = MediaItem.Builder()
+                .setMediaId(song.id)
+                .setUri(uri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(song.title)
+                        .setArtist(song.artist)
+                        .setAlbumTitle(song.album)
+                        .setArtworkUri(song.coverUrl?.let { android.net.Uri.parse(it) })
+                        .build()
+                )
+                .build()
+
+            controller.setMediaItem(mediaItem)
+            controller.prepare()
+            controller.play()
+            
+            _uiState.update { state ->
+                state.copy(
+                    currentSong = song,
+                    isLoading = false,
+                    playlist = listOf(song),
+                    currentIndex = 0
                 )
             }
         }

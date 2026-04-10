@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
@@ -305,7 +306,7 @@ fun FreeMusicNavHost(
         }
     }
     
-    // 底部迷你播放器
+    // 底部迷你播放器 - 添加 navigationBarsPadding 确保不被底部导航遮挡
     if (showMiniPlayer && currentSong != null) {
         MiniPlayer(
             currentSong = currentSong,
@@ -314,7 +315,9 @@ fun FreeMusicNavHost(
             onNextClick = { playerViewModel.skipToNext() },
             onPreviousClick = { playerViewModel.skipToPrevious() },
             onPlayerClick = { navController.navigate(Screen.Player.route) },
-            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.BottomCenter)
+                .navigationBarsPadding()
         )
     }
 }

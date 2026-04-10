@@ -40,7 +40,7 @@ fun LocalMusicScreen(
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     
-    // 检查是否有权限
+    // 使用 rememberUpdatedState 确保状态变化能触发 recomposition
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -64,11 +64,18 @@ fun LocalMusicScreen(
         onResult = permissionCallback
     )
     
-    // 首次检查权限
+    // 首次检查权限 - 使用 LaunchedEffect 确保只在组合时执行一次
     LaunchedEffect(Unit) {
         if (!hasPermission) {
             permissionLauncher.launch(permission)
         } else {
+            viewModel.scanLocalMusic()
+        }
+    }
+    
+    // 当权限状态变化时重新检查
+    LaunchedEffect(hasPermission) {
+        if (hasPermission && uiState.songs.isEmpty()) {
             viewModel.scanLocalMusic()
         }
     }

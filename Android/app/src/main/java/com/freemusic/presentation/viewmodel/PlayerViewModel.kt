@@ -144,15 +144,19 @@ class PlayerViewModel @Inject constructor(
     private fun playLocalSong(song: Song) {
         mediaController?.let { controller ->
             // 本地歌曲使用 content:// URI
-            val uri = if (song.id.contains("/")) {
-                // 如果 ID 已经是完整 URI
-                android.net.Uri.parse(song.id)
-            } else {
-                // 如果 ID 只是数字，构建 content URI
-                android.net.Uri.withAppendedPath(
-                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                    song.id
-                )
+            val uri = when {
+                // 如果 ID 已经是完整 URI（content:// 或 file://）
+                song.id.startsWith("content://") -> android.net.Uri.parse(song.id)
+                song.id.startsWith("file://") -> android.net.Uri.parse(song.id)
+                // 如果 ID 只是数字，构建 MediaStore content URI
+                song.id.all { it.isDigit() } -> {
+                    android.content.ContentUris.withAppendedId(
+                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        song.id.toLongOrNull() ?: 0L
+                    )
+                }
+                // 否则假设是文件路径，构建 file:// URI
+                else -> android.net.Uri.parse("file://${song.id}")
             }
             
             val mediaItem = MediaItem.Builder()
@@ -179,6 +183,76 @@ class PlayerViewModel @Inject constructor(
                     playlist = listOf(song),
                     currentIndex = 0
                 )
+            }
+        } ?: run {
+            // mediaController 还没准备好，延迟一下再试
+            viewModelScope.launch {
+                delay(500)
+                playLocalSong(song)
+            }
+        }
+    }
+    
+    /**
+     * 从外部 URI 播放（如从文件管理器打开 mp3）
+     */
+    fun playFromExternalUri(uri: android.net.Uri, title: String = "外部文件") {
+        val song = Song(
+            id = uri.toString(),
+            title = title,
+            artist = "未知艺术家",
+            album = "本地音乐",
+            coverUrl = null,
+            duration = 0,
+            neteaseId = null,
+            isNetease = false
+        )
+        
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            // 记录播放历史
+            try {
+                localDataSource.addToPlayHistory(song)
+            } catch (e: Exception) {
+                // Ignore history errors
+            }
+            
+            playLocalSongFromUri(uri, song)
+        }
+    }
+    
+    private fun playLocalSongFromUri(uri: android.net.Uri, song: Song) {
+        mediaController?.let { controller ->
+            val mediaItem = MediaItem.Builder()
+                .setMediaId(uri.toString())
+                .setUri(uri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(song.title)
+                        .setArtist(song.artist)
+                        .setAlbumTitle(song.album)
+                        .build()
+                )
+                .build()
+
+            controller.setMediaItem(mediaItem)
+            controller.prepare()
+            controller.play()
+            
+            _uiState.update { state ->
+                state.copy(
+                    currentSong = song,
+                    isLoading = false,
+                    playlist = listOf(song),
+                    currentIndex = 0
+                )
+            }
+        } ?: run {
+            // mediaController 还没准备好，延迟一下再试
+            viewModelScope.launch {
+                delay(500)
+                playLocalSongFromUri(uri, song)
             }
         }
     }

@@ -81,19 +81,8 @@ fun FreeMusicNavHost(
     // 处理外部音频文件
     LaunchedEffect(pendingAudioUri) {
         if (pendingAudioUri != null) {
-            // 播放外部音频文件
-            val song = com.freemusic.domain.model.Song(
-                id = pendingAudioUri.toString(),
-                title = "本地文件",
-                artist = "未知艺术家",
-                album = "本地音乐",
-                coverUrl = null,
-                duration = 0,
-                neteaseId = null,
-                isNetease = false
-            )
-            playerViewModel.playSong(song)
-            playerViewModel.togglePlayPause()
+            // 使用 playFromExternalUri 播放外部音频文件
+            playerViewModel.playFromExternalUri(pendingAudioUri)
             
             // 导航到播放页面
             navController.navigate(Screen.Player.route)

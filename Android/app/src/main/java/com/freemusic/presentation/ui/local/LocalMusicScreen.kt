@@ -33,13 +33,14 @@ fun LocalMusicScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     
-    // 权限状态
+    // 权限
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
     } else {
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
     
+    // 检查是否有权限
     var hasPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -49,15 +50,19 @@ fun LocalMusicScreen(
         )
     }
     
-    // 权限请求 launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasPermission = isGranted
-        if (isGranted) {
+    // 权限请求回调
+    val permissionCallback: (Boolean) -> Unit = { granted ->
+        hasPermission = granted
+        if (granted) {
             viewModel.scanLocalMusic()
         }
     }
+    
+    // 权限请求 launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = permissionCallback
+    )
     
     // 首次检查权限
     LaunchedEffect(Unit) {
@@ -121,7 +126,9 @@ fun LocalMusicScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(24.dp))
-                        Button(onClick = { permissionLauncher.launch(permission) }) {
+                        Button(
+                            onClick = { permissionLauncher.launch(permission) }
+                        ) {
                             Text("授予权限")
                         }
                     }

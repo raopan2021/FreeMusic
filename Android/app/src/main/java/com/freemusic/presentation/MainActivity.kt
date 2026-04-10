@@ -1,8 +1,10 @@
 package com.freemusic.presentation
 
 import android.content.Intent
+import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,14 +26,9 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     
-    private var pendingAudioUri: Uri? = null
-    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        // 处理音频文件intent
-        handleIntent(intent)
         
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
@@ -77,8 +74,8 @@ class MainActivity : ComponentActivity() {
                         // 歌词设置
                         lyricsFontSize = lyricsFontSize,
                         // 处理外部音频文件
-                        pendingAudioUri = pendingAudioUri,
-                        onPendingAudioUriConsumed = { pendingAudioUri = null }
+                        pendingAudioUri = intent?.data,
+                        onPendingAudioUriConsumed = { }
                     )
                 }
             }
@@ -87,27 +84,83 @@ class MainActivity : ComponentActivity() {
     
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleIntent(intent)
+        // 处理新的音频文件intent
+        handleAudioIntent(intent)
     }
     
-    private fun handleIntent(intent: Intent?) {
+    private fun handleAudioIntent(intent: Intent?) {
         if (intent == null) return
         
         when (intent.action) {
             Intent.ACTION_VIEW -> {
                 intent.data?.let { uri ->
-                    if (uri.toString().startsWith("content://") || 
-                        uri.toString().startsWith("file://")) {
-                        pendingAudioUri = uri
+                    if (isAudioUri(uri)) {
+                        // 直接播放
+                        playAudio(uri)
                     }
                 }
             }
             "com.freemusic.PLAY_MUSIC" -> {
-                // 处理来自其他应用的播放请求
                 intent.data?.let { uri ->
-                    pendingAudioUri = uri
+                    playAudio(uri)
                 }
             }
+        }
+    }
+    
+    private fun isAudioUri(uri: Uri): Boolean {
+        val mimeType = contentResolver.getType(uri)
+        return mimeType?.startsWith("audio/") == true || 
+               uri.toString().endsWith(".mp3") ||
+               uri.toString().endsWith(".flac") ||
+               uri.toString().endsWith(".m4a") ||
+               uri.toString().endsWith(".wav") ||
+               uri.toString().endsWith(".ogg")
+    }
+    
+    private fun playAudio(uri: Uri) {
+        // 从URI获取文件信息
+        val song = createSongFromUri(uri)
+        if (song != null) {
+            // 使用MediaSessionService播放
+            // 这里我们发送广播让PlaybackService处理
+            val playIntent = Intent("com.freemusic.PLAY_SONG").apply {
+                setPackage(packageName)
+                putExtra("song_id", song.id)
+                putExtra("song_title", song.title)
+                putExtra("song_artist", song.artist)
+                putExtra("song_uri", uri.toString())
+            }
+            sendBroadcast(playIntent)
+        }
+    }
+    
+    private fun createSongFromUri(uri: Uri): Song? {
+        return try {
+            var name = "未知歌曲"
+            var size = 0L
+            
+            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (nameIndex >= 0) name = cursor.getString(nameIndex) ?: name
+                    if (sizeIndex >= 0) size = cursor.getLong(sizeIndex)
+                }
+            }
+            
+            Song(
+                id = uri.toString(),
+                title = name.substringBeforeLast("."),
+                artist = "本地文件",
+                album = "本地音乐",
+                coverUrl = null,
+                duration = 0, // 无法获取时长
+                neteaseId = null,
+                isNetease = false
+            )
+        } catch (e: Exception) {
+            null
         }
     }
 }

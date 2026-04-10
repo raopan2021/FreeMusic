@@ -51,7 +51,6 @@ fun SettingsScreen(
     var showEqualizerDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
 
-    val themes = listOf("默认", "暗色", "纯黑")
     val particleEffects = listOf("无", "星星", "泡泡", "烟花")
     val visualizerStyles = listOf("无", "条形", "圆形", "波形")
     val equalizerPresets = listOf("平坦", "低音增强", "高音增强", "人声", "古典", "摇滚")
@@ -76,21 +75,17 @@ fun SettingsScreen(
             // 外观设置
             item {
                 SettingsSection(title = "外观") {
-                    SettingsItem(
-                        icon = Icons.Default.Palette,
-                        title = "主题",
-                        subtitle = currentTheme,
-                        onClick = { showThemeDialog = true }
+                    // 主题选择（3个Radio Button）
+                    SettingsThemeSelector(
+                        currentTheme = currentTheme,
+                        onThemeChange = { theme ->
+                            onThemeChange(theme)
+                            // 根据主题设置纯黑模式
+                            onPureBlackToggle(theme == "纯黑")
+                        }
                     )
                     
-                    SettingsSwitchItem(
-                        icon = Icons.Default.DarkMode,
-                        title = "深色纯黑模式",
-                        subtitle = "使用纯黑色背景，省电护眼",
-                        checked = pureBlackEnabled,
-                        onCheckedChange = onPureBlackToggle
-                    )
-                    
+                    // 封面样式
                     SettingsItem(
                         icon = Icons.Default.Image,
                         title = "封面样式",
@@ -184,45 +179,6 @@ fun SettingsScreen(
                     )
                 }
             }
-        }
-
-        // 主题选择对话框
-        if (showThemeDialog) {
-            AlertDialog(
-                onDismissRequest = { showThemeDialog = false },
-                title = { Text("选择主题") },
-                text = {
-                    Column {
-                        themes.forEach { theme ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onThemeChange(theme)
-                                        showThemeDialog = false
-                                    }
-                                    .padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = theme == currentTheme,
-                                    onClick = {
-                                        onThemeChange(theme)
-                                        showThemeDialog = false
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = theme)
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showThemeDialog = false }) {
-                        Text("取消")
-                    }
-                }
-            )
         }
 
         // 粒子效果对话框
@@ -377,6 +333,46 @@ fun SettingsScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun SettingsThemeSelector(
+    currentTheme: String,
+    onThemeChange: (String) -> Unit
+) {
+    val themes = listOf("默认", "暗色", "纯黑")
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = "主题",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        themes.forEach { theme ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onThemeChange(theme) }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = theme == currentTheme,
+                    onClick = { onThemeChange(theme) }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = theme,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

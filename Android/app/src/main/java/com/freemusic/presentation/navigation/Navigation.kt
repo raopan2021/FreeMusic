@@ -285,7 +285,8 @@ fun FreeMusicNavHost(
                         navController.navigate(Screen.Player.route)
                     },
                     onAddSongs = {
-                        // TODO: 显示添加歌曲对话框或导航到搜索页
+                        // 导航到搜索页，用户可以搜索歌曲并添加到歌单
+                        navController.navigate(Screen.Search.route)
                     },
                     onRemoveSong = { song ->
                         playlistViewModel.removeFromPlaylist(playlistId, song.id)

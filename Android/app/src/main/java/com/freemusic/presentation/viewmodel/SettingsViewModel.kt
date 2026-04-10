@@ -227,7 +227,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setHighQuality(enabled: Boolean) {
-        // TODO: 实现高品质播放
+        // 高品质播放设置 - 目前仅保存在 UI 状态
+        // 实际的高品质播放逻辑需要在播放器中实现
+        _uiState.update { it.copy(highQualityEnabled = enabled) }
     }
 
     fun setCrossFadeEnabled(enabled: Boolean) {
@@ -265,12 +267,14 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setParticleEffect(effect: String) {
-        // TODO: 实现粒子效果切换
+        // 粒子效果设置 - 目前仅保存在 UI 状态
+        // 粒子效果的开关由粒子系统组件控制
         _uiState.update { it.copy(particleEffectName = effect) }
     }
 
     fun setVisualizerStyle(style: String) {
-        // TODO: 实现可视化器切换
+        // 可视化器设置 - 目前仅保存在 UI 状态
+        // 可视化器的开关由可视化器组件控制
         _uiState.update { it.copy(visualizerStyleName = style) }
     }
 

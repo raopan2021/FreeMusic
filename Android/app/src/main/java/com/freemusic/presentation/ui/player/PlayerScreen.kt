@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -903,8 +904,7 @@ private fun QueueList(
     // 初始滚动到当前歌曲（居中）
     LaunchedEffect(currentIndex) {
         if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
-            // 计算使当前歌曲居中的scrollToIndex
-            val visibleItems = 5  // 假设可见区域大约5个项目
+            val visibleItems = 5
             val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
             listState.animateScrollToItem(index = targetIndex)
         }
@@ -944,8 +944,7 @@ private fun QueueList(
                         imageVector = Icons.Default.DragHandle,
                         contentDescription = "长按拖动排序",
                         tint = Color.Gray,
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
                     
                     // 歌曲信息

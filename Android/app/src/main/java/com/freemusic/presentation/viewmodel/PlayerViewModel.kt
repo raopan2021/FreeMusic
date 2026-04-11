@@ -351,21 +351,28 @@ class PlayerViewModel @Inject constructor(
      * 内部方法：实际执行本地歌曲播放
      */
     private fun playLocalSongInternal(uri: Uri, song: Song) {
+        val playlist = _uiState.value.playlist
+        val currentIndex = _uiState.value.currentIndex
+        
         mediaController?.let { controller ->
-            val mediaItem = MediaItem.Builder()
-                .setMediaId(song.id)
-                .setUri(uri)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(song.title)
-                        .setArtist(song.artist)
-                        .setAlbumTitle(song.album)
-                        .setArtworkUri(song.coverUrl?.let { Uri.parse(it) })
-                        .build()
-                )
-                .build()
-
-            controller.setMediaItem(mediaItem)
+            // 将整个播放列表转换为 MediaItems
+            val mediaItems = playlist.map { s ->
+                val contentUri = buildContentUri(s.id)
+                MediaItem.Builder()
+                    .setMediaId(s.id)
+                    .setUri(contentUri)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(s.title)
+                            .setArtist(s.artist)
+                            .setAlbumTitle(s.album)
+                            .setArtworkUri(s.coverUrl?.let { Uri.parse(it) })
+                            .build()
+                    )
+                    .build()
+            }
+            
+            controller.setMediaItems(mediaItems, currentIndex, 0)
             controller.prepare()
             controller.setPlaybackSpeed(playbackSpeed)
             controller.play()
@@ -450,21 +457,44 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun playMediaItem(songWithUrl: SongWithUrl) {
+        val playlist = _uiState.value.playlist
+        val currentIndex = _uiState.value.currentIndex
+        
         mediaController?.let { controller ->
-            val mediaItem = MediaItem.Builder()
-                .setMediaId(songWithUrl.song.id)
-                .setUri(songWithUrl.url)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(songWithUrl.song.title)
-                        .setArtist(songWithUrl.song.artist)
-                        .setAlbumTitle(songWithUrl.song.album)
-                        .setArtworkUri(songWithUrl.song.coverUrl?.let { Uri.parse(it) })
+            // 将整个播放列表转换为 MediaItems
+            val mediaItems = playlist.map { song ->
+                if (song.id == songWithUrl.song.id) {
+                    // 当前歌曲使用提供的 URL
+                    MediaItem.Builder()
+                        .setMediaId(song.id)
+                        .setUri(songWithUrl.url)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(song.title)
+                                .setArtist(song.artist)
+                                .setAlbumTitle(song.album)
+                                .setArtworkUri(song.coverUrl?.let { Uri.parse(it) })
+                                .build()
+                        )
                         .build()
-                )
-                .build()
-
-            controller.setMediaItem(mediaItem)
+                } else {
+                    // 播放列表中的其他歌曲使用占位符，之后再更新
+                    MediaItem.Builder()
+                        .setMediaId(song.id)
+                        .setUri("placeholder:${song.id}")
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(song.title)
+                                .setArtist(song.artist)
+                                .setAlbumTitle(song.album)
+                                .setArtworkUri(song.coverUrl?.let { Uri.parse(it) })
+                                .build()
+                        )
+                        .build()
+                }
+            }
+            
+            controller.setMediaItems(mediaItems, currentIndex, 0)
             controller.prepare()
             controller.setPlaybackSpeed(playbackSpeed)
             controller.play()
@@ -476,23 +506,41 @@ class PlayerViewModel @Inject constructor(
                     delay(250)
                     retryCount++
                 }
-                mediaController?.let { controller ->
-                    val mediaItem = MediaItem.Builder()
-                        .setMediaId(songWithUrl.song.id)
-                        .setUri(songWithUrl.url)
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(songWithUrl.song.title)
-                                .setArtist(songWithUrl.song.artist)
-                                .setAlbumTitle(songWithUrl.song.album)
-                                .setArtworkUri(songWithUrl.song.coverUrl?.let { Uri.parse(it) })
+                mediaController?.let { ctrl ->
+                    val mediaItems = playlist.map { song ->
+                        if (song.id == songWithUrl.song.id) {
+                            MediaItem.Builder()
+                                .setMediaId(song.id)
+                                .setUri(songWithUrl.url)
+                                .setMediaMetadata(
+                                    MediaMetadata.Builder()
+                                        .setTitle(song.title)
+                                        .setArtist(song.artist)
+                                        .setAlbumTitle(song.album)
+                                        .setArtworkUri(song.coverUrl?.let { Uri.parse(it) })
+                                        .build()
+                                )
                                 .build()
-                        )
-                        .build()
-
-                    controller.setMediaItem(mediaItem)
-                    controller.prepare()
-                    controller.play()
+                        } else {
+                            MediaItem.Builder()
+                                .setMediaId(song.id)
+                                .setUri("placeholder:${song.id}")
+                                .setMediaMetadata(
+                                    MediaMetadata.Builder()
+                                        .setTitle(song.title)
+                                        .setArtist(song.artist)
+                                        .setAlbumTitle(song.album)
+                                        .setArtworkUri(song.coverUrl?.let { Uri.parse(it) })
+                                        .build()
+                                )
+                                .build()
+                        }
+                    }
+                    
+                    ctrl.setMediaItems(mediaItems, currentIndex, 0)
+                    ctrl.prepare()
+                    ctrl.setPlaybackSpeed(playbackSpeed)
+                    ctrl.play()
                 }
             }
         }

@@ -27,6 +27,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        // 设置导航栏透明，覆盖系统导航条
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
+        
         // 处理初始音频文件intent
         _pendingAudioUri.value = handleAudioIntent(intent)
         

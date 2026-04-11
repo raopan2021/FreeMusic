@@ -47,6 +47,37 @@ val PureBlack = Color(0xFF000000)
 val LightBackground = Color(0xFFF8F9FA)
 val LightSurface = Color(0xFFFFFFFF)
 
+// 小米 SU7 颜色主题
+object SU7Colors {
+    // 海湾蓝
+    val OceanBlue = Color(0xFF36B5E5)
+    // 熔岩橙
+    val LavaOrange = Color(0xFFFF6532)
+    // 霞光紫
+    val AuroraPurple = Color(0xFF9B6EE8)
+    // 曜石黑
+    val ObsidianBlack = Color(0xFF1A1A1A)
+    // 极地白
+    val ArcticWhite = Color(0xFFF5F5F5)
+    // 钻石灰
+    val DiamondGray = Color(0xFF8E8E93)
+    // 橄榄绿
+    val OliveGreen = Color(0xFF6B8E23)
+    // 烈焰红
+    val FlameRed = Color(0xFFC41E3A)
+    
+    val all = listOf(
+        "海湾蓝" to OceanBlue,
+        "熔岩橙" to LavaOrange,
+        "霞光紫" to AuroraPurple,
+        "曜石黑" to ObsidianBlack,
+        "极地白" to ArcticWhite,
+        "钻石灰" to DiamondGray,
+        "橄榄绿" to OliveGreen,
+        "烈焰红" to FlameRed
+    )
+}
+
 /**
  * 动态主题颜色提取器
  */

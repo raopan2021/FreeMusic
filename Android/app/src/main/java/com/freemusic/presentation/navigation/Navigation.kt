@@ -284,8 +284,8 @@ fun FreeMusicNavHost(
             
             LocalMusicScreen(
                 onBackClick = { navController.popBackStack() },
-                onSongClick = { song ->
-                    playerViewModel.playSong(song, localMusicState.songs)
+                onSongClick = { song, playlist ->
+                    playerViewModel.playSong(song, playlist)
                     navController.navigate(Screen.Player.route)
                 },
                 playlists = playlistState.playlists,

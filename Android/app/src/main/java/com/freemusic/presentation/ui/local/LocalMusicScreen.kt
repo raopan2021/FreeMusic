@@ -33,7 +33,7 @@ import com.freemusic.presentation.viewmodel.LocalMusicViewModel
 @Composable
 fun LocalMusicScreen(
     onBackClick: () -> Unit,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     playlists: List<Playlist> = emptyList(),
     onAddSongsToPlaylist: (List<Song>, Playlist) -> Unit = { _, _ -> },
     viewModel: LocalMusicViewModel = hiltViewModel()
@@ -223,7 +223,9 @@ fun LocalMusicScreen(
                         SongList(
                             songs = filteredSongs,
                             totalDuration = uiState.totalDuration,
-                            onSongClick = onSongClick,
+                            onSongClick = { song, _ ->
+                                onSongClick(song, filteredSongs)
+                            },
                             isSelectionMode = isSelectionMode,
                             selectedSongs = selectedSongs,
                             onSelectionChange = { selectedSongs = it },
@@ -503,7 +505,7 @@ private fun EmptyState(onRetry: () -> Unit) {
 private fun SongList(
     songs: List<Song>,
     totalDuration: String,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
     isSelectionMode: Boolean = false,
     selectedSongs: Set<String> = emptySet(),
     onSelectionChange: (Set<String>) -> Unit = {},
@@ -542,7 +544,7 @@ private fun SongList(
                         }
                         onSelectionChange(newSelection)
                     } else {
-                        onSongClick(song)
+                        onSongClick(song, songs)
                     }
                 },
                 onLongClick = {

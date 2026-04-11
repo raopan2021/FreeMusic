@@ -148,16 +148,15 @@ fun FreeMusicNavHost(
     val showMiniPlayer = currentSong != null
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // 主内容: Column(NavHost + NavigationBar)
+        // 主内容: Column(NavHost + MiniPlayer + NavigationBar)
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
+            modifier = Modifier.fillMaxSize()
         ) {
-            // 页面内容 (NavHost 会填充剩余空间)
+            // 页面内容 (NavHost 会填充剩余空间，留出底部空间)
             NavHost(
                 navController = navController,
-                startDestination = Screen.Home.route
+                startDestination = Screen.Home.route,
+                modifier = Modifier.weight(1f)
             ) {
         composable(Screen.Home.route) {
             val playlistState by playlistViewModel.uiState.collectAsState()
@@ -463,12 +462,30 @@ fun FreeMusicNavHost(
         }
     }
 
+        // 迷你播放器 (位于 NavigationBar 上方)
+        if (showMiniPlayer && currentSong != null) {
+            MiniPlayer(
+                currentSong = currentSong,
+                isPlaying = isPlaying,
+                onPlayPauseClick = { playerViewModel.togglePlayPause() },
+                onNextClick = { playerViewModel.skipToNext() },
+                onPreviousClick = { playerViewModel.skipToPrevious() },
+                onPlayerClick = {
+                    scope.launch {
+                        showPlayerSheet = true
+                        sheetState.show()
+                    }
+                }
+            )
+        }
+
         // 底部导航栏
         val currentNavBackStackEntry by navController.currentBackStackEntryAsState()
         val currentNavRoute = currentNavBackStackEntry?.destination?.route
         NavigationBar(
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.navigationBarsPadding()
         ) {
             val items = listOf(
                 BottomNavItem(Screen.Home.route, Icons.Default.Home, "首页"),
@@ -502,24 +519,6 @@ fun FreeMusicNavHost(
                 )
             }
         }
-    }
-
-    // 迷你播放器 (位于 NavigationBar 上方)
-    if (showMiniPlayer && currentSong != null) {
-        MiniPlayer(
-            currentSong = currentSong,
-            isPlaying = isPlaying,
-            onPlayPauseClick = { playerViewModel.togglePlayPause() },
-            onNextClick = { playerViewModel.skipToNext() },
-            onPreviousClick = { playerViewModel.skipToPrevious() },
-            onPlayerClick = {
-                scope.launch {
-                    showPlayerSheet = true
-                    sheetState.show()
-                }
-            },
-            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
-        )
     }
 
     // 播放页面 Bottom Sheet

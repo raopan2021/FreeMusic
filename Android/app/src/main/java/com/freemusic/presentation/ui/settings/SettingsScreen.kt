@@ -71,7 +71,7 @@ fun SettingsScreen(
     var showColorPickerDialog by remember { mutableStateOf(false) }
     var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
     var showLyricsFontSizeDialog by remember { mutableStateOf(false) }
-    
+
     val particleEffects = listOf("无", "星星", "泡泡", "烟花")
     val visualizerStyles = listOf("无", "条形", "圆形", "波形")
     val equalizerPresets = listOf("平坦", "低音增强", "高音增强", "人声", "古典", "摇滚")
@@ -89,11 +89,11 @@ fun SettingsScreen(
                     title = { Text("设置") }
                 )
             }
-            
+
             // 外观设置
             item {
                 SettingsSection(title = "外观") {
-                    // 主题选择（3个Radio Button）
+                    // 主题选择(3个Radio Button)
                     SettingsThemeSelector(
                         currentTheme = currentTheme,
                         onThemeChange = { theme ->
@@ -102,7 +102,7 @@ fun SettingsScreen(
                             onPureBlackToggle(theme == "深色")
                         }
                     )
-                    
+
                     // 主题颜色
                     SettingsItem(
                         icon = Icons.Default.Palette,
@@ -114,16 +114,16 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .background(
-                                        color = if (customPrimaryColor == -1) 
-                                            Color(0xFF6750A4) 
-                                        else 
+                                        color = if (customPrimaryColor == -1)
+                                            Color(0xFF6750A4)
+                                        else
                                             Color(customPrimaryColor),
                                         shape = RoundedCornerShape(4.dp)
                                     )
                             )
                         }
                     )
-                    
+
                     // 封面样式
                     SettingsItem(
                         icon = Icons.Default.Image,
@@ -131,7 +131,7 @@ fun SettingsScreen(
                         subtitle = coverStyleToDisplayName(coverStyle),
                         onClick = { showCoverStyleDialog = true }
                     )
-                    
+
                     // 封面自动切换
                     SettingsItem(
                         icon = Icons.Default.Timer,
@@ -139,7 +139,7 @@ fun SettingsScreen(
                         subtitle = if (coverSwitchInterval == 0) "关闭" else "${coverSwitchInterval}秒",
                         onClick = { showCoverSwitchDialog = true }
                     )
-                    
+
                     // 歌词字体大小
                     SettingsItem(
                         icon = Icons.Default.TextFields,
@@ -149,7 +149,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            
+
             // 视觉效果
             item {
                 SettingsSection(title = "视觉效果") {
@@ -159,14 +159,14 @@ fun SettingsScreen(
                         subtitle = particleEffect,
                         onClick = { showParticleDialog = true }
                     )
-                    
+
                     SettingsItem(
                         icon = Icons.Default.Equalizer,
                         title = "可视化器",
                         subtitle = visualizerStyle,
                         onClick = { showVisualizerDialog = true }
                     )
-                    
+
                     SettingsItem(
                         icon = Icons.Default.Tune,
                         title = "均衡器",
@@ -175,7 +175,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            
+
             // 播放设置
             item {
                 SettingsSection(title = "播放设置") {
@@ -186,14 +186,14 @@ fun SettingsScreen(
                         checked = autoPlayEnabled,
                         onCheckedChange = onAutoPlayToggle
                     )
-                    
+
                     SettingsItem(
                         icon = Icons.Default.Speed,
                         title = "播放速度",
                         subtitle = "${playbackSpeed}x",
                         onClick = { showPlaybackSpeedDialog = true }
                     )
-                    
+
                     SettingsSwitchItem(
                         icon = Icons.Default.SkipNext,
                         title = "跳过静音",
@@ -201,7 +201,7 @@ fun SettingsScreen(
                         checked = skipSilenceEnabled,
                         onCheckedChange = onSkipSilenceToggle
                     )
-                    
+
                     if (onShakeToSkipToggle != null) {
                         SettingsSwitchItem(
                             icon = Icons.Default.Vibration,
@@ -211,7 +211,7 @@ fun SettingsScreen(
                             onCheckedChange = { onShakeToSkipToggle.invoke(it) }
                         )
                     }
-                    
+
                     if (onAutoCleanHistoryToggle != null) {
                         SettingsSwitchItem(
                             icon = Icons.Default.AutoDelete,
@@ -221,7 +221,7 @@ fun SettingsScreen(
                             onCheckedChange = { onAutoCleanHistoryToggle.invoke(it) }
                         )
                     }
-                    
+
                     SettingsSwitchItem(
                         icon = Icons.Default.HighQuality,
                         title = "高质量音频",
@@ -231,7 +231,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            
+
             // 存储
             item {
                 SettingsSection(title = "存储") {
@@ -241,7 +241,7 @@ fun SettingsScreen(
                         subtitle = "当前缓存: $cacheSize",
                         onClick = onClearCache
                     )
-                    
+
                     SettingsItem(
                         icon = Icons.Default.Download,
                         title = "导入歌单",
@@ -250,7 +250,7 @@ fun SettingsScreen(
                     )
                 }
             }
-            
+
             // 关于
             item {
                 SettingsSection(title = "关于") {
@@ -260,7 +260,7 @@ fun SettingsScreen(
                         subtitle = "版本 0.1.0",
                         onClick = { showAboutDialog = true }
                     )
-                    
+
                     SettingsItem(
                         icon = Icons.Default.Code,
                         title = "开源许可",
@@ -289,7 +289,7 @@ fun SettingsScreen(
                         )
                         val displayNames = coverStyleMap.keys.toList()
                         val enumNames = coverStyleMap.values.toList()
-                        
+
                         displayNames.forEachIndexed { index, displayName ->
                             Row(
                                 modifier = Modifier
@@ -373,7 +373,7 @@ fun SettingsScreen(
             )
         }
 
-        // 播放速度对话框 - 使用滑块控制，精确到两位小数
+        // 播放速度对话框 - 使用滑块控制,精确到两位小数
         if (showPlaybackSpeedDialog) {
             var tempSpeed by remember { mutableStateOf(playbackSpeed) }
             AlertDialog(
@@ -423,7 +423,7 @@ fun SettingsScreen(
             )
         }
 
-        
+
         // 歌词字体大小对话框
         if (showLyricsFontSizeDialog) {
             var sliderValue by remember { mutableFloatStateOf(lyricsFontSize.toFloat()) }
@@ -627,9 +627,9 @@ fun SettingsScreen(
                     Column {
                         Text("版本: 0.1.0")
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("一个优雅的音乐播放器，支持多种音频格式和视觉效果。")
+                        Text("一个优雅的音乐播放器,支持多种音频格式和视觉效果。")
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = "功能特点：", fontWeight = FontWeight.Bold)
+                        Text(text = "功能特点:", fontWeight = FontWeight.Bold)
                         Text("• 多种粒子视觉效果")
                         Text("• 歌词同步显示")
                         Text("• 均衡器调节")
@@ -658,7 +658,7 @@ private fun SettingsThemeSelector(
         "浅色模式" to "浅色",
         "深色模式" to "深色"
     )
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -669,7 +669,7 @@ private fun SettingsThemeSelector(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(bottom = 12.dp)
         )
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -679,12 +679,12 @@ private fun SettingsThemeSelector(
                     onClick = { onThemeChange(themeValue) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (themeValue == currentTheme) 
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
-                        else 
+                        containerColor = if (themeValue == currentTheme)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        else
                             Color.Transparent
                     ),
-                    border = if (themeValue == currentTheme) 
+                    border = if (themeValue == currentTheme)
                         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                     else
                         ButtonDefaults.outlinedButtonBorder
@@ -741,9 +741,9 @@ private fun SettingsItem(
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -755,7 +755,7 @@ private fun SettingsItem(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
-            
+
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
@@ -788,9 +788,9 @@ private fun SettingsSwitchItem(
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.size(24.dp)
             )
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -802,7 +802,7 @@ private fun SettingsSwitchItem(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
-            
+
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange
@@ -820,24 +820,24 @@ private fun ColorPickerDialog(
     onColorSelected: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // 预设颜色列表
+    // 小米 SU7 颜色主题
     val presetColors = listOf(
-        Color(0xFF6750A4), // 紫色（默认）
-        Color(0xFF2196F3), // 蓝色
-        Color(0xFF4CAF50), // 绿色
-        Color(0xFFFF9800), // 橙色
-        Color(0xFFFF5722), // 深橙
-        Color(0xFFF44336), // 红色
-        Color(0xFFE91E63), // 粉色
-        Color(0xFF9C27B0), // 深紫
-        Color(0xFF3F51B5), // 靼蓝
-        Color(0xFF009688), // 青色
-        Color(0xFF8BC34A), // 浅绿
-        Color(0xFFFFEB3B), // 黄色
-        Color(0xFF795548), // 棕色
-        Color(0xFF607D8B), // 蓝灰
-        Color(0xFF000000), // 黑色
-        Color(0xFFFFFFFF), // 白色
+        // 海湾蓝
+        Color(0xFF36B5E5) to "海湾蓝",
+        // 熔岩橙
+        Color(0xFFFF6532) to "熔岩橙",
+        // 霞光紫
+        Color(0xFF9B6EE8) to "霞光紫",
+        // 曜石黑
+        Color(0xFF1A1A1A) to "曜石黑",
+        // 极地白
+        Color(0xFFF5F5F5) to "极地白",
+        // 钻石灰
+        Color(0xFF8E8E93) to "钻石灰",
+        // 橄榄绿
+        Color(0xFF6B8E23) to "橄榄绿",
+        // 烈焰红
+        Color(0xFFC41E3A) to "烈焰红"
     )
     
     AlertDialog(
@@ -862,7 +862,7 @@ private fun ColorPickerDialog(
                             )
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text("默认颜色")
+                    Text("默认紫色")
                     if (currentColor == -1) {
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(
@@ -872,48 +872,62 @@ private fun ColorPickerDialog(
                         )
                     }
                 }
-                
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 
                 Text(
-                    text = "预设颜色",
+                    text = "小米 SU7 主题色",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
-                // 颜色网格
-                Column {
-                    presetColors.chunked(4).forEach { rowColors ->
+                // 颜色网格 (2列)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    presetColors.chunked(2).forEach { rowColors ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            rowColors.forEach { color ->
-                                Box(
+                            rowColors.forEach { (color, name) ->
+                                Row(
                                     modifier = Modifier
-                                        .size(48.dp)
-                                        .padding(4.dp)
+                                        .weight(1f)
                                         .background(
-                                            color = color,
-                                            shape = RoundedCornerShape(8.dp)
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = RoundedCornerShape(12.dp)
                                         )
                                         .clickable { onColorSelected(color.hashCode()) }
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .background(
+                                                color = color,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
                                     if (currentColor == color.hashCode()) {
                                         Icon(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = "已选择",
-                                            tint = if (color == Color.White || color == Color(0xFFFFFF00)) 
-                                                Color.Black else Color.White,
-                                            modifier = Modifier.align(Alignment.Center)
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
                             }
-                            // 如果这行不满4个，填充空白
-                            repeat(4 - rowColors.size) {
-                                Spacer(modifier = Modifier.size(56.dp))
+                            // 如果这行不满2个，填充空白
+                            if (rowColors.size < 2) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }

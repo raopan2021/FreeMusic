@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.freemusic.domain.model.Song
+import com.freemusic.presentation.viewmodel.PlayerViewModel
 import com.freemusic.presentation.viewmodel.QueueViewModel
 import com.freemusic.presentation.viewmodel.RepeatMode
 
@@ -29,14 +30,20 @@ import com.freemusic.presentation.viewmodel.RepeatMode
 fun QueueScreen(
     onBackClick: () -> Unit,
     onSongClick: (Int) -> Unit,
+    playerViewModel: PlayerViewModel = hiltViewModel(),
     viewModel: QueueViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val playerState by playerViewModel.uiState.collectAsState()
+    val queueState by viewModel.uiState.collectAsState()
+    
+    // 使用 PlayerViewModel 的播放列表作为队列
+    val currentQueue = playerState.playlist
+    val currentIndex = playerState.currentIndex
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedItems by remember { mutableStateOf(setOf<Int>()) }
     
-    val totalDuration = uiState.currentQueue.sumOf { it.duration }.let { millis ->
+    val totalDuration = currentQueue.sumOf { it.duration }.let { millis ->
         val hours = millis / 3600000
         val minutes = (millis % 3600000) / 60000
         val seconds = (millis % 60000) / 1000
@@ -105,18 +112,18 @@ fun QueueScreen(
         ) {
             // 队列控制栏
             QueueControls(
-                isShuffleEnabled = uiState.isShuffleEnabled,
-                repeatMode = uiState.repeatMode,
-                totalCount = uiState.currentQueue.size,
+                isShuffleEnabled = queueState.isShuffleEnabled,
+                repeatMode = queueState.repeatMode,
+                totalCount = currentQueue.size,
                 totalDuration = totalDuration,
-                currentIndex = uiState.currentIndex,
+                currentIndex = currentIndex,
                 onShuffleClick = viewModel::toggleShuffle,
                 onRepeatClick = viewModel::cycleRepeatMode
             )
 
             Divider()
 
-            if (uiState.currentQueue.isEmpty()) {
+            if (currentQueue.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -133,12 +140,12 @@ fun QueueScreen(
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     itemsIndexed(
-                        items = uiState.currentQueue,
+                        items = currentQueue,
                         key = { index, song -> "${song.id}_$index" }
                     ) { index, song ->
                         QueueItem(
                             song = song,
-                            isPlaying = index == uiState.currentIndex,
+                            isPlaying = index == currentIndex,
                             isSelected = index in selectedItems,
                             isSelectionMode = isSelectionMode,
                             onClick = { 
@@ -156,7 +163,7 @@ fun QueueScreen(
                             onMoveUp = { viewModel.moveItem(index, index - 1) },
                             onMoveDown = { viewModel.moveItem(index, index + 1) },
                             canMoveUp = index > 0,
-                            canMoveDown = index < uiState.currentQueue.size - 1,
+                            canMoveDown = index < currentQueue.size - 1,
                             onSelectionChange = { selected ->
                                 selectedItems = if (selected) selectedItems + index else selectedItems - index
                             }

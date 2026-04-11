@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -829,10 +830,14 @@ private fun QueueSheet(
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // 计算高度：1-2首歌完全展示，更多歌限制最大高度
+    // 计算高度：1-2首歌自适应，更多歌占屏幕70%
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val headerHeight = 120.dp // header + padding 估算
+    
     val sheetHeight = when {
-        queueItems.size <= 2 -> (queueItems.size * 72).dp
-        else -> 400.dp
+        queueItems.size <= 2 -> (queueItems.size * 72).dp + headerHeight
+        else -> screenHeight * 0.7f
     }
     
     ModalBottomSheet(

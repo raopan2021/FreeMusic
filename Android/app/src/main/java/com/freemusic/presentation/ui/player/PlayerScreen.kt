@@ -6,6 +6,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +37,7 @@ import com.freemusic.domain.model.Playlist
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 import com.freemusic.presentation.viewmodel.QueueItem
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -217,11 +219,9 @@ fun PlayerScreen(
             queueItems = uiState.queueItems,
             currentIndex = uiState.currentIndex,
             onSongClick = { index -> viewModel.playFromQueue(index) },
+            onRemove = { index -> viewModel.removeFromQueue(index) },
             onMoveUp = { index -> viewModel.moveQueueItem(index, index - 1) },
             onMoveDown = { index -> viewModel.moveQueueItem(index, index + 1) },
-            onIncreasePlayCount = { index -> viewModel.updateQueueItemPlayCount(index, true) },
-            onDecreasePlayCount = { index -> viewModel.updateQueueItemPlayCount(index, false) },
-            onRemove = { index -> viewModel.removeFromQueue(index) },
             onClear = { viewModel.clearQueue() },
             onDismiss = { showQueueSheet = false }
         )
@@ -822,22 +822,28 @@ private fun QueueSheet(
     queueItems: List<QueueItem>,
     currentIndex: Int,
     onSongClick: (Int) -> Unit,
+    onRemove: (Int) -> Unit,
     onMoveUp: (Int) -> Unit,
     onMoveDown: (Int) -> Unit,
-    onIncreasePlayCount: (Int) -> Unit,
-    onDecreasePlayCount: (Int) -> Unit,
-    onRemove: (Int) -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    // 计算高度：1-2首歌完全展示，更多歌限制最大高度
+    val maxHeight = when {
+        queueItems.size <= 2 -> (queueItems.size * 72).dp
+        else -> 400.dp
+    }
+    
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = queueItems.size <= 2)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
+                .heightIn(max = maxHeight)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -868,136 +874,181 @@ private fun QueueSheet(
                     textAlign = TextAlign.Center
                 )
             } else {
-                LazyColumn(
+                QueueList(
+                    queueItems = queueItems,
+                    currentIndex = currentIndex,
+                    onSongClick = onSongClick,
+                    onRemove = onRemove,
+                    onMoveUp = onMoveUp,
+                    onMoveDown = onMoveDown,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f, fill = false)
-                ) {
-                    itemsIndexed(queueItems) { index, item ->
-                        val song = item.song
-                        val isCurrentSong = index == currentIndex
-                        
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // 上移按钮
-                            IconButton(
-                                onClick = { onMoveUp(index) },
-                                enabled = index > 0
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowUp,
-                                    contentDescription = "上移",
-                                    tint = if (index > 0) Color.Gray else Color.Gray.copy(alpha = 0.3f)
-                                )
-                            }
-                            
-                            // 下移按钮
-                            IconButton(
-                                onClick = { onMoveDown(index) },
-                                enabled = index < queueItems.size - 1
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "下移",
-                                    tint = if (index < queueItems.size - 1) Color.Gray else Color.Gray.copy(alpha = 0.3f)
-                                )
-                            }
-                            
-                            // 歌曲信息
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 8.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (isCurrentSong) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "正在播放",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                    }
-                                    Text(
-                                        text = song.title,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f, fill = false)
-                                    )
-                                }
-                                Text(
-                                    text = song.artist ?: "未知艺术家",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                            
-                            // 播放次数 - 减
-                            IconButton(
-                                onClick = { onDecreasePlayCount(index) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Remove,
-                                    contentDescription = "减少播放次数",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            
-                            // 播放次数
-                            Text(
-                                text = "×${item.playCount}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (item.playCount > 1) MaterialTheme.colorScheme.primary else Color.Gray,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                            
-                            // 播放次数 - 加
-                            IconButton(
-                                onClick = { onIncreasePlayCount(index) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "增加播放次数",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            
-                            // 删除按钮
-                            IconButton(
-                                onClick = { onRemove(index) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "删除",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                        
-                        if (index < queueItems.size - 1) {
-                            HorizontalDivider(modifier = Modifier.padding(start = 48.dp))
-                        }
-                    }
-                }
+                )
             }
             
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+/**
+ * 播放队列列表
+ */
+@Composable
+private fun QueueList(
+    queueItems: List<QueueItem>,
+    currentIndex: Int,
+    onSongClick: (Int) -> Unit,
+    onRemove: (Int) -> Unit,
+    onMoveUp: (Int) -> Unit,
+    onMoveDown: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    
+    // 初始滚动到当前歌曲
+    LaunchedEffect(currentIndex) {
+        if (queueItems.isNotEmpty()) {
+            listState.animateScrollToItem(
+                index = (currentIndex - 2).coerceAtLeast(0),
+                scrollOffset = 0
+            )
+        }
+    }
+    
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            itemsIndexed(
+                items = queueItems,
+                key = { _, item -> item.song.id }
+            ) { index, item ->
+                val song = item.song
+                val isCurrentSong = index == currentIndex
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 拖动把手 - 三个点
+                    Icon(
+                        imageVector = Icons.Default.DragHandle,
+                        contentDescription = "拖动排序",
+                        tint = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    
+                    // 上移按钮
+                    IconButton(
+                        onClick = { onMoveUp(index) },
+                        enabled = index > 0,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "上移",
+                            tint = if (index > 0) Color.Gray else Color.Gray.copy(alpha = 0.3f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    // 下移按钮
+                    IconButton(
+                        onClick = { onMoveDown(index) },
+                        enabled = index < queueItems.size - 1,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "下移",
+                            tint = if (index < queueItems.size - 1) Color.Gray else Color.Gray.copy(alpha = 0.3f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    // 歌曲信息
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onSongClick(index) }
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isCurrentSong) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "正在播放",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(
+                                text = song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            text = song.artist ?: "未知艺术家",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    
+                    // 删除按钮
+                    IconButton(
+                        onClick = { onRemove(index) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "删除",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                
+                if (index < queueItems.size - 1) {
+                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                }
+            }
+        }
+        
+        // 右下角 Focus 按钮
+        if (queueItems.isNotEmpty()) {
+            val coroutineScope = rememberCoroutineScope()
+            FloatingActionButton(
+                onClick = {
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(
+                            index = (currentIndex - 2).coerceAtLeast(0)
+                        )
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CenterFocusWeak,
+                    contentDescription = "定位当前播放",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }

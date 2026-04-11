@@ -33,8 +33,7 @@ import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
  * 播放队列中的单曲项目
  */
 data class QueueItem(
-    val song: Song,
-    val playCount: Int = 1  // 该歌曲在队列中的播放次数
+    val song: Song
 )
 
 data class PlayerUiState(
@@ -254,7 +253,7 @@ class PlayerViewModel @Inject constructor(
                     error = null,
                     lyrics = null,  // 清除旧歌词
                     playlist = playlist ?: listOf(song),  // 使用提供的歌单，或仅当前歌曲
-                    queueItems = (playlist ?: listOf(song)).map { QueueItem(it, 1) },  // 转换为队列项目
+                    queueItems = (playlist ?: listOf(song)).map { QueueItem(it) },  // 转换为队列项目
                     currentIndex = playlist?.indexOf(song) ?: 0
                 ) 
             }
@@ -481,19 +480,6 @@ class PlayerViewModel @Inject constructor(
                 // 本地歌曲直接播放，传递完整播放列表
                 playLocalSong(song, playlist)
             }
-        }
-    }
-    
-    /**
-     * 更新队列中某首歌的播放次数
-     */
-    fun updateQueueItemPlayCount(index: Int, increment: Boolean) {
-        val queueItems = _uiState.value.queueItems.toMutableList()
-        if (index in queueItems.indices) {
-            val item = queueItems[index]
-            val newCount = if (increment) item.playCount + 1 else (item.playCount - 1).coerceAtLeast(1)
-            queueItems[index] = item.copy(playCount = newCount)
-            _uiState.update { it.copy(queueItems = queueItems) }
         }
     }
     

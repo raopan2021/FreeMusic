@@ -435,6 +435,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        // 实时显示当前值
                         Text(
                             text = "${sliderValue.toInt()}sp",
                             style = MaterialTheme.typography.headlineMedium,
@@ -456,19 +457,20 @@ fun SettingsScreen(
                             Text("大", style = MaterialTheme.typography.bodySmall)
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        // 预览
-                        Card(
+                        // 预览 - 使用内边距来直观展示大小
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = "歌词预览示例",
-                                modifier = Modifier.padding(sliderValue.toInt().dp),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = sliderValue.toInt().sp
-                                )
+                                modifier = Modifier.padding(all = sliderValue.toInt().dp),
+                                style = androidx.compose.ui.text.TextStyle(
+                                    fontSize = sliderValue.toInt().sp,
+                                    fontWeight = FontWeight.Normal
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

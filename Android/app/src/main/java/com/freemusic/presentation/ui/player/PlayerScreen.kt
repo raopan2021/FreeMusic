@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -74,6 +75,7 @@ fun PlayerScreen(
     var showMoreSheet by remember { mutableStateOf(false) }
     var showPlaylistDialog by remember { mutableStateOf(false) }
     var showEffectsLayer by remember { mutableStateOf(false) }
+    var showLyricsSettingsLayer by remember { mutableStateOf(false) }
 
     val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
 
@@ -162,7 +164,8 @@ fun PlayerScreen(
                 1 -> LyricsPage(
                     lyrics = parsedLyrics,
                     currentLyricIndex = currentLyricIndex,
-                    primaryColor = primaryColor
+                    primaryColor = primaryColor,
+                    onLongPress = { showLyricsSettingsLayer = true }
                 )
             }
         }
@@ -242,6 +245,13 @@ fun PlayerScreen(
             onVisualizerToggle = onVisualizerToggle,
             onEqualizerToggle = onEqualizerToggle,
             onDismiss = { showEffectsLayer = false }
+        )
+    }
+
+    // 歌词设置Layer（长按歌词弹出）
+    if (showLyricsSettingsLayer) {
+        LyricsSettingsLayer(
+            onDismiss = { showLyricsSettingsLayer = false }
         )
     }
 
@@ -590,12 +600,18 @@ private fun PlayerPage(
 private fun LyricsPage(
     lyrics: List<LyricLine>,
     currentLyricIndex: Int,
-    primaryColor: Color
+    primaryColor: Color,
+    onLongPress: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress() }
+                )
+            }
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -970,6 +986,93 @@ private fun EffectsLayer(
                 modifier = Modifier.clickable { onEqualizerToggle() }
             )
 
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+/**
+ * 歌词设置Layer（长按歌词弹出）
+ * 展示"设置-外观"和"设置-播放设置"两个组件
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LyricsSettingsLayer(
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .navigationBarsPadding()
+        ) {
+            Text(
+                text = "设置",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            // 外观设置
+            Text(
+                text = "外观",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            ListItem(
+                headlineContent = { Text("深色模式") },
+                leadingContent = { Icon(Icons.Default.DarkMode, contentDescription = null) },
+                modifier = Modifier.clickable { /* TODO: 打开深色模式设置 */ }
+            )
+            ListItem(
+                headlineContent = { Text("主题颜色") },
+                leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
+                modifier = Modifier.clickable { /* TODO: 打开主题颜色设置 */ }
+            )
+            ListItem(
+                headlineContent = { Text("歌词字体大小") },
+                leadingContent = { Icon(Icons.Default.TextFields, contentDescription = null) },
+                modifier = Modifier.clickable { /* TODO: 打开字体大小设置 */ }
+            )
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            
+            // 播放设置
+            Text(
+                text = "播放设置",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            ListItem(
+                headlineContent = { Text("播放速度") },
+                leadingContent = { Icon(Icons.Default.Speed, contentDescription = null) },
+                modifier = Modifier.clickable { /* TODO: 打开播放速度设置 */ }
+            )
+            ListItem(
+                headlineContent = { Text("跳过静音") },
+                leadingContent = { Icon(Icons.Default.SkipNext, contentDescription = null) },
+                modifier = Modifier.clickable { /* TODO: 打开跳过静音设置 */ }
+            )
+            ListItem(
+                headlineContent = { Text("高质量音频") },
+                leadingContent = { Icon(Icons.Default.HighQuality, contentDescription = null) },
+                modifier = Modifier.clickable { /* TODO: 打开高质量音频设置 */ }
+            )
+            
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

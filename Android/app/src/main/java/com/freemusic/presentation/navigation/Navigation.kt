@@ -261,6 +261,8 @@ fun FreeMusicNavHost(
                 onHighQualityToggle = settingsViewModel::setHighQuality,
                 cacheSize = settingsState.cacheSize,
                 onClearCache = settingsViewModel::clearCache,
+                lyricsFontSize = settingsState.lyricsFontSize,
+                onLyricsFontSizeChange = settingsViewModel::setLyricsFontSize,
                 onBackClick = { navController.popBackStack() },
                 onImportClick = { navController.navigate(Screen.Import.route) },
                 onAboutClick = settingsViewModel::showAboutDialog

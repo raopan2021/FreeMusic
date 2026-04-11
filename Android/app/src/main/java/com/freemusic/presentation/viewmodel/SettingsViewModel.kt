@@ -30,7 +30,8 @@ data class SettingsUiState(
     val skipSilenceEnabled: Boolean = false,
     val highQualityEnabled: Boolean = false,
     val cacheSize: String = "0 MB",
-    val showAboutDialog: Boolean = false
+    val showAboutDialog: Boolean = false,
+    val lyricsFontSize: Int = 16
 )
 
 /**
@@ -204,7 +205,10 @@ class SettingsViewModel @Inject constructor(
             preferencesManager.autoCleanHistory.collect { _autoCleanHistory.value = it }
         }
         viewModelScope.launch {
-            preferencesManager.lyricsFontSize.collect { _lyricsFontSize.value = it }
+            preferencesManager.lyricsFontSize.collect { size ->
+                _lyricsFontSize.value = size
+                _uiState.update { it.copy(lyricsFontSize = size) }
+            }
         }
         
         updateCacheSize()

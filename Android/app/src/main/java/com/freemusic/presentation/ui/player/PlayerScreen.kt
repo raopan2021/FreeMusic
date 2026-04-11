@@ -926,7 +926,7 @@ private fun QueueSheet(
 }
 
 /**
- * 播放队列列表(支持拖动排序)
+ * 播放队列列表（支持拖动排序）
  */
 @Composable
 private fun QueueList(
@@ -975,25 +975,23 @@ private fun QueueList(
                 key = { _, item -> item.song.id }
             ) { index, item ->
                 val song = item.song
+                val isCurrentSong = index == currentIndex
 
                 ReorderableItem(
                     state = reorderableState,
                     key = item.song.id
                 ) { isDragging ->
                     val isCurrentSong = index == currentIndex
+                    val highlightColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
 
-                    // 拖动时不改变背景高亮（保持当前播放歌曲的高亮）
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (isCurrentSong && !isDragging) {
-                                    Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                                } else Modifier
+                                if (isCurrentSong && !isDragging) Modifier.background(highlightColor)
+                                else Modifier
                             )
-                            .clickable {
-                                if (!isCurrentSong) onPlay(index)
-                            }
+                            .clickable(enabled = !isCurrentSong) { onPlay(index) }
                     ) {
                         Row(
                             modifier = Modifier
@@ -1001,7 +999,6 @@ private fun QueueList(
                                 .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 拖动把手 - 三个点（长按可拖动排序）
                             Icon(
                                 imageVector = Icons.Default.DragHandle,
                                 contentDescription = "长按拖动排序",
@@ -1011,7 +1008,6 @@ private fun QueueList(
                                     .draggableHandle()
                             )
 
-                            // 歌曲信息
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
@@ -1034,7 +1030,6 @@ private fun QueueList(
                                 )
                             }
 
-                            // 删除按钮
                             IconButton(
                                 onClick = { onRemove(index) },
                                 modifier = Modifier.size(32.dp)

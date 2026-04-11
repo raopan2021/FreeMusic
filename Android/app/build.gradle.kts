@@ -112,8 +112,8 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Reorderable - 拖动排序
-    implementation("sh.calvin.reorderable:reorderable:3.0.0")
+    // RecyclerView for drag-and-drop queue
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

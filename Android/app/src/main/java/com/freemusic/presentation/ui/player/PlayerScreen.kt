@@ -4,13 +4,8 @@ import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -844,21 +838,10 @@ private fun QueueSheet(
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = queueItems.size <= 2)
-    val listState = rememberLazyListState()
-    val density = LocalDensity.current
 
     // 展开后滚动到当前歌曲（居中）
     LaunchedEffect(sheetState) {
         sheetState.expand()
-        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
-            // 根据实际列表可见高度计算
-            val visibleListHeight = with(density) { sheetHeight.toPx() } - with(density) { 120.dp.toPx() }
-            val itemHeightPx = with(density) { 72.dp.toPx() }
-            val visibleItems = (visibleListHeight / itemHeightPx).toInt().coerceIn(4, 8)
-            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
-            kotlinx.coroutines.delay(120)
-            listState.animateScrollToItem(index = targetIndex)
-        }
     }
 
     ModalBottomSheet(
@@ -900,14 +883,12 @@ private fun QueueSheet(
                     textAlign = TextAlign.Center
                 )
             } else {
-                QueueList(
+                QueueRecyclerView(
                     queueItems = queueItems,
                     currentIndex = currentIndex,
                     onRemove = onRemove,
                     onMove = onMove,
                     onPlay = onPlay,
-                    sheetHeight = sheetHeight,
-                    lazyListState = listState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
@@ -921,148 +902,6 @@ private fun QueueSheet(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-        }
-    }
-}
-
-/**
- * 播放队列列表（支持拖动排序）
- */
-@Composable
-private fun QueueList(
-    queueItems: List<QueueItem>,
-    currentIndex: Int,
-    onRemove: (Int) -> Unit,
-    onMove: (Int, Int) -> Unit,
-    onPlay: (Int) -> Unit,
-    sheetHeight: Dp,
-    lazyListState: LazyListState,
-    modifier: Modifier = Modifier
-) {
-    val listState = lazyListState
-    val coroutineScope = rememberCoroutineScope()
-
-    // Reorderable state
-    val reorderableState = rememberReorderableLazyListState(
-        lazyListState = listState,
-        onMove = { from, to ->
-            onMove(from.index, to.index)
-        }
-    )
-
-    val density = LocalDensity.current
-
-    // Focus到当前歌曲（居中）
-    val scrollToCenter: () -> Unit = {
-        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
-            val sheetHeightPx = with(density) { sheetHeight.toPx() }
-            val itemHeightPx = with(density) { 72.dp.toPx() }
-            val visibleItems = ((sheetHeightPx / itemHeightPx) * 0.6).toInt().coerceIn(4, 8)
-            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
-            coroutineScope.launch {
-                listState.animateScrollToItem(index = targetIndex)
-            }
-        }
-    }
-
-    Box(modifier = modifier) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            itemsIndexed(
-                items = queueItems,
-                key = { _, item -> item.song.id }
-            ) { index, item ->
-                val song = item.song
-                val isCurrentSong = index == currentIndex
-
-                ReorderableItem(
-                    state = reorderableState,
-                    key = item.song.id
-                ) { isDragging ->
-                    val isCurrentSong = index == currentIndex
-                    val highlightColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(
-                                if (isCurrentSong && !isDragging) Modifier.background(highlightColor)
-                                else Modifier
-                            )
-                            .clickable(enabled = !isCurrentSong) { onPlay(index) }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DragHandle,
-                                contentDescription = "长按拖动排序",
-                                tint = Color.Gray,
-                                modifier = Modifier
-                                    .padding(start = 4.dp, end = 12.dp)
-                                    .draggableHandle()
-                            )
-
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 8.dp)
-                            ) {
-                                Text(
-                                    text = song.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = song.artist ?: "未知艺术家",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-
-                            IconButton(
-                                onClick = { onRemove(index) },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "删除",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 右下角 Focus 按钮
-        if (queueItems.isNotEmpty()) {
-            FloatingActionButton(
-                onClick = scrollToCenter,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp)
-                    .size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CenterFocusWeak,
-                    contentDescription = "定位当前播放",
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
     }
 }

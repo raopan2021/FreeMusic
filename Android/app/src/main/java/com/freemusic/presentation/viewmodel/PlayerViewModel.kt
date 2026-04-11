@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
+
 data class PlayerUiState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
@@ -37,7 +39,9 @@ data class PlayerUiState(
     val error: String? = null,
     val playlist: List<Song> = emptyList(),
     val currentIndex: Int = 0,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val repeatMode: PlayRepeatMode = PlayRepeatMode.OFF,
+    val isShuffleEnabled: Boolean = false
 )
 
 @HiltViewModel
@@ -67,6 +71,7 @@ class PlayerViewModel @Inject constructor(
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             updatePlayerState()
+            updateRepeatShuffleState()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -129,6 +134,9 @@ class PlayerViewModel @Inject constructor(
                 // 应用保存的播放速度
                 mediaController?.setPlaybackSpeed(preferencesManager.playbackSpeed.value)
                 
+                // 初始化重复和随机状态
+                updateRepeatShuffleState()
+                
                 // MediaController 就绪后，播放待播放的歌曲
                 processPendingPlaylists()
             } catch (e: Exception) {
@@ -177,6 +185,22 @@ class PlayerViewModel @Inject constructor(
                     isPlaying = controller.isPlaying,
                     currentPosition = controller.currentPosition,
                     duration = controller.duration.coerceAtLeast(0)
+                )
+            }
+        }
+    }
+
+    private fun updateRepeatShuffleState() {
+        mediaController?.let { controller ->
+            val repeatMode = when (controller.repeatMode) {
+                Player.REPEAT_MODE_ONE -> PlayRepeatMode.ONE
+                Player.REPEAT_MODE_ALL -> PlayRepeatMode.ALL
+                else -> PlayRepeatMode.OFF
+            }
+            _uiState.update { state ->
+                state.copy(
+                    repeatMode = repeatMode,
+                    isShuffleEnabled = controller.shuffleModeEnabled
                 )
             }
         }
@@ -517,6 +541,22 @@ class PlayerViewModel @Inject constructor(
             } else {
                 controller.play()
             }
+        }
+    }
+
+    fun toggleRepeatMode() {
+        mediaController?.let { controller ->
+            controller.repeatMode = when (controller.repeatMode) {
+                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                else -> Player.REPEAT_MODE_OFF
+            }
+        }
+    }
+
+    fun toggleShuffle() {
+        mediaController?.let { controller ->
+            controller.shuffleModeEnabled = !controller.shuffleModeEnabled
         }
     }
 

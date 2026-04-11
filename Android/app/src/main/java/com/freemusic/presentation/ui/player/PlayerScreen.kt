@@ -889,7 +889,6 @@ private fun QueueSheet(
 /**
  * 播放队列列表（支持拖动排序）
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun QueueList(
     queueItems: List<QueueItem>,
@@ -939,7 +938,7 @@ private fun QueueList(
                         .padding(vertical = 8.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 拖动把手 - 三个点
+                    // 拖动把手 - 三个点（长按可拖动排序 - 待实现）
                     Icon(
                         imageVector = Icons.Default.DragHandle,
                         contentDescription = "长按拖动排序",

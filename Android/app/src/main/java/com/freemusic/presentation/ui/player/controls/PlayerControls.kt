@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.RepeatOne
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -135,9 +138,9 @@ fun PlayerControls(
         IconButton(onClick = onRepeatToggle) {
             Icon(
                 imageVector = when (repeatMode) {
-                    PlayRepeatMode.OFF -> Icons.Default.Repeat
+                    PlayRepeatMode.OFF -> Icons.Outlined.Repeat
                     PlayRepeatMode.ALL -> Icons.Default.Repeat
-                    PlayRepeatMode.ONE -> Icons.Default.RepeatOne
+                    PlayRepeatMode.ONE -> Icons.Outlined.RepeatOne
                 },
                 contentDescription = "循环模式",
                 tint = when (repeatMode) {

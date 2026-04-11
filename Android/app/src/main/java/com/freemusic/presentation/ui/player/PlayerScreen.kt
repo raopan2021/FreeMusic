@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.RepeatOne
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -144,6 +146,7 @@ fun PlayerScreen(
                     lyrics = parsedLyrics,
                     currentLyricIndex = currentLyricIndex,
                     sleepTimerRemainingSeconds = uiState.sleepTimerRemainingSeconds,
+                    repeatMode = uiState.repeatMode,
                     particlesEnabled = particlesEnabled,
                     visualizerEnabled = visualizerEnabled,
                     equalizerPreset = equalizerPreset,
@@ -352,6 +355,7 @@ private fun PlayerPage(
     lyrics: List<LyricLine>,
     currentLyricIndex: Int,
     sleepTimerRemainingSeconds: Long,
+    repeatMode: PlayRepeatMode = PlayRepeatMode.OFF,
     // 设置参数
     particlesEnabled: Boolean = true,
     visualizerEnabled: Boolean = false,
@@ -529,9 +533,16 @@ private fun PlayerPage(
             // 循环模式
             IconButton(onClick = onRepeatToggle) {
                 Icon(
-                    imageVector = Icons.Default.Repeat,
+                    imageVector = when (repeatMode) {
+                        PlayRepeatMode.OFF -> Icons.Outlined.Repeat
+                        PlayRepeatMode.ALL -> Icons.Default.Repeat
+                        PlayRepeatMode.ONE -> Icons.Outlined.RepeatOne
+                    },
                     contentDescription = "循环模式",
-                    tint = Color.White
+                    tint = when (repeatMode) {
+                        PlayRepeatMode.OFF -> Color.White.copy(alpha = 0.5f)
+                        else -> Color.White
+                    }
                 )
             }
 
@@ -1163,7 +1174,8 @@ private fun QueueSheet(
                             } else {
                                 Modifier.heightIn(max = sheetHeight)
                             }
-                        )
+                        ),
+                    scrollToCurrentOnLaunch = true
                 )
             }
 

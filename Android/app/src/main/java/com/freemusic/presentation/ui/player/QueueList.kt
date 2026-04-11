@@ -38,16 +38,25 @@ fun QueueList(
     onMove: (Int, Int) -> Unit,
     onPlay: (Int) -> Unit,
     sheetHeight: Dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    scrollToCurrentOnLaunch: Boolean = false
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // 展开时自动滚动到当前播放歌曲（居中显示）
+    LaunchedEffect(scrollToCurrentOnLaunch, currentIndex) {
+        if (scrollToCurrentOnLaunch && queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
+            val targetIndex = (currentIndex - 2).coerceAtLeast(0)
+            listState.animateScrollToItem(index = targetIndex)
+        }
+    }
 
     // 定位到当前播放（居中）
     val scrollToCenter: () -> Unit = {
         if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
             coroutineScope.launch {
-                val targetIndex = (currentIndex - 3).coerceAtLeast(0)
+                val targetIndex = (currentIndex - 2).coerceAtLeast(0)
                 listState.animateScrollToItem(index = targetIndex)
             }
         }

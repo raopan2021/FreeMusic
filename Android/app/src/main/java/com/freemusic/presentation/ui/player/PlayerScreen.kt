@@ -218,10 +218,8 @@ fun PlayerScreen(
         QueueSheet(
             queueItems = uiState.queueItems,
             currentIndex = uiState.currentIndex,
-            onSongClick = { index -> viewModel.playFromQueue(index) },
             onRemove = { index -> viewModel.removeFromQueue(index) },
-            onMoveUp = { index -> viewModel.moveQueueItem(index, index - 1) },
-            onMoveDown = { index -> viewModel.moveQueueItem(index, index + 1) },
+            onMove = { from, to -> viewModel.moveQueueItem(from, to) },
             onClear = { viewModel.clearQueue() },
             onDismiss = { showQueueSheet = false }
         )
@@ -821,15 +819,13 @@ private fun SleepTimerSheet(
 private fun QueueSheet(
     queueItems: List<QueueItem>,
     currentIndex: Int,
-    onSongClick: (Int) -> Unit,
     onRemove: (Int) -> Unit,
-    onMoveUp: (Int) -> Unit,
-    onMoveDown: (Int) -> Unit,
+    onMove: (Int, Int) -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
     // 计算高度：1-2首歌完全展示，更多歌限制最大高度
-    val maxHeight = when {
+    val sheetHeight = when {
         queueItems.size <= 2 -> (queueItems.size * 72).dp
         else -> 400.dp
     }
@@ -843,7 +839,6 @@ private fun QueueSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .heightIn(max = maxHeight)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -877,13 +872,11 @@ private fun QueueSheet(
                 QueueList(
                     queueItems = queueItems,
                     currentIndex = currentIndex,
-                    onSongClick = onSongClick,
                     onRemove = onRemove,
-                    onMoveUp = onMoveUp,
-                    onMoveDown = onMoveDown,
+                    onMove = onMove,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f, fill = false)
+                        .heightIn(max = sheetHeight)
                 )
             }
             
@@ -893,27 +886,38 @@ private fun QueueSheet(
 }
 
 /**
- * 播放队列列表
+ * 播放队列列表（支持拖动排序）
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun QueueList(
     queueItems: List<QueueItem>,
     currentIndex: Int,
-    onSongClick: (Int) -> Unit,
     onRemove: (Int) -> Unit,
-    onMoveUp: (Int) -> Unit,
-    onMoveDown: (Int) -> Unit,
+    onMove: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     
-    // 初始滚动到当前歌曲
+    // 初始滚动到当前歌曲（居中）
     LaunchedEffect(currentIndex) {
-        if (queueItems.isNotEmpty()) {
-            listState.animateScrollToItem(
-                index = (currentIndex - 2).coerceAtLeast(0),
-                scrollOffset = 0
-            )
+        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
+            // 计算使当前歌曲居中的scrollToIndex
+            val visibleItems = 5  // 假设可见区域大约5个项目
+            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
+            listState.animateScrollToItem(index = targetIndex)
+        }
+    }
+    
+    // Focus到当前歌曲（居中）
+    val scrollToCenter: () -> Unit = {
+        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
+            val visibleItems = 5
+            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
+            coroutineScope.launch {
+                listState.animateScrollToItem(index = targetIndex)
+            }
         }
     }
     
@@ -938,44 +942,16 @@ private fun QueueList(
                     // 拖动把手 - 三个点
                     Icon(
                         imageVector = Icons.Default.DragHandle,
-                        contentDescription = "拖动排序",
+                        contentDescription = "长按拖动排序",
                         tint = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
                     )
-                    
-                    // 上移按钮
-                    IconButton(
-                        onClick = { onMoveUp(index) },
-                        enabled = index > 0,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "上移",
-                            tint = if (index > 0) Color.Gray else Color.Gray.copy(alpha = 0.3f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    
-                    // 下移按钮
-                    IconButton(
-                        onClick = { onMoveDown(index) },
-                        enabled = index < queueItems.size - 1,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "下移",
-                            tint = if (index < queueItems.size - 1) Color.Gray else Color.Gray.copy(alpha = 0.3f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                     
                     // 歌曲信息
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onSongClick(index) }
                             .padding(horizontal = 8.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1028,15 +1004,8 @@ private fun QueueList(
         
         // 右下角 Focus 按钮
         if (queueItems.isNotEmpty()) {
-            val coroutineScope = rememberCoroutineScope()
             FloatingActionButton(
-                onClick = {
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(
-                            index = (currentIndex - 2).coerceAtLeast(0)
-                        )
-                    }
-                },
+                onClick = scrollToCenter,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)

@@ -181,6 +181,7 @@ fun FreeMusicNavHost(
             popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
             popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
         ) {
+            val playlistState by playlistViewModel.uiState.collectAsState()
             PlayerScreen(
                 onBackClick = { navController.popBackStack() },
                 onQueueClick = { navController.navigate(Screen.Queue.route) },
@@ -190,7 +191,12 @@ fun FreeMusicNavHost(
                 particleIntensity = particleIntensity,
                 coverStyleType = coverStyle,
                 visualizerEnabled = visualizerEnabled,
-                shakeToSkipEnabled = shakeToSkip
+                shakeToSkipEnabled = shakeToSkip,
+                // 歌单
+                playlists = playlistState.playlists,
+                onAddSongsToPlaylist = { songs, playlist ->
+                    playlistViewModel.addSongsToPlaylist(playlist.id, songs)
+                }
             )
         }
         

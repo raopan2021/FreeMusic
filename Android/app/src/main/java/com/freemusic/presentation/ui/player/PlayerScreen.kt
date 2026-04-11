@@ -30,6 +30,7 @@ import coil.compose.AsyncImage
 import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.domain.model.Song
 import com.freemusic.domain.model.LyricLine
+import com.freemusic.domain.model.Playlist
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
 import com.freemusic.presentation.ui.player.effects.VisualEffectType
 import com.freemusic.presentation.ui.player.effects.VisualEffects
@@ -48,7 +49,10 @@ fun PlayerScreen(
     particleIntensity: Float = 1f,
     coverStyleType: CoverStyleType = CoverStyleType.ROUND,
     visualizerEnabled: Boolean = false,
-    shakeToSkipEnabled: Boolean = false
+    shakeToSkipEnabled: Boolean = false,
+    // Playlists for "Add to Playlist"
+    playlists: List<Playlist> = emptyList(),
+    onAddSongsToPlaylist: (List<Song>, Playlist) -> Unit = { _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -58,6 +62,7 @@ fun PlayerScreen(
     var showVisualEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
+    var showPlaylistDialog by remember { mutableStateOf(false) }
     var currentVisualEffect by remember { mutableStateOf(VisualEffectType.OFF) }
     
     val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
@@ -235,9 +240,65 @@ fun PlayerScreen(
             song = uiState.currentSong,
             isFavorite = uiState.isFavorite,
             onFavoriteToggle = viewModel::toggleFavorite,
-            onAddToPlaylist = { /* TODO */ },
+            onAddToPlaylist = {
+                showMoreSheet = false
+                showPlaylistDialog = true
+            },
             onShare = handleShare,
             onDismiss = { showMoreSheet = false }
+        )
+    }
+    
+    // 添加到歌单对话框
+    if (showPlaylistDialog) {
+        AlertDialog(
+            onDismissRequest = { showPlaylistDialog = false },
+            title = { Text("添加到歌单") },
+            text = {
+                Column {
+                    if (playlists.isEmpty()) {
+                        Text("暂无歌单，请先创建歌单")
+                    } else {
+                        playlists.forEach { playlist ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        uiState.currentSong?.let { song ->
+                                            onAddSongsToPlaylist(listOf(song), playlist)
+                                        }
+                                        showPlaylistDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.QueueMusic,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = playlist.name,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "${playlist.songs.size} 首歌曲",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPlaylistDialog = false }) {
+                    Text("取消")
+                }
+            }
         )
     }
 }

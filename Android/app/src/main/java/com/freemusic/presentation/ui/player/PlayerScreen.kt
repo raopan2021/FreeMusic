@@ -887,7 +887,13 @@ private fun QueueSheet(
                     onPlay = onPlay,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = sheetHeight)
+                        .then(
+                            if (queueItems.size > 2) {
+                                Modifier.height(sheetHeight)
+                            } else {
+                                Modifier.heightIn(max = sheetHeight)
+                            }
+                        )
                 )
             }
             
@@ -921,6 +927,17 @@ private fun QueueList(
     
     // 初始滚动到当前歌曲（居中）
     LaunchedEffect(currentIndex) {
+        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
+            val visibleItems = 5
+            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
+            listState.animateScrollToItem(index = targetIndex)
+        }
+    }
+    
+    // 队列变化时（拖动排序后）滚动到当前歌曲
+    LaunchedEffect(queueItems) {
+        // 延迟等待拖动动画完成
+        kotlinx.coroutines.delay(150)
         if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
             val visibleItems = 5
             val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)

@@ -31,6 +31,10 @@ import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.domain.model.Song
 import com.freemusic.domain.model.LyricLine
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
+import com.freemusic.presentation.ui.player.effects.VisualEffectType
+import com.freemusic.presentation.ui.player.effects.VisualEffects
+import com.freemusic.presentation.ui.player.effects.getAllVisualEffects
+import com.freemusic.presentation.ui.player.effects.getDisplayName
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -54,6 +58,7 @@ fun PlayerScreen(
     var showVisualEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
+    var currentVisualEffect by remember { mutableStateOf(VisualEffectType.OFF) }
     
     val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
     
@@ -121,6 +126,7 @@ fun PlayerScreen(
                     primaryColor = primaryColor,
                     lyrics = parsedLyrics,
                     currentLyricIndex = currentLyricIndex,
+                    visualEffect = currentVisualEffect,
                     onSeek = { progress -> viewModel.seekTo((progress * uiState.duration).toLong()) },
                     onPlayPause = viewModel::togglePlayPause,
                     onPrevious = viewModel::skipToPrevious,
@@ -206,6 +212,11 @@ fun PlayerScreen(
     // 视觉效果Sheet
     if (showVisualEffectsSheet) {
         VisualEffectsSheet(
+            currentEffect = currentVisualEffect,
+            onEffectSelect = { effect ->
+                currentVisualEffect = effect
+                showVisualEffectsSheet = false
+            },
             onDismiss = { showVisualEffectsSheet = false },
             accentColor = primaryColor
         )
@@ -245,6 +256,7 @@ private fun PlayerPage(
     primaryColor: Color,
     lyrics: List<LyricLine>,
     currentLyricIndex: Int,
+    visualEffect: VisualEffectType,
     onSeek: (Float) -> Unit,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
@@ -256,11 +268,20 @@ private fun PlayerPage(
     onQueueToggle: () -> Unit,
     onMoreToggle: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 视觉效果层
+        VisualEffects(
+            effectType = visualEffect,
+            isPlaying = isPlaying,
+            modifier = Modifier.fillMaxSize(),
+            primaryColor = primaryColor
+        )
+        
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
         // 顶部：歌曲信息
         Column(
             modifier = Modifier
@@ -455,6 +476,7 @@ private fun PlayerPage(
                 )
             }
         }
+    }
     }
 }
 
@@ -721,10 +743,12 @@ private fun SleepTimerSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VisualEffectsSheet(
+    currentEffect: VisualEffectType,
+    onEffectSelect: (VisualEffectType) -> Unit,
     onDismiss: () -> Unit,
     accentColor: Color = Color(0xFF5C6BC0)
 ) {
-    val effects = listOf("关闭", "粒子", "波浪", "脉冲", "星光")
+    val effects = getAllVisualEffects()
     
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -743,13 +767,13 @@ private fun VisualEffectsSheet(
             
             effects.forEach { effect ->
                 ListItem(
-                    headlineContent = { Text(effect) },
+                    headlineContent = { Text(effect.getDisplayName()) },
                     trailingContent = {
-                        if (effect == "关闭") {
+                        if (effect == currentEffect) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
                         }
                     },
-                    modifier = Modifier.clickable { onDismiss() }
+                    modifier = Modifier.clickable { onEffectSelect(effect) }
                 )
             }
             

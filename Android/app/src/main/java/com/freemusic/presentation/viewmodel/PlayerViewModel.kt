@@ -41,7 +41,8 @@ data class PlayerUiState(
     val currentIndex: Int = 0,
     val isFavorite: Boolean = false,
     val repeatMode: PlayRepeatMode = PlayRepeatMode.OFF,
-    val isShuffleEnabled: Boolean = false
+    val isShuffleEnabled: Boolean = false,
+    val sleepTimerRemainingMinutes: Int = 0  // 睡眠定时剩余分钟数，0表示未设置
 )
 
 @HiltViewModel
@@ -67,6 +68,9 @@ class PlayerViewModel @Inject constructor(
     // 待播放的本地歌曲队列（等待 mediaController 就绪）
     private val pendingLocalSongs = mutableListOf<Song>()
     private var pendingExternalUri: Uri? = null
+    
+    // 歌词缓存（避免重复搜索）
+    private val lyricsCache = mutableMapOf<String, Lyrics>()
     
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -108,11 +112,20 @@ class PlayerViewModel @Inject constructor(
         // 检查睡眠定时器
         viewModelScope.launch {
             while (true) {
-                delay(30000) // 每30秒检查一次
-                if (sleepTimerEndTimeMillis > 0 && System.currentTimeMillis() >= sleepTimerEndTimeMillis) {
-                    mediaController?.pause()
-                    sleepTimerEndTimeMillis = 0L
-                    preferencesManager.setSleepTimer(0)
+                delay(1000) // 每秒检查一次
+                if (sleepTimerEndTimeMillis > 0) {
+                    val remainingMs = sleepTimerEndTimeMillis - System.currentTimeMillis()
+                    if (remainingMs <= 0) {
+                        mediaController?.pause()
+                        sleepTimerEndTimeMillis = 0L
+                        preferencesManager.setSleepTimer(0)
+                        _uiState.update { it.copy(sleepTimerRemainingMinutes = 0) }
+                    } else {
+                        val remainingMinutes = ((remainingMs + 59999) / 60000).toInt() // 向上取整
+                        _uiState.update { it.copy(sleepTimerRemainingMinutes = remainingMinutes) }
+                    }
+                } else {
+                    _uiState.update { it.copy(sleepTimerRemainingMinutes = 0) }
                 }
             }
         }
@@ -225,10 +238,12 @@ class PlayerViewModel @Inject constructor(
 
     fun playSong(song: Song, playlist: List<Song>? = null) {
         viewModelScope.launch {
+            // 清除旧歌词，避免显示上一首歌的歌词
             _uiState.update { 
                 it.copy(
                     isLoading = true, 
                     error = null,
+                    lyrics = null,  // 清除旧歌词
                     playlist = playlist ?: listOf(song),  // 使用提供的歌单，或仅当前歌曲
                     currentIndex = playlist?.indexOf(song) ?: 0
                 ) 
@@ -240,6 +255,9 @@ class PlayerViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Ignore history errors
             }
+            
+            // 保存原始歌单用于后续切换上下首
+            val originalPlaylist = playlist ?: listOf(song)
             
             // 判断是本地歌曲还是网易云歌曲
             if (song.isNetease && song.neteaseId != null) {
@@ -257,8 +275,8 @@ class PlayerViewModel @Inject constructor(
                                     state.copy(
                                         currentSong = songWithUrl.song,
                                         isLoading = false,
-                                        playlist = listOf(songWithUrl.song),
-                                        currentIndex = 0
+                                        playlist = originalPlaylist,
+                                        currentIndex = originalPlaylist.indexOf(song).coerceAtLeast(0)
                                     )
                                 }
                             },
@@ -364,9 +382,7 @@ class PlayerViewModel @Inject constructor(
             _uiState.update { state ->
                 state.copy(
                     currentSong = song,
-                    isLoading = false,
-                    playlist = listOf(song),
-                    currentIndex = 0
+                    isLoading = false
                 )
             }
         }
@@ -483,10 +499,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun loadLyrics(song: Song) {
+        // 检查缓存
+        val cacheKey = "${song.id}_${song.title}_${song.artist}"
+        lyricsCache[cacheKey]?.let { cachedLyrics ->
+            _uiState.update { it.copy(lyrics = cachedLyrics) }
+            return
+        }
+        
         viewModelScope.launch {
             try {
                 getLyricsUseCase(song).firstOrNull()?.let { result ->
                     result.onSuccess { lyrics ->
+                        // 缓存歌词
+                        lyricsCache[cacheKey] = lyrics
                         _uiState.update { it.copy(lyrics = lyrics) }
                     }
                 }

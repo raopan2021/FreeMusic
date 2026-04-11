@@ -191,6 +191,7 @@ fun FreeMusicNavHost(
                 particleIntensity = particleIntensity,
                 coverStyleType = coverStyle,
                 visualizerEnabled = visualizerEnabled,
+                equalizerPreset = equalizerPreset,
                 shakeToSkipEnabled = shakeToSkip,
                 // 歌单
                 playlists = playlistState.playlists,

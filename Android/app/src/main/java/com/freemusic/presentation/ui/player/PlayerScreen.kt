@@ -32,10 +32,6 @@ import com.freemusic.domain.model.Song
 import com.freemusic.domain.model.LyricLine
 import com.freemusic.domain.model.Playlist
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
-import com.freemusic.presentation.ui.player.effects.VisualEffectType
-import com.freemusic.presentation.ui.player.effects.VisualEffects
-import com.freemusic.presentation.ui.player.effects.getAllVisualEffects
-import com.freemusic.presentation.ui.player.effects.getDisplayName
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -49,6 +45,7 @@ fun PlayerScreen(
     particleIntensity: Float = 1f,
     coverStyleType: CoverStyleType = CoverStyleType.ROUND,
     visualizerEnabled: Boolean = false,
+    equalizerPreset: Int = 0,
     shakeToSkipEnabled: Boolean = false,
     // Playlists for "Add to Playlist"
     playlists: List<Playlist> = emptyList(),
@@ -59,11 +56,9 @@ fun PlayerScreen(
     
     var showRepeatModeSheet by remember { mutableStateOf(false) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
-    var showVisualEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
     var showPlaylistDialog by remember { mutableStateOf(false) }
-    var currentVisualEffect by remember { mutableStateOf(VisualEffectType.OFF) }
     
     val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
     
@@ -131,7 +126,10 @@ fun PlayerScreen(
                     primaryColor = primaryColor,
                     lyrics = parsedLyrics,
                     currentLyricIndex = currentLyricIndex,
-                    visualEffect = currentVisualEffect,
+                    sleepTimerRemaining = uiState.sleepTimerRemainingMinutes,
+                    particlesEnabled = particlesEnabled,
+                    visualizerEnabled = visualizerEnabled,
+                    equalizerPreset = equalizerPreset,
                     onSeek = { progress -> viewModel.seekTo((progress * uiState.duration).toLong()) },
                     onPlayPause = viewModel::togglePlayPause,
                     onPrevious = viewModel::skipToPrevious,
@@ -139,7 +137,6 @@ fun PlayerScreen(
                     onFavoriteToggle = viewModel::toggleFavorite,
                     onRepeatToggle = { showRepeatModeSheet = true },
                     onSleepTimerToggle = { showSleepTimerSheet = true },
-                    onVisualEffectsToggle = { showVisualEffectsSheet = true },
                     onQueueToggle = { showQueueSheet = true },
                     onMoreToggle = { showMoreSheet = true }
                 )
@@ -188,17 +185,14 @@ fun PlayerScreen(
             isShuffleEnabled = uiState.isShuffleEnabled,
             onModeSelect = { mode ->
                 when (mode) {
-                    PlayRepeatMode.OFF -> {
-                        if (uiState.repeatMode != PlayRepeatMode.OFF) viewModel.toggleRepeatMode()
-                        if (uiState.isShuffleEnabled) viewModel.toggleShuffle()
-                    }
                     PlayRepeatMode.ALL -> {
-                        if (uiState.repeatMode == PlayRepeatMode.OFF) viewModel.toggleRepeatMode()
                         if (uiState.isShuffleEnabled) viewModel.toggleShuffle()
+                        if (uiState.repeatMode == PlayRepeatMode.ONE) viewModel.toggleRepeatMode()
                     }
                     PlayRepeatMode.ONE -> {
                         if (uiState.repeatMode != PlayRepeatMode.ONE) viewModel.toggleRepeatMode()
                     }
+                    else -> {}
                 }
             },
             onShuffleToggle = viewModel::toggleShuffle,
@@ -211,19 +205,6 @@ fun PlayerScreen(
     if (showSleepTimerSheet) {
         SleepTimerSheet(
             onDismiss = { showSleepTimerSheet = false }
-        )
-    }
-    
-    // 视觉效果Sheet
-    if (showVisualEffectsSheet) {
-        VisualEffectsSheet(
-            currentEffect = currentVisualEffect,
-            onEffectSelect = { effect ->
-                currentVisualEffect = effect
-                showVisualEffectsSheet = false
-            },
-            onDismiss = { showVisualEffectsSheet = false },
-            accentColor = primaryColor
         )
     }
     
@@ -317,7 +298,15 @@ private fun PlayerPage(
     primaryColor: Color,
     lyrics: List<LyricLine>,
     currentLyricIndex: Int,
-    visualEffect: VisualEffectType,
+    sleepTimerRemaining: Int,
+    // 设置参数
+    particlesEnabled: Boolean = true,
+    visualizerEnabled: Boolean = false,
+    equalizerPreset: Int = 0,
+    onParticlesToggle: () -> Unit = {},
+    onVisualizerToggle: () -> Unit = {},
+    onEqualizerClick: () -> Unit = {},
+    // 回调
     onSeek: (Float) -> Unit,
     onPlayPause: () -> Unit,
     onPrevious: () -> Unit,
@@ -325,19 +314,10 @@ private fun PlayerPage(
     onFavoriteToggle: () -> Unit,
     onRepeatToggle: () -> Unit,
     onSleepTimerToggle: () -> Unit,
-    onVisualEffectsToggle: () -> Unit,
     onQueueToggle: () -> Unit,
     onMoreToggle: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // 视觉效果层
-        VisualEffects(
-            effectType = visualEffect,
-            isPlaying = isPlaying,
-            modifier = Modifier.fillMaxSize(),
-            primaryColor = primaryColor
-        )
-        
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -503,19 +483,53 @@ private fun PlayerPage(
             
             // 睡眠定时
             IconButton(onClick = onSleepTimerToggle) {
+                if (sleepTimerRemaining > 0) {
+                    // 显示倒计时
+                    val hours = sleepTimerRemaining / 60
+                    val minutes = sleepTimerRemaining % 60
+                    val timeText = if (hours > 0) {
+                        String.format("%d:%02d", hours, minutes)
+                    } else {
+                        String.format("%02d", minutes)
+                    }
+                    Text(
+                        text = timeText,
+                        color = primaryColor,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = "睡眠定时",
+                        tint = Color.White
+                    )
+                }
+            }
+            
+            // 粒子效果
+            IconButton(onClick = onParticlesToggle) {
                 Icon(
-                    imageVector = Icons.Default.Bedtime,
-                    contentDescription = "睡眠定时",
-                    tint = Color.White
+                    imageVector = Icons.Default.BubbleChart,
+                    contentDescription = "粒子效果",
+                    tint = if (particlesEnabled) primaryColor else Color.White.copy(alpha = 0.5f)
                 )
             }
             
-            // 特效
-            IconButton(onClick = onVisualEffectsToggle) {
+            // 可视化
+            IconButton(onClick = onVisualizerToggle) {
                 Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "视觉效果",
-                    tint = Color.White
+                    imageVector = Icons.Default.Equalizer,
+                    contentDescription = "可视化",
+                    tint = if (visualizerEnabled) primaryColor else Color.White.copy(alpha = 0.5f)
+                )
+            }
+            
+            // 均衡器
+            IconButton(onClick = onEqualizerClick) {
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = "均衡器",
+                    tint = if (equalizerPreset > 0) primaryColor else Color.White.copy(alpha = 0.5f)
                 )
             }
             
@@ -687,17 +701,6 @@ private fun RepeatModeSheet(
                 modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.ONE) }
             )
             
-            ListItem(
-                headlineContent = { Text("关闭") },
-                leadingContent = { Icon(Icons.Default.Repeat, contentDescription = null, tint = Color.Gray) },
-                trailingContent = {
-                    if (currentMode == PlayRepeatMode.OFF && !isShuffleEnabled) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
-                    }
-                },
-                modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.OFF) }
-            )
-            
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
             ListItem(
@@ -791,51 +794,6 @@ private fun SleepTimerSheet(
                 ) {
                     Text("确定")
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-    }
-}
-
-/**
- * 视觉效果Sheet
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun VisualEffectsSheet(
-    currentEffect: VisualEffectType,
-    onEffectSelect: (VisualEffectType) -> Unit,
-    onDismiss: () -> Unit,
-    accentColor: Color = Color(0xFF5C6BC0)
-) {
-    val effects = getAllVisualEffects()
-    
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "视觉效果",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            effects.forEach { effect ->
-                ListItem(
-                    headlineContent = { Text(effect.getDisplayName()) },
-                    trailingContent = {
-                        if (effect == currentEffect) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
-                        }
-                    },
-                    modifier = Modifier.clickable { onEffectSelect(effect) }
-                )
             }
             
             Spacer(modifier = Modifier.height(32.dp))

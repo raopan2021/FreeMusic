@@ -35,6 +35,7 @@ fun HomeScreen(
     onArtistBrowserClick: () -> Unit = {},
     onAlbumBrowserClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
+    onFavoritesClick: () -> Unit = {},
     playlists: List<PlaylistUiModel> = emptyList(),
     onCreatePlaylist: () -> Unit = {}
 ) {
@@ -108,7 +109,7 @@ fun HomeScreen(
                     QuickAccessItem(
                         icon = Icons.Outlined.FavoriteBorder,
                         title = "我喜欢",
-                        onClick = { },
+                        onClick = onFavoritesClick,
                         modifier = Modifier.weight(1f)
                     )
                     QuickAccessItem(

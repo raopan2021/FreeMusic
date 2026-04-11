@@ -177,6 +177,10 @@ fun FreeMusicNavHost(
                 onArtistBrowserClick = { navController.navigate(Screen.ArtistBrowser.route) },
                 onAlbumBrowserClick = { navController.navigate(Screen.AlbumBrowser.route) },
                 onHistoryClick = { navController.navigate(Screen.PlayHistory.route) },
+                onFavoritesClick = { 
+                    // 导航到"我喜欢的音乐"歌单
+                    navController.navigate(Screen.PlaylistDetail.createRoute("favorites"))
+                },
                 playlists = playlists,
                 onCreatePlaylist = { /* TODO: 创建歌单 */ }
             )

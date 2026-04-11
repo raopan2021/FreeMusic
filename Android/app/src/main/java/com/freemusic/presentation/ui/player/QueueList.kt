@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CenterFocusWeak
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import com.freemusic.domain.model.Song
@@ -38,6 +40,17 @@ fun QueueList(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // 定位到当前播放（居中）
+    val scrollToCenter: () -> Unit = {
+        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
+            coroutineScope.launch {
+                val targetIndex = (currentIndex - 3).coerceAtLeast(0)
+                listState.animateScrollToItem(index = targetIndex)
+            }
+        }
+    }
 
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
@@ -125,6 +138,24 @@ fun QueueList(
                         }
                     }
                 }
+            }
+        }
+        // 右下角定位按钮
+        if (queueItems.isNotEmpty()) {
+            FloatingActionButton(
+                onClick = scrollToCenter,
+                containerColor = Color(0xFF6200EE),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CenterFocusWeak,
+                    contentDescription = "定位当前播放",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

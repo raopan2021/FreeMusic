@@ -946,12 +946,15 @@ private fun QueueList(
                     state = reorderableState,
                     key = item.song.id
                 ) { isDragging ->
+                    val isCurrentSong = index == currentIndex
+                    
+                    // 拖动时不改变背景高亮（保持当前播放歌曲的高亮）
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (isDragging) {
-                                    Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                                if (isCurrentSong && !isDragging) {
+                                    Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                                 } else Modifier
                             )
                             .padding(vertical = 8.dp, horizontal = 4.dp),
@@ -973,25 +976,14 @@ private fun QueueList(
                                 .weight(1f)
                                 .padding(horizontal = 8.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (isCurrentSong) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "正在播放",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                }
-                                Text(
-                                    text = song.title,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                            Text(
+                                text = song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             Text(
                                 text = song.artist ?: "未知艺术家",
                                 style = MaterialTheme.typography.bodySmall,

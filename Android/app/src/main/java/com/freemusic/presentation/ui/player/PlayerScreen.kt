@@ -841,7 +841,7 @@ private fun QueueSheet(
         else -> screenHeight * 0.7f
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = queueItems.size <= 2)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // 展开后滚动到当前歌曲（居中）
     LaunchedEffect(sheetState) {

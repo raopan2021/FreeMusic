@@ -4,7 +4,9 @@ import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import sh.calvin.reorderable.ReorderableItem
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,18 +65,18 @@ fun PlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    
+
     var showRepeatModeSheet by remember { mutableStateOf(false) }
     var showSleepTimerSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
     var showPlaylistDialog by remember { mutableStateOf(false) }
-    
+
     val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
-    
-    // Pager状态：0=播放页，1=歌词页
+
+    // Pager状态:0=播放页,1=歌词页
     val pagerState = rememberPagerState(pageCount = { 2 })
-    
+
     // 分享处理器
     val handleShare: () -> Unit = {
         uiState.currentSong?.let { song ->
@@ -86,26 +89,26 @@ fun PlayerScreen(
             context.startActivity(Intent.createChooser(sendIntent, "分享歌曲"))
         }
     }
-    
+
     // 解析歌词
     val parsedLyrics = remember(uiState.lyrics?.lrc) {
         parseLyrics(uiState.lyrics?.lrc ?: "")
     }
-    
+
     // 找到当前歌词行
     val currentLyricIndex = remember(parsedLyrics, uiState.currentPosition) {
         parsedLyrics.indexOfLast { it.timeMs <= uiState.currentPosition }.coerceAtLeast(0)
     }
-    
+
     // 计算进度
     val progress = if (uiState.duration > 0) {
         uiState.currentPosition.toFloat() / uiState.duration.toFloat()
     } else 0f
-    
+
     // 格式化时间
     val currentTimeStr = formatTime(uiState.currentPosition)
     val totalTimeStr = formatTime(uiState.duration)
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -156,7 +159,7 @@ fun PlayerScreen(
                 )
             }
         }
-        
+
         // 页面指示器
         Row(
             modifier = Modifier
@@ -175,7 +178,7 @@ fun PlayerScreen(
                 )
             }
         }
-        
+
         // 加载指示器
         if (uiState.isLoading) {
             Box(
@@ -186,7 +189,7 @@ fun PlayerScreen(
             }
         }
     }
-    
+
     // 循环模式选择Sheet
     if (showRepeatModeSheet) {
         RepeatModeSheet(
@@ -209,14 +212,14 @@ fun PlayerScreen(
             accentColor = primaryColor
         )
     }
-    
+
     // 睡眠定时器Sheet
     if (showSleepTimerSheet) {
         SleepTimerSheet(
             onDismiss = { showSleepTimerSheet = false }
         )
     }
-    
+
     // 播放队列Sheet
     if (showQueueSheet) {
         QueueSheet(
@@ -229,7 +232,7 @@ fun PlayerScreen(
             onDismiss = { showQueueSheet = false }
         )
     }
-    
+
     // 更多选项Sheet
     if (showMoreSheet) {
         MoreOptionsSheet(
@@ -244,7 +247,7 @@ fun PlayerScreen(
             onDismiss = { showMoreSheet = false }
         )
     }
-    
+
     // 添加到歌单对话框
     if (showPlaylistDialog) {
         AlertDialog(
@@ -253,7 +256,7 @@ fun PlayerScreen(
             text = {
                 Column {
                     if (playlists.isEmpty()) {
-                        Text("暂无歌单，请先创建歌单")
+                        Text("暂无歌单,请先创建歌单")
                     } else {
                         playlists.forEach { playlist ->
                             Row(
@@ -338,7 +341,7 @@ private fun PlayerPage(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-        // 顶部：歌曲信息
+        // 顶部:歌曲信息
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -361,8 +364,8 @@ private fun PlayerPage(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        
-        // 中间：专辑封面 + 3行歌词
+
+        // 中间:专辑封面 + 3行歌词
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -383,9 +386,9 @@ private fun PlayerPage(
                         .clip(RoundedCornerShape(16.dp)),
                     contentScale = ContentScale.Crop
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // 3行歌词预览
                 LyricsPreview(
                     lyrics = lyrics,
@@ -394,7 +397,7 @@ private fun PlayerPage(
                 )
             }
         }
-        
+
         // 进度条
         Column(
             modifier = Modifier
@@ -427,8 +430,8 @@ private fun PlayerPage(
                 )
             }
         }
-        
-        // 底部：控制按钮
+
+        // 底部:控制按钮
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -445,7 +448,7 @@ private fun PlayerPage(
                     modifier = Modifier.size(36.dp)
                 )
             }
-            
+
             // 播放/暂停
             Box(
                 modifier = Modifier
@@ -466,7 +469,7 @@ private fun PlayerPage(
                     modifier = Modifier.size(32.dp)
                 )
             }
-            
+
             // 下一首
             IconButton(onClick = onNext) {
                 Icon(
@@ -477,7 +480,7 @@ private fun PlayerPage(
                 )
             }
         }
-        
+
         // 底部设置栏
         Row(
             modifier = Modifier
@@ -495,7 +498,7 @@ private fun PlayerPage(
                     tint = Color.White
                 )
             }
-            
+
             // 睡眠定时
             IconButton(onClick = onSleepTimerToggle) {
                 if (sleepTimerRemaining > 0) {
@@ -520,7 +523,7 @@ private fun PlayerPage(
                     )
                 }
             }
-            
+
             // 粒子效果
             IconButton(onClick = onParticlesToggle) {
                 Icon(
@@ -529,7 +532,7 @@ private fun PlayerPage(
                     tint = if (particlesEnabled) primaryColor else Color.White.copy(alpha = 0.5f)
                 )
             }
-            
+
             // 可视化
             IconButton(onClick = onVisualizerToggle) {
                 Icon(
@@ -538,7 +541,7 @@ private fun PlayerPage(
                     tint = if (visualizerEnabled) primaryColor else Color.White.copy(alpha = 0.5f)
                 )
             }
-            
+
             // 均衡器
             IconButton(onClick = onEqualizerClick) {
                 Icon(
@@ -547,7 +550,7 @@ private fun PlayerPage(
                     tint = if (equalizerPreset > 0) primaryColor else Color.White.copy(alpha = 0.5f)
                 )
             }
-            
+
             // 播放队列
             IconButton(onClick = onQueueToggle) {
                 Icon(
@@ -556,7 +559,7 @@ private fun PlayerPage(
                     tint = Color.White
                 )
             }
-            
+
             // 更多
             IconButton(onClick = onMoreToggle) {
                 Icon(
@@ -587,7 +590,7 @@ private fun LyricsPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(100.dp))
-        
+
         // 全屏歌词
         Box(
             modifier = Modifier
@@ -610,9 +613,9 @@ private fun LyricsPage(
                     lyrics.forEachIndexed { index, line ->
                         val isCurrentLine = index == currentLyricIndex
                         val isPastLine = index < currentLyricIndex
-                        
+
                         Text(
-                            text = line.text.ifEmpty { "　" },
+                            text = line.text.ifEmpty { " " },
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = if (isCurrentLine) 20.sp else 16.sp
                             ),
@@ -629,13 +632,13 @@ private fun LyricsPage(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(150.dp))
     }
 }
 
 /**
- * 歌词预览（3行）
+ * 歌词预览(3行)
  */
 @Composable
 private fun LyricsPreview(
@@ -650,9 +653,9 @@ private fun LyricsPreview(
             val index = currentIndex - 1 + offset
             val isCurrentLine = offset == 1
             val text = if (index in lyrics.indices) lyrics[index].text else ""
-            
+
             Text(
-                text = text.ifEmpty { "　" },
+                text = text.ifEmpty { " " },
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = if (isCurrentLine) 16.sp else 14.sp
                 ),
@@ -693,7 +696,7 @@ private fun RepeatModeSheet(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             ListItem(
                 headlineContent = { Text("列表循环") },
                 leadingContent = { Icon(Icons.Default.Repeat, contentDescription = null) },
@@ -704,7 +707,7 @@ private fun RepeatModeSheet(
                 },
                 modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.ALL) }
             )
-            
+
             ListItem(
                 headlineContent = { Text("单曲循环") },
                 leadingContent = { Icon(Icons.Default.RepeatOne, contentDescription = null) },
@@ -715,9 +718,9 @@ private fun RepeatModeSheet(
                 },
                 modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.ONE) }
             )
-            
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            
+
             ListItem(
                 headlineContent = { Text("随机播放") },
                 leadingContent = { Icon(Icons.Default.Shuffle, contentDescription = null) },
@@ -728,7 +731,7 @@ private fun RepeatModeSheet(
                 },
                 modifier = Modifier.clickable { onShuffleToggle() }
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -743,7 +746,7 @@ private fun SleepTimerSheet(
     onDismiss: () -> Unit
 ) {
     var sliderValue by remember { mutableFloatStateOf(30f) }
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface
@@ -758,7 +761,7 @@ private fun SleepTimerSheet(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             Text(
                 text = "${sliderValue.toInt()} 分钟",
                 style = MaterialTheme.typography.headlineSmall,
@@ -767,7 +770,7 @@ private fun SleepTimerSheet(
                     .padding(vertical = 16.dp),
                 textAlign = TextAlign.Center
             )
-            
+
             Slider(
                 value = sliderValue,
                 onValueChange = { sliderValue = it },
@@ -775,9 +778,9 @@ private fun SleepTimerSheet(
                 steps = 23,
                 modifier = Modifier.fillMaxWidth()
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -790,9 +793,9 @@ private fun SleepTimerSheet(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -810,7 +813,7 @@ private fun SleepTimerSheet(
                     Text("确定")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -830,20 +833,38 @@ private fun QueueSheet(
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // 计算高度：1-2首歌自适应，更多歌占屏幕70%
+    // 计算高度:1-2首歌自适应,更多歌占屏幕70%
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val headerHeight = 120.dp // header + padding 估算
-    
+
     val sheetHeight = when {
         queueItems.size <= 2 -> (queueItems.size * 72).dp + headerHeight
         else -> screenHeight * 0.7f
     }
-    
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = queueItems.size <= 2)
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+
+    // 展开后滚动到当前歌曲（居中）
+    LaunchedEffect(sheetState) {
+        sheetState.expand()
+        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
+            // 根据实际列表可见高度计算
+            val visibleListHeight = with(density) { sheetHeight.toPx() } - with(density) { 120.dp.toPx() }
+            val itemHeightPx = with(density) { 72.dp.toPx() }
+            val visibleItems = (visibleListHeight / itemHeightPx).toInt().coerceIn(4, 8)
+            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
+            kotlinx.coroutines.delay(120)
+            listState.animateScrollToItem(index = targetIndex)
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = queueItems.size <= 2)
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
@@ -865,9 +886,9 @@ private fun QueueSheet(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             if (queueItems.isEmpty()) {
                 Text(
                     text = "暂无播放队列",
@@ -885,6 +906,8 @@ private fun QueueSheet(
                     onRemove = onRemove,
                     onMove = onMove,
                     onPlay = onPlay,
+                    sheetHeight = sheetHeight,
+                    lazyListState = listState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
@@ -896,14 +919,14 @@ private fun QueueSheet(
                         )
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 /**
- * 播放队列列表（支持拖动排序）
+ * 播放队列列表(支持拖动排序)
  */
 @Composable
 private fun QueueList(
@@ -912,11 +935,13 @@ private fun QueueList(
     onRemove: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
     onPlay: (Int) -> Unit,
+    sheetHeight: Dp,
+    lazyListState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-    val listState = rememberLazyListState()
+    val listState = lazyListState
     val coroutineScope = rememberCoroutineScope()
-    
+
     // Reorderable state
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
@@ -924,38 +949,22 @@ private fun QueueList(
             onMove(from.index, to.index)
         }
     )
-    
-    // 初始滚动到当前歌曲（居中）
-    LaunchedEffect(currentIndex) {
-        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
-            val visibleItems = 5
-            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
-            listState.animateScrollToItem(index = targetIndex)
-        }
-    }
-    
-    // 队列变化时（拖动排序后）滚动到当前歌曲
-    LaunchedEffect(queueItems) {
-        // 延迟等待拖动动画完成
-        kotlinx.coroutines.delay(150)
-        if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
-            val visibleItems = 5
-            val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
-            listState.animateScrollToItem(index = targetIndex)
-        }
-    }
-    
+
+    val density = LocalDensity.current
+
     // Focus到当前歌曲（居中）
     val scrollToCenter: () -> Unit = {
         if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
-            val visibleItems = 5
+            val sheetHeightPx = with(density) { sheetHeight.toPx() }
+            val itemHeightPx = with(density) { 72.dp.toPx() }
+            val visibleItems = ((sheetHeightPx / itemHeightPx) * 0.6).toInt().coerceIn(4, 8)
             val targetIndex = (currentIndex - visibleItems / 2).coerceAtLeast(0)
             coroutineScope.launch {
                 listState.animateScrollToItem(index = targetIndex)
             }
         }
     }
-    
+
     Box(modifier = modifier) {
         LazyColumn(
             state = listState,
@@ -966,16 +975,15 @@ private fun QueueList(
                 key = { _, item -> item.song.id }
             ) { index, item ->
                 val song = item.song
-                val isCurrentSong = index == currentIndex
-                
+
                 ReorderableItem(
                     state = reorderableState,
                     key = item.song.id
                 ) { isDragging ->
                     val isCurrentSong = index == currentIndex
-                    
+
                     // 拖动时不改变背景高亮（保持当前播放歌曲的高亮）
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
@@ -984,68 +992,66 @@ private fun QueueList(
                                 } else Modifier
                             )
                             .clickable {
-                                // 如果不是当前播放的歌曲，则切换到这首歌播放
-                                if (!isCurrentSong) {
-                                    onPlay(index)
-                                }
+                                if (!isCurrentSong) onPlay(index)
                             }
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 拖动把手 - 三个点（长按可拖动排序）
-                        Icon(
-                            imageVector = Icons.Default.DragHandle,
-                            contentDescription = "长按拖动排序",
-                            tint = Color.Gray,
+                        Row(
                             modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                                .draggableHandle()
-                        )
-                        
-                        // 歌曲信息
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp)
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = song.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = song.artist ?: "未知艺术家",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        
-                        // 删除按钮
-                        IconButton(
-                            onClick = { onRemove(index) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
+                            // 拖动把手 - 三个点（长按可拖动排序）
                             Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "删除",
+                                imageVector = Icons.Default.DragHandle,
+                                contentDescription = "长按拖动排序",
                                 tint = Color.Gray,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier
+                                    .padding(start = 4.dp, end = 12.dp)
+                                    .draggableHandle()
                             )
+
+                            // 歌曲信息
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    text = song.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = song.artist ?: "未知艺术家",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // 删除按钮
+                            IconButton(
+                                onClick = { onRemove(index) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "删除",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
-                    }
-                    
-                    if (index < queueItems.size - 1) {
-                        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     }
                 }
             }
         }
-        
+
         // 右下角 Focus 按钮
         if (queueItems.isNotEmpty()) {
             FloatingActionButton(
@@ -1093,7 +1099,7 @@ private fun MoreOptionsSheet(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             // 歌曲信息
             if (song != null) {
                 ListItem(
@@ -1111,7 +1117,7 @@ private fun MoreOptionsSheet(
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             }
-            
+
             // 收藏
             ListItem(
                 headlineContent = { Text(if (isFavorite) "取消收藏" else "收藏") },
@@ -1124,21 +1130,21 @@ private fun MoreOptionsSheet(
                 },
                 modifier = Modifier.clickable(onClick = onFavoriteToggle)
             )
-            
+
             // 添加到歌单
             ListItem(
                 headlineContent = { Text("添加到歌单") },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) },
                 modifier = Modifier.clickable(onClick = onAddToPlaylist)
             )
-            
+
             // 分享
             ListItem(
                 headlineContent = { Text("分享") },
                 leadingContent = { Icon(Icons.Default.Share, contentDescription = null) },
                 modifier = Modifier.clickable(onClick = onShare)
             )
-            
+
             // 歌曲详情
             if (song != null) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -1152,7 +1158,7 @@ private fun MoreOptionsSheet(
                     }
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -1163,10 +1169,10 @@ private fun MoreOptionsSheet(
  */
 private fun parseLyrics(lrc: String): List<LyricLine> {
     if (lrc.isBlank()) return emptyList()
-    
+
     val lyrics = mutableListOf<LyricLine>()
     val regex = Regex("""\[(\d{2}):(\d{2})\.(\d{2,3})](.*)""")
-    
+
     lrc.lines().forEach { line ->
         regex.find(line)?.let { match ->
             val (minutes, seconds, millis, text) = match.destructured
@@ -1176,7 +1182,7 @@ private fun parseLyrics(lrc: String): List<LyricLine> {
             }
         }
     }
-    
+
     return lyrics.sortedBy { it.timeMs }
 }
 

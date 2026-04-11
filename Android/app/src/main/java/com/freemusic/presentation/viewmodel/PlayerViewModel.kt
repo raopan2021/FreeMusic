@@ -29,6 +29,14 @@ import javax.inject.Inject
 
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
 
+/**
+ * 播放队列中的单曲项目
+ */
+data class QueueItem(
+    val song: Song,
+    val playCount: Int = 1  // 该歌曲在队列中的播放次数
+)
+
 data class PlayerUiState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
@@ -38,6 +46,7 @@ data class PlayerUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val playlist: List<Song> = emptyList(),
+    val queueItems: List<QueueItem> = emptyList(),  // 播放队列（包含播放次数）
     val currentIndex: Int = 0,
     val isFavorite: Boolean = false,
     val repeatMode: PlayRepeatMode = PlayRepeatMode.OFF,
@@ -245,6 +254,7 @@ class PlayerViewModel @Inject constructor(
                     error = null,
                     lyrics = null,  // 清除旧歌词
                     playlist = playlist ?: listOf(song),  // 使用提供的歌单，或仅当前歌曲
+                    queueItems = (playlist ?: listOf(song)).map { QueueItem(it, 1) },  // 转换为队列项目
                     currentIndex = playlist?.indexOf(song) ?: 0
                 ) 
             }
@@ -316,8 +326,18 @@ class PlayerViewModel @Inject constructor(
     /**
      * 播放本地歌曲
      */
-    private fun playLocalSong(song: Song) {
+    private fun playLocalSong(song: Song, playlist: List<Song>? = null) {
         val uri = buildContentUri(song.id)
+        
+        // 更新播放列表（如果提供了新的播放列表）
+        playlist?.let { newPlaylist ->
+            _uiState.update { state ->
+                state.copy(
+                    playlist = newPlaylist,
+                    currentIndex = newPlaylist.indexOf(song).coerceAtLeast(0)
+                )
+            }
+        }
         
         // 如果 mediaController 已就绪，立即播放
         if (isMediaControllerReady && mediaController != null) {
@@ -451,8 +471,77 @@ class PlayerViewModel @Inject constructor(
     fun playFromQueue(index: Int) {
         val playlist = _uiState.value.playlist
         if (index in playlist.indices) {
-            _uiState.update { it.copy(currentIndex = index) }
-            playSong(playlist[index])
+            val song = playlist[index]
+            _uiState.update { it.copy(currentIndex = index, currentSong = song) }
+            // 重新设置播放列表（用于 MediaController）
+            if (song.isNetease && song.neteaseId != null) {
+                // 网络歌曲需要获取播放链接
+                playSong(song, playlist)
+            } else {
+                // 本地歌曲直接播放，传递完整播放列表
+                playLocalSong(song, playlist)
+            }
+        }
+    }
+    
+    /**
+     * 更新队列中某首歌的播放次数
+     */
+    fun updateQueueItemPlayCount(index: Int, increment: Boolean) {
+        val queueItems = _uiState.value.queueItems.toMutableList()
+        if (index in queueItems.indices) {
+            val item = queueItems[index]
+            val newCount = if (increment) item.playCount + 1 else (item.playCount - 1).coerceAtLeast(1)
+            queueItems[index] = item.copy(playCount = newCount)
+            _uiState.update { it.copy(queueItems = queueItems) }
+        }
+    }
+    
+    /**
+     * 从队列中删除一首歌
+     */
+    fun removeFromQueue(index: Int) {
+        val queueItems = _uiState.value.queueItems.toMutableList()
+        if (index in queueItems.indices) {
+            queueItems.removeAt(index)
+            _uiState.update { 
+                it.copy(
+                    queueItems = queueItems,
+                    playlist = queueItems.map { item -> item.song },
+                    currentIndex = it.currentIndex.coerceIn(0, (queueItems.size - 1).coerceAtLeast(0))
+                )
+            }
+        }
+    }
+    
+    /**
+     * 移动队列中的歌曲顺序
+     */
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        val queueItems = _uiState.value.queueItems.toMutableList()
+        if (fromIndex in queueItems.indices && toIndex in queueItems.indices) {
+            val item = queueItems.removeAt(fromIndex)
+            queueItems.add(toIndex, item)
+            _uiState.update { 
+                it.copy(
+                    queueItems = queueItems,
+                    playlist = queueItems.map { q -> q.song },
+                    currentIndex = if (it.currentIndex == fromIndex) toIndex else it.currentIndex
+                )
+            }
+        }
+    }
+    
+    /**
+     * 清空播放队列
+     */
+    fun clearQueue() {
+        _uiState.update { 
+            it.copy(
+                queueItems = emptyList(),
+                playlist = emptyList(),
+                currentIndex = 0
+            )
         }
     }
 

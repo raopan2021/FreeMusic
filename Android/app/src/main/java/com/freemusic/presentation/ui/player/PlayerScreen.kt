@@ -35,6 +35,7 @@ import com.freemusic.domain.model.LyricLine
 import com.freemusic.domain.model.Playlist
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
 import com.freemusic.presentation.viewmodel.PlayerViewModel
+import com.freemusic.presentation.viewmodel.QueueItem
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -213,9 +214,15 @@ fun PlayerScreen(
     // 播放队列Sheet
     if (showQueueSheet) {
         QueueSheet(
-            playlist = uiState.playlist,
+            queueItems = uiState.queueItems,
             currentIndex = uiState.currentIndex,
             onSongClick = { index -> viewModel.playFromQueue(index) },
+            onMoveUp = { index -> viewModel.moveQueueItem(index, index - 1) },
+            onMoveDown = { index -> viewModel.moveQueueItem(index, index + 1) },
+            onIncreasePlayCount = { index -> viewModel.updateQueueItemPlayCount(index, true) },
+            onDecreasePlayCount = { index -> viewModel.updateQueueItemPlayCount(index, false) },
+            onRemove = { index -> viewModel.removeFromQueue(index) },
+            onClear = { viewModel.clearQueue() },
             onDismiss = { showQueueSheet = false }
         )
     }
@@ -812,9 +819,15 @@ private fun SleepTimerSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QueueSheet(
-    playlist: List<Song>,
+    queueItems: List<QueueItem>,
     currentIndex: Int,
     onSongClick: (Int) -> Unit,
+    onMoveUp: (Int) -> Unit,
+    onMoveDown: (Int) -> Unit,
+    onIncreasePlayCount: (Int) -> Unit,
+    onDecreasePlayCount: (Int) -> Unit,
+    onRemove: (Int) -> Unit,
+    onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -826,18 +839,33 @@ private fun QueueSheet(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "播放队列 (${playlist.size} 首)",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "播放队列 (${queueItems.size} 首)",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (queueItems.isNotEmpty()) {
+                    TextButton(onClick = onClear) {
+                        Text("清空")
+                    }
+                }
+            }
             
-            if (playlist.isEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            if (queueItems.isEmpty()) {
                 Text(
                     text = "暂无播放队列",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray,
-                    modifier = Modifier.padding(vertical = 32.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    textAlign = TextAlign.Center
                 )
             } else {
                 LazyColumn(
@@ -845,34 +873,131 @@ private fun QueueSheet(
                         .fillMaxWidth()
                         .weight(1f, fill = false)
                 ) {
-                    itemsIndexed(playlist) { index, song ->
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = song.title,
-                                    fontWeight = if (index == currentIndex) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (index == currentIndex) MaterialTheme.colorScheme.primary else Color.Unspecified
+                    itemsIndexed(queueItems) { index, item ->
+                        val song = item.song
+                        val isCurrentSong = index == currentIndex
+                        
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 上移按钮
+                            IconButton(
+                                onClick = { onMoveUp(index) },
+                                enabled = index > 0
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowUp,
+                                    contentDescription = "上移",
+                                    tint = if (index > 0) Color.Gray else Color.Gray.copy(alpha = 0.3f)
                                 )
-                            },
-                            supportingContent = {
-                                Text(song.artist ?: "未知艺术家")
-                            },
-                            leadingContent = {
-                                if (index == currentIndex) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = "正在播放",
-                                        tint = MaterialTheme.colorScheme.primary
+                            }
+                            
+                            // 下移按钮
+                            IconButton(
+                                onClick = { onMoveDown(index) },
+                                enabled = index < queueItems.size - 1
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "下移",
+                                    tint = if (index < queueItems.size - 1) Color.Gray else Color.Gray.copy(alpha = 0.3f)
+                                )
+                            }
+                            
+                            // 歌曲信息
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (isCurrentSong) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "正在播放",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    Text(
+                                        text = song.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
                                 }
-                            },
-                            modifier = Modifier.clickable { onSongClick(index) }
-                        )
+                                Text(
+                                    text = song.artist ?: "未知艺术家",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            
+                            // 播放次数 - 减
+                            IconButton(
+                                onClick = { onDecreasePlayCount(index) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = "减少播放次数",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            
+                            // 播放次数
+                            Text(
+                                text = "×${item.playCount}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (item.playCount > 1) MaterialTheme.colorScheme.primary else Color.Gray,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                            
+                            // 播放次数 - 加
+                            IconButton(
+                                onClick = { onIncreasePlayCount(index) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "增加播放次数",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            
+                            // 删除按钮
+                            IconButton(
+                                onClick = { onRemove(index) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "删除",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        
+                        if (index < queueItems.size - 1) {
+                            HorizontalDivider(modifier = Modifier.padding(start = 48.dp))
+                        }
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

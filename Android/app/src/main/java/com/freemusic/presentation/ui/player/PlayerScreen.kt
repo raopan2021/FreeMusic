@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -900,6 +902,14 @@ private fun QueueList(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     
+    // Reorderable state
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            onMove(from.index, to.index)
+        }
+    )
+    
     // 初始滚动到当前歌曲（居中）
     LaunchedEffect(currentIndex) {
         if (queueItems.isNotEmpty() && currentIndex in queueItems.indices) {
@@ -932,70 +942,82 @@ private fun QueueList(
                 val song = item.song
                 val isCurrentSong = index == currentIndex
                 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp, horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 拖动把手 - 三个点（长按可拖动排序 - 待实现）
-                    Icon(
-                        imageVector = Icons.Default.DragHandle,
-                        contentDescription = "长按拖动排序",
-                        tint = Color.Gray,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                    
-                    // 歌曲信息
-                    Column(
+                ReorderableItem(
+                    state = reorderableState,
+                    key = item.song.id
+                ) { isDragging ->
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp)
+                            .fillMaxWidth()
+                            .then(
+                                if (isDragging) {
+                                    Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                                } else Modifier
+                            )
+                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isCurrentSong) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "正在播放",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
+                        // 拖动把手 - 三个点（长按可拖动排序）
+                        Icon(
+                            imageVector = Icons.Default.DragHandle,
+                            contentDescription = "长按拖动排序",
+                            tint = Color.Gray,
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp)
+                                .draggableHandle()
+                        )
+                        
+                        // 歌曲信息
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isCurrentSong) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "正在播放",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
+                                Text(
+                                    text = song.title,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
                             }
                             Text(
-                                text = song.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isCurrentSong) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                                text = song.artist ?: "未知艺术家",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Text(
-                            text = song.artist ?: "未知艺术家",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        
+                        // 删除按钮
+                        IconButton(
+                            onClick = { onRemove(index) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "删除",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                     
-                    // 删除按钮
-                    IconButton(
-                        onClick = { onRemove(index) },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "删除",
-                            tint = Color.Gray,
-                            modifier = Modifier.size(18.dp)
-                        )
+                    if (index < queueItems.size - 1) {
+                        HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                     }
-                }
-                
-                if (index < queueItems.size - 1) {
-                    HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
                 }
             }
         }

@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -211,6 +213,9 @@ fun PlayerScreen(
     // 播放队列Sheet
     if (showQueueSheet) {
         QueueSheet(
+            playlist = uiState.playlist,
+            currentIndex = uiState.currentIndex,
+            onSongClick = { index -> viewModel.playFromQueue(index) },
             onDismiss = { showQueueSheet = false }
         )
     }
@@ -807,6 +812,9 @@ private fun SleepTimerSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QueueSheet(
+    playlist: List<Song>,
+    currentIndex: Int,
+    onSongClick: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -819,17 +827,50 @@ private fun QueueSheet(
                 .padding(16.dp)
         ) {
             Text(
-                text = "播放队列",
+                text = "播放队列 (${playlist.size} 首)",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
-            Text(
-                text = "暂无播放队列",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
-                modifier = Modifier.padding(vertical = 32.dp)
-            )
+            if (playlist.isEmpty()) {
+                Text(
+                    text = "暂无播放队列",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(vertical = 32.dp)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                ) {
+                    itemsIndexed(playlist) { index, song ->
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    text = song.title,
+                                    fontWeight = if (index == currentIndex) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (index == currentIndex) MaterialTheme.colorScheme.primary else Color.Unspecified
+                                )
+                            },
+                            supportingContent = {
+                                Text(song.artist ?: "未知艺术家")
+                            },
+                            leadingContent = {
+                                if (index == currentIndex) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "正在播放",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier.clickable { onSongClick(index) }
+                        )
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(32.dp))
         }

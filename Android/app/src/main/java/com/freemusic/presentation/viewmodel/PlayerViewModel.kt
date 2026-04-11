@@ -644,6 +644,10 @@ class PlayerViewModel @Inject constructor(
         mediaController?.let { controller ->
             if (controller.hasNextMediaItem()) {
                 controller.seekToNext()
+                // 确保下一首自动播放
+                if (!controller.isPlaying) {
+                    controller.play()
+                }
             }
         }
     }
@@ -654,6 +658,10 @@ class PlayerViewModel @Inject constructor(
                 controller.seekTo(0)
             } else if (controller.hasPreviousMediaItem()) {
                 controller.seekToPrevious()
+                // 确保上一首自动播放
+                if (!controller.isPlaying) {
+                    controller.play()
+                }
             } else {
                 controller.seekTo(0)
             }
@@ -700,7 +708,16 @@ class PlayerViewModel @Inject constructor(
             val mediaId = controller.currentMediaItem?.mediaId
             val index = playlist.indexOfFirst { it.id == mediaId }
             if (index >= 0) {
-                _uiState.update { it.copy(currentIndex = index) }
+                val newSong = playlist[index]
+                _uiState.update { 
+                    it.copy(
+                        currentIndex = index,
+                        currentSong = newSong,
+                        lyrics = null  // 清除旧歌词，等新歌词加载
+                    )
+                }
+                // 加载新歌曲的歌词
+                loadLyrics(newSong)
             }
         }
     }

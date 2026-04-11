@@ -36,6 +36,15 @@ class PreferencesManager @Inject constructor(
         _isPureBlack.value = enabled
     }
 
+    // 自定义主题色（ARGB 颜色值，默认 -1 表示使用默认色）
+    private val _customPrimaryColor = MutableStateFlow(prefs.getLong(KEY_CUSTOM_PRIMARY_COLOR, -1L).toInt())
+    val customPrimaryColor: StateFlow<Int> = _customPrimaryColor.asStateFlow()
+
+    fun setCustomPrimaryColor(color: Int) {
+        prefs.edit().putLong(KEY_CUSTOM_PRIMARY_COLOR, color.toLong()).apply()
+        _customPrimaryColor.value = color
+    }
+
     // ============ 特效设置 ============
 
     private val _particlesEnabled = MutableStateFlow(prefs.getBoolean(KEY_PARTICLES_ENABLED, true))
@@ -64,6 +73,16 @@ class PreferencesManager @Inject constructor(
     fun setCoverStyle(style: CoverStyleType) {
         prefs.edit().putString(KEY_COVER_STYLE, style.name).apply()
         _coverStyle.value = style
+    }
+
+    // ============ 封面自动切换间隔 ============
+    // 默认 3 秒，0 表示不自动切换
+    private val _coverSwitchInterval = MutableStateFlow(prefs.getInt(KEY_COVER_SWITCH_INTERVAL, 3))
+    val coverSwitchInterval: StateFlow<Int> = _coverSwitchInterval.asStateFlow()
+
+    fun setCoverSwitchInterval(seconds: Int) {
+        prefs.edit().putInt(KEY_COVER_SWITCH_INTERVAL, seconds).apply()
+        _coverSwitchInterval.value = seconds
     }
 
     // ============ 音频可视化设置 ============
@@ -112,6 +131,51 @@ class PreferencesManager @Inject constructor(
         _autoPlay.value = enabled
     }
 
+    // 播放速度（0.5 - 2.0，默认 1.0）
+    private val _playbackSpeed = MutableStateFlow(prefs.getFloat(KEY_PLAYBACK_SPEED, 1.0f))
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
+    fun setPlaybackSpeed(speed: Float) {
+        prefs.edit().putFloat(KEY_PLAYBACK_SPEED, speed).apply()
+        _playbackSpeed.value = speed
+    }
+
+    // 睡眠定时器（分钟，0 表示关闭）
+    private val _sleepTimerMinutes = MutableStateFlow(prefs.getInt(KEY_SLEEP_TIMER, 0))
+    val sleepTimerMinutes: StateFlow<Int> = _sleepTimerMinutes.asStateFlow()
+
+    fun setSleepTimer(minutes: Int) {
+        prefs.edit().putInt(KEY_SLEEP_TIMER, minutes).apply()
+        _sleepTimerMinutes.value = minutes
+    }
+
+    // 跳过静音
+    private val _skipSilence = MutableStateFlow(prefs.getBoolean(KEY_SKIP_SILENCE, false))
+    val skipSilence: StateFlow<Boolean> = _skipSilence.asStateFlow()
+
+    fun setSkipSilence(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SKIP_SILENCE, enabled).apply()
+        _skipSilence.value = enabled
+    }
+    
+    // 摇一摇切歌
+    private val _shakeToSkip = MutableStateFlow(prefs.getBoolean(KEY_SHAKE_TO_SKIP, false))
+    val shakeToSkip: StateFlow<Boolean> = _shakeToSkip.asStateFlow()
+    
+    fun setShakeToSkip(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_SHAKE_TO_SKIP, enabled).apply()
+        _shakeToSkip.value = enabled
+    }
+    
+    // 自动清理历史记录
+    private val _autoCleanHistory = MutableStateFlow(prefs.getBoolean(KEY_AUTO_CLEAN_HISTORY, false))
+    val autoCleanHistory: StateFlow<Boolean> = _autoCleanHistory.asStateFlow()
+    
+    fun setAutoCleanHistory(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_CLEAN_HISTORY, enabled).apply()
+        _autoCleanHistory.value = enabled
+    }
+    
     private val _crossFadeEnabled = MutableStateFlow(prefs.getBoolean(KEY_CROSSFADE_ENABLED, false))
     val crossFadeEnabled: StateFlow<Boolean> = _crossFadeEnabled.asStateFlow()
 
@@ -188,6 +252,24 @@ class PreferencesManager @Inject constructor(
         _autoPlayNext.value = enabled
     }
 
+    // 本地音乐排序（0=名称，1=艺术家，2=时长，3=添加时间）
+    private val _localMusicSort = MutableStateFlow(prefs.getInt(KEY_LOCAL_MUSIC_SORT, 0))
+    val localMusicSort: StateFlow<Int> = _localMusicSort.asStateFlow()
+
+    fun setLocalMusicSort(sort: Int) {
+        prefs.edit().putInt(KEY_LOCAL_MUSIC_SORT, sort).apply()
+        _localMusicSort.value = sort
+    }
+    
+    // 最短歌曲时长（毫秒）
+    private val _minSongDuration = MutableStateFlow(prefs.getInt(KEY_MIN_SONG_DURATION, 60000))
+    val minSongDuration: StateFlow<Int> = _minSongDuration.asStateFlow()
+    
+    fun setMinSongDuration(durationMs: Int) {
+        prefs.edit().putInt(KEY_MIN_SONG_DURATION, durationMs).apply()
+        _minSongDuration.value = durationMs
+    }
+    
     // ============ 播放模式设置 ============
 
     private val _repeatMode = MutableStateFlow(
@@ -224,11 +306,13 @@ class PreferencesManager @Inject constructor(
         // Theme
         private const val KEY_DARK_THEME = "dark_theme"
         private const val KEY_PURE_BLACK = "pure_black"
+        private const val KEY_CUSTOM_PRIMARY_COLOR = "custom_primary_color"
 
         // Effects
         private const val KEY_PARTICLES_ENABLED = "particles_enabled"
         private const val KEY_PARTICLE_INTENSITY = "particle_intensity"
         private const val KEY_COVER_STYLE = "cover_style"
+        private const val KEY_COVER_SWITCH_INTERVAL = "cover_switch_interval"
         private const val KEY_VISUALIZER_ENABLED = "visualizer_enabled"
         private const val KEY_BLUR_EFFECT_ENABLED = "blur_effect_enabled"
         private const val KEY_BACKGROUND_ANIMATION_ENABLED = "background_animation_enabled"
@@ -240,9 +324,15 @@ class PreferencesManager @Inject constructor(
 
         // Playback
         private const val KEY_AUTO_PLAY = "auto_play"
+        private const val KEY_PLAYBACK_SPEED = "playback_speed"
         private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
+        private const val KEY_SLEEP_TIMER = "sleep_timer"
+        private const val KEY_SKIP_SILENCE = "skip_silence"
+        private const val KEY_SHAKE_TO_SKIP = "shake_to_skip"
+        private const val KEY_AUTO_CLEAN_HISTORY = "auto_clean_history"
         private const val KEY_AUTO_PLAY_NEXT = "auto_play_next"
+        private const val KEY_LOCAL_MUSIC_SORT = "local_music_sort"
         private const val KEY_REPEAT_MODE = "repeat_mode"
 
         // Lyrics
@@ -253,6 +343,7 @@ class PreferencesManager @Inject constructor(
         // Cache
         private const val KEY_CACHE_ENABLED = "cache_enabled"
         private const val KEY_CACHE_SIZE = "cache_size"
+        private const val KEY_MIN_SONG_DURATION = "min_song_duration"
     }
 }
 

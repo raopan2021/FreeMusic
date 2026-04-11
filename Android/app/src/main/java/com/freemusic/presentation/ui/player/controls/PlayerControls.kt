@@ -257,15 +257,6 @@ fun QuickActionsBar(
             )
         }
         
-        // 分享
-        IconButton(onClick = onShare) {
-            Icon(
-                imageVector = Icons.Default.Share,
-                contentDescription = "分享",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        
         // 队列
         IconButton(onClick = onQueue) {
             Icon(

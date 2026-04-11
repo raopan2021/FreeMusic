@@ -109,6 +109,13 @@ fun FullPlayerScreen(
                             tint = Color.White
                         )
                     }
+                    IconButton(onClick = { /* TODO: 分享功能 */ }) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "分享",
+                            tint = Color.White
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent

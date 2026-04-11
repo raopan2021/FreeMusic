@@ -76,6 +76,20 @@ class PlaylistViewModel @Inject constructor(
             )
         }
     }
+    
+    fun addSongsToPlaylist(playlistId: String, songs: List<Song>) {
+        _uiState.update { state ->
+            state.copy(
+                playlists = state.playlists.map { playlist ->
+                    if (playlist.id == playlistId) {
+                        playlist.copy(songs = playlist.songs + songs)
+                    } else {
+                        playlist
+                    }
+                }
+            )
+        }
+    }
 
     fun removeFromPlaylist(playlistId: String, songId: String) {
         _uiState.update { state ->

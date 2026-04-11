@@ -15,10 +15,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.*
 import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.data.preferences.EqualizerPreset
 import com.freemusic.presentation.ui.history.PlayHistoryScreen
+import com.freemusic.presentation.ui.folder.FolderBrowserScreen
+import com.freemusic.presentation.ui.artist.ArtistBrowserScreen
+import com.freemusic.presentation.ui.album.AlbumBrowserScreen
 import com.freemusic.presentation.ui.home.HomeScreen
 import com.freemusic.presentation.ui.import.ImportScreen
 import com.freemusic.presentation.ui.local.LocalMusicScreen
@@ -35,6 +40,9 @@ import com.freemusic.presentation.viewmodel.PlayHistoryViewModel
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 import com.freemusic.presentation.viewmodel.PlaylistViewModel
 import com.freemusic.presentation.viewmodel.SearchViewModel
+import com.freemusic.presentation.viewmodel.AlbumBrowserViewModel
+import com.freemusic.presentation.viewmodel.ArtistBrowserViewModel
+import com.freemusic.presentation.viewmodel.FolderBrowserViewModel
 import com.freemusic.presentation.viewmodel.SettingsViewModel
 
 sealed class Screen(val route: String) {
@@ -50,6 +58,9 @@ sealed class Screen(val route: String) {
         fun createRoute(playlistId: String) = "playlist_detail/$playlistId"
     }
     data object PlayHistory : Screen("play_history")
+    data object FolderBrowser : Screen("folder_browser")
+    data object ArtistBrowser : Screen("artist_browser")
+    data object AlbumBrowser : Screen("album_browser")
 }
 
 @Composable
@@ -75,6 +86,8 @@ fun FreeMusicNavHost(
     crossFadeDuration: Int = 3000,
     // 歌词设置
     lyricsFontSize: Int = 16,
+    // 播放交互
+    shakeToSkip: Boolean = false,
     // 外部音频文件
     pendingAudioUri: Uri? = null,
     onPendingAudioUriConsumed: () -> Unit = {}
@@ -97,8 +110,9 @@ fun FreeMusicNavHost(
     val currentSong = playerState.currentSong
     val isPlaying = playerState.isPlaying
     
-    // 获取当前路由
-    val currentRoute = navController.currentBackStackEntry?.destination?.route
+    // 获取当前路由（使用 currentBackStackEntryAsState 使其可观察）
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     
     // 判断是否显示迷你播放器（不在Player页面且有当前歌曲）
     val showMiniPlayer = currentSong != null && currentRoute != Screen.Player.route
@@ -118,12 +132,17 @@ fun FreeMusicNavHost(
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 onLocalMusicClick = { navController.navigate(Screen.LocalMusic.route) },
-                onPlaylistClick = { navController.navigate(Screen.Playlist.route) }
+                onPlaylistClick = { navController.navigate(Screen.Playlist.route) },
+                onFolderBrowserClick = { navController.navigate(Screen.FolderBrowser.route) },
+                onArtistBrowserClick = { navController.navigate(Screen.ArtistBrowser.route) },
+                onAlbumBrowserClick = { navController.navigate(Screen.AlbumBrowser.route) },
+                onHistoryClick = { navController.navigate(Screen.PlayHistory.route) }
             )
         }
         
         composable(Screen.Search.route) {
             val searchState by searchViewModel.uiState.collectAsState()
+            val playlistState by playlistViewModel.uiState.collectAsState()
             
             SearchScreen(
                 query = searchState.query,
@@ -134,7 +153,7 @@ fun FreeMusicNavHost(
                 searchHistory = searchState.history,
                 isLoading = searchState.isLoading,
                 onSongClick = { song ->
-                    playerViewModel.playSong(song)
+                    playerViewModel.playSong(song, searchState.results)
                     navController.navigate(Screen.Player.route)
                 },
                 onPlaylistClick = { navController.navigate(Screen.Playlist.route) },
@@ -147,11 +166,21 @@ fun FreeMusicNavHost(
                     searchViewModel.search()
                 },
                 onClearHistory = { searchViewModel.clearHistory() },
+                onAddToPlaylist = { song, playlist ->
+                    playlistViewModel.addToPlaylist(playlist.id, song)
+                },
+                playlists = playlistState.playlists,
                 onBackClick = { navController.popBackStack() }
             )
         }
         
-        composable(Screen.Player.route) {
+        composable(
+            Screen.Player.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) {
             PlayerScreen(
                 onBackClick = { navController.popBackStack() },
                 onQueueClick = { navController.navigate(Screen.Queue.route) },
@@ -160,7 +189,8 @@ fun FreeMusicNavHost(
                 particlesEnabled = particlesEnabled,
                 particleIntensity = particleIntensity,
                 coverStyleType = coverStyle,
-                visualizerEnabled = visualizerEnabled
+                visualizerEnabled = visualizerEnabled,
+                shakeToSkipEnabled = shakeToSkip
             )
         }
         
@@ -174,7 +204,13 @@ fun FreeMusicNavHost(
             )
         }
         
-        composable(Screen.Settings.route) {
+        composable(
+            Screen.Settings.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) {
             val settingsState by settingsViewModel.uiState.collectAsState()
             
             SettingsScreen(
@@ -182,6 +218,8 @@ fun FreeMusicNavHost(
                 onThemeChange = settingsViewModel::setTheme,
                 pureBlackEnabled = settingsState.pureBlackEnabled,
                 onPureBlackToggle = settingsViewModel::setPureBlack,
+                customPrimaryColor = settingsState.customPrimaryColor,
+                onCustomPrimaryColorChange = settingsViewModel::setCustomPrimaryColor,
                 particleEffect = settingsState.particleEffectName,
                 onParticleEffectChange = settingsViewModel::setParticleEffect,
                 coverStyle = settingsState.coverStyleName,
@@ -193,6 +231,8 @@ fun FreeMusicNavHost(
                         // Ignore invalid style names
                     }
                 },
+                coverSwitchInterval = settingsState.coverSwitchInterval,
+                onCoverSwitchIntervalChange = settingsViewModel::setCoverSwitchInterval,
                 visualizerStyle = settingsState.visualizerStyleName,
                 onVisualizerStyleChange = settingsViewModel::setVisualizerStyle,
                 equalizerPreset = settingsState.equalizerPresetName,
@@ -204,6 +244,12 @@ fun FreeMusicNavHost(
                 },
                 autoPlayEnabled = settingsState.autoPlayEnabled,
                 onAutoPlayToggle = settingsViewModel::setAutoPlay,
+                playbackSpeed = settingsState.playbackSpeed,
+                onPlaybackSpeedChange = settingsViewModel::setPlaybackSpeed,
+                sleepTimerMinutes = settingsState.sleepTimerMinutes,
+                onSleepTimerChange = settingsViewModel::setSleepTimer,
+                skipSilenceEnabled = settingsState.skipSilenceEnabled,
+                onSkipSilenceToggle = settingsViewModel::setSkipSilence,
                 highQualityEnabled = settingsState.highQualityEnabled,
                 onHighQualityToggle = settingsViewModel::setHighQuality,
                 cacheSize = settingsState.cacheSize,
@@ -233,12 +279,18 @@ fun FreeMusicNavHost(
         
         composable(Screen.LocalMusic.route) {
             val localMusicViewModel: LocalMusicViewModel = hiltViewModel()
+            val localMusicState by localMusicViewModel.uiState.collectAsState()
+            val playlistState by playlistViewModel.uiState.collectAsState()
             
             LocalMusicScreen(
                 onBackClick = { navController.popBackStack() },
                 onSongClick = { song ->
-                    playerViewModel.playSong(song)
+                    playerViewModel.playSong(song, localMusicState.songs)
                     navController.navigate(Screen.Player.route)
+                },
+                playlists = playlistState.playlists,
+                onAddSongsToPlaylist = { songs, playlist ->
+                    playlistViewModel.addSongsToPlaylist(playlist.id, songs)
                 },
                 viewModel = localMusicViewModel
             )
@@ -272,7 +324,7 @@ fun FreeMusicNavHost(
                     playlist = playlist,
                     onBackClick = { navController.popBackStack() },
                     onSongClick = { song ->
-                        playerViewModel.playSong(song)
+                        playerViewModel.playSong(song, playlist.songs)
                         navController.navigate(Screen.Player.route)
                     },
                     onAddSongs = {
@@ -289,25 +341,70 @@ fun FreeMusicNavHost(
         composable(Screen.PlayHistory.route) {
             val playHistoryViewModel: PlayHistoryViewModel = hiltViewModel()
             val playHistoryState by playHistoryViewModel.uiState.collectAsState()
+            val playlistState by playlistViewModel.uiState.collectAsState()
             
             PlayHistoryScreen(
                 recentPlays = playHistoryState.recentPlays,
                 mostPlayed = playHistoryState.mostPlayed,
                 onBackClick = { navController.popBackStack() },
                 onSongClick = { song ->
-                    playerViewModel.playSong(song)
+                    playerViewModel.playSong(song, playHistoryState.recentPlays)
                     navController.navigate(Screen.Player.route)
                 },
-                onAddToPlaylist = { song ->
-                    // 添加到"我喜欢的音乐"歌单
-                    playlistViewModel.addToPlaylist("favorites", song)
+                onAddToPlaylist = { song, playlist ->
+                    playlistViewModel.addToPlaylist(playlist.id, song)
                 },
+                playlists = playlistState.playlists,
                 onClearHistory = { playHistoryViewModel.clearHistory() }
+            )
+        }
+        
+        composable(Screen.FolderBrowser.route) {
+            val folderBrowserViewModel: FolderBrowserViewModel = hiltViewModel()
+            val folderBrowserState by folderBrowserViewModel.uiState.collectAsState()
+            
+            FolderBrowserScreen(
+                onBackClick = { navController.popBackStack() },
+                onSongClick = { song, songs ->
+                    playerViewModel.playSong(song, songs)
+                    navController.navigate(Screen.Player.route)
+                },
+                viewModel = folderBrowserViewModel
+            )
+        }
+        
+        composable(Screen.ArtistBrowser.route) {
+            val artistBrowserViewModel: ArtistBrowserViewModel = hiltViewModel()
+            val artistBrowserState by artistBrowserViewModel.uiState.collectAsState()
+            
+            ArtistBrowserScreen(
+                onBackClick = { navController.popBackStack() },
+                onArtistClick = { artist -> artistBrowserViewModel.selectArtist(artist) },
+                onSongClick = { song, songs ->
+                    playerViewModel.playSong(song, songs)
+                    navController.navigate(Screen.Player.route)
+                },
+                viewModel = artistBrowserViewModel
+            )
+        }
+        
+        composable(Screen.AlbumBrowser.route) {
+            val albumBrowserViewModel: AlbumBrowserViewModel = hiltViewModel()
+            val albumBrowserState by albumBrowserViewModel.uiState.collectAsState()
+            
+            AlbumBrowserScreen(
+                onBackClick = { navController.popBackStack() },
+                onAlbumClick = { album -> albumBrowserViewModel.selectAlbum(album) },
+                onSongClick = { song, songs ->
+                    playerViewModel.playSong(song, songs)
+                    navController.navigate(Screen.Player.route)
+                },
+                viewModel = albumBrowserViewModel
             )
         }
     }
     
-    // 底部迷你播放器 - 添加 navigationBarsPadding 确保不被底部导航遮挡
+    // 底部迷你播放器 - 占满底部，不留导航栏padding
     if (showMiniPlayer && currentSong != null) {
         MiniPlayer(
             currentSong = currentSong,
@@ -316,9 +413,7 @@ fun FreeMusicNavHost(
             onNextClick = { playerViewModel.skipToNext() },
             onPreviousClick = { playerViewModel.skipToPrevious() },
             onPlayerClick = { navController.navigate(Screen.Player.route) },
-            modifier = Modifier
-                .align(androidx.compose.ui.Alignment.BottomCenter)
-                .navigationBarsPadding()
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
         )
     }
 }

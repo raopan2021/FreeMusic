@@ -34,13 +34,13 @@ class LocalMusicViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LocalMusicUiState())
     val uiState: StateFlow<LocalMusicUiState> = _uiState.asStateFlow()
 
-    fun scanLocalMusic() {
+    fun scanLocalMusic(sortOrder: Int = 0) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, scannedCount = 0, error = null) }
             
             try {
                 val songs = withContext(Dispatchers.IO) {
-                    scanMediaStore()
+                    scanMediaStore(sortOrder)
                 }
                 
                 val totalMs = songs.sumOf { it.duration }
@@ -58,14 +58,14 @@ class LocalMusicViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "扫描失败"
+                        error = e.message ?: "Scan failed"
                     )
                 }
             }
         }
     }
 
-    private fun scanMediaStore(): List<Song> {
+    private fun scanMediaStore(sortOrder: Int): List<Song> {
         val songs = mutableListOf<Song>()
         val context = getApplication<Application>()
         
@@ -81,13 +81,23 @@ class LocalMusicViewModel @Inject constructor(
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ALBUM_ID,
-            MediaStore.Audio.Media.DURATION
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DISPLAY_NAME,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.DATE_ADDED
         )
         
-        // 只获取音乐文件，排除铃声、闹钟等
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} = ?"
         val selectionArgs = arrayOf("1")
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
+        
+        // 排序选项: 0=名称, 1=艺术家, 2=时长, 3=添加时间
+        val mediaStoreSortOrder = when (sortOrder) {
+            0 -> "${MediaStore.Audio.Media.TITLE} ASC"
+            1 -> "${MediaStore.Audio.Media.ARTIST} ASC, ${MediaStore.Audio.Media.TITLE} ASC"
+            2 -> "${MediaStore.Audio.Media.DURATION} DESC"
+            3 -> "${MediaStore.Audio.Media.DATE_ADDED} DESC"
+            else -> "${MediaStore.Audio.Media.TITLE} ASC"
+        }
         
         var cursor: android.database.Cursor? = null
         
@@ -97,7 +107,7 @@ class LocalMusicViewModel @Inject constructor(
                 projection,
                 selection,
                 selectionArgs,
-                sortOrder
+                mediaStoreSortOrder
             )
             
             if (cursor == null || cursor.count == 0) {
@@ -110,20 +120,39 @@ class LocalMusicViewModel @Inject constructor(
             val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
             val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+            val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+            val filePathColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
             
             while (cursor.moveToNext()) {
                 try {
                     val id = cursor.getLong(idColumn)
-                    val title = cursor.getString(titleColumn) ?: "未知标题"
-                    val artist = cursor.getString(artistColumn) ?: "未知艺术家"
-                    val album = cursor.getString(albumColumn) ?: "未知专辑"
+                    val title = cursor.getString(titleColumn) ?: "Unknown"
+                    val artist = cursor.getString(artistColumn) ?: "Unknown"
+                    val album = cursor.getString(albumColumn) ?: "Unknown"
                     val albumId = cursor.getLong(albumIdColumn)
                     val duration = cursor.getLong(durationColumn)
                     
-                    // 跳过时长小于30秒的音频（可能是通知音等）
-                    if (duration < 30000) continue
+                    if (duration < 60000) continue
                     
-                    // 获取专辑封面
+                    val displayName = cursor.getString(displayNameColumn) ?: ""
+                    val filePath = cursor.getString(filePathColumn) ?: ""
+                    val lowerTitle = title.lowercase()
+                    val lowerArtist = artist.lowercase()
+                    val lowerAlbum = album.lowercase()
+                    
+                    val recordingKeywords = listOf(
+                        "recording", "voice record", "voice memo", "screen record",
+                        "recorder", "voice recorder", "screenrecorder"
+                    )
+                    
+                    val isRecording = recordingKeywords.any { kw ->
+                        lowerTitle.contains(kw) || lowerArtist.contains(kw) ||
+                        lowerAlbum.contains(kw) || displayName.lowercase().contains(kw) ||
+                        filePath.lowercase().contains(kw)
+                    }
+                    
+                    if (isRecording) continue
+                    
                     val albumArtUri = ContentUris.withAppendedId(
                         Uri.parse("content://media/external/audio/albumart"),
                         albumId
@@ -142,12 +171,11 @@ class LocalMusicViewModel @Inject constructor(
                         )
                     )
                 } catch (e: Exception) {
-                    // 跳过这一条，继续处理下一条
                     continue
                 }
             }
         } catch (e: Exception) {
-            // 查询失败，返回已扫描的部分
+            // ignore
         } finally {
             cursor?.close()
         }

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 /**
@@ -26,16 +27,33 @@ fun SettingsScreen(
     onThemeChange: (String) -> Unit,
     pureBlackEnabled: Boolean,
     onPureBlackToggle: (Boolean) -> Unit,
+    customPrimaryColor: Int,
+    onCustomPrimaryColorChange: (Int) -> Unit,
     particleEffect: String,
     onParticleEffectChange: (String) -> Unit,
     coverStyle: String,
     onCoverStyleChange: (String) -> Unit,
+    coverSwitchInterval: Int,
+    onCoverSwitchIntervalChange: (Int) -> Unit,
     visualizerStyle: String,
     onVisualizerStyleChange: (String) -> Unit,
     equalizerPreset: String,
     onEqualizerPresetChange: (String) -> Unit,
     autoPlayEnabled: Boolean,
     onAutoPlayToggle: (Boolean) -> Unit,
+    playbackSpeed: Float,
+    onPlaybackSpeedChange: (Float) -> Unit,
+    sleepTimerMinutes: Int,
+    sleepTimerRemainingSeconds: Int = 0,
+    onSleepTimerChange: (Int) -> Unit,
+    lyricsFontSize: Int = 16,
+    onLyricsFontSizeChange: (Int) -> Unit = {},
+    skipSilenceEnabled: Boolean,
+    onSkipSilenceToggle: (Boolean) -> Unit,
+    shakeToSkipEnabled: Boolean = false,
+    onShakeToSkipToggle: ((Boolean) -> Unit)? = null,
+    autoCleanHistoryEnabled: Boolean = false,
+    onAutoCleanHistoryToggle: ((Boolean) -> Unit)? = null,
     highQualityEnabled: Boolean,
     onHighQualityToggle: (Boolean) -> Unit,
     cacheSize: String = "0 MB",
@@ -52,10 +70,18 @@ fun SettingsScreen(
     var showVisualizerDialog by remember { mutableStateOf(false) }
     var showEqualizerDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
-
+    var showCoverSwitchDialog by remember { mutableStateOf(false) }
+    var showColorPickerDialog by remember { mutableStateOf(false) }
+    var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var showLyricsFontSizeDialog by remember { mutableStateOf(false) }
+    
     val particleEffects = listOf("无", "星星", "泡泡", "烟花")
     val visualizerStyles = listOf("无", "条形", "圆形", "波形")
     val equalizerPresets = listOf("平坦", "低音增强", "高音增强", "人声", "古典", "摇滚")
+    val coverSwitchOptions = listOf(0, 1, 3, 5, 10, 15, 30)
+    val playbackSpeedOptions = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
+    val sleepTimerOptions = listOf(0, 15, 30, 45, 60, 90, 120)
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -87,12 +113,41 @@ fun SettingsScreen(
                         }
                     )
                     
+                    // 主题颜色
+                    SettingsItem(
+                        icon = Icons.Default.Palette,
+                        title = "主题颜色",
+                        subtitle = if (customPrimaryColor == -1) "默认紫色" else "自定义",
+                        onClick = { showColorPickerDialog = true },
+                        trailing = {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(
+                                        color = if (customPrimaryColor == -1) 
+                                            Color(0xFF6750A4) 
+                                        else 
+                                            Color(customPrimaryColor),
+                                        shape = RoundedCornerShape(4.dp)
+                                    )
+                            )
+                        }
+                    )
+                    
                     // 封面样式
                     SettingsItem(
                         icon = Icons.Default.Image,
                         title = "封面样式",
                         subtitle = coverStyleToDisplayName(coverStyle),
                         onClick = { showCoverStyleDialog = true }
+                    )
+                    
+                    // 封面自动切换
+                    SettingsItem(
+                        icon = Icons.Default.Timer,
+                        title = "封面自动切换",
+                        subtitle = if (coverSwitchInterval == 0) "关闭" else "${coverSwitchInterval}秒",
+                        onClick = { showCoverSwitchDialog = true }
                     )
                 }
             }
@@ -134,12 +189,69 @@ fun SettingsScreen(
                         onCheckedChange = onAutoPlayToggle
                     )
                     
+                    SettingsItem(
+                        icon = Icons.Default.Speed,
+                        title = "播放速度",
+                        subtitle = "${playbackSpeed}x",
+                        onClick = { showPlaybackSpeedDialog = true }
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.Bedtime,
+                        title = "睡眠定时器",
+                        subtitle = if (sleepTimerMinutes > 0) {
+                            if (sleepTimerRemainingSeconds > 0) {
+                                val mins = sleepTimerRemainingSeconds / 60
+                                val secs = sleepTimerRemainingSeconds % 60
+                                "${mins}分${secs}秒后停止"
+                            } else {
+                                "${sleepTimerMinutes}分钟后停止"
+                            }
+                        } else "关闭",
+                        onClick = { showSleepTimerDialog = true }
+                    )
+                    
+                    SettingsSwitchItem(
+                        icon = Icons.Default.SkipNext,
+                        title = "跳过静音",
+                        subtitle = "自动跳过音频中的静音片段",
+                        checked = skipSilenceEnabled,
+                        onCheckedChange = onSkipSilenceToggle
+                    )
+                    
+                    if (onShakeToSkipToggle != null) {
+                        SettingsSwitchItem(
+                            icon = Icons.Default.Vibration,
+                            title = "摇一摇切歌",
+                            subtitle = "摇晃手机切换到下一首",
+                            checked = shakeToSkipEnabled,
+                            onCheckedChange = { onShakeToSkipToggle.invoke(it) }
+                        )
+                    }
+                    
+                    if (onAutoCleanHistoryToggle != null) {
+                        SettingsSwitchItem(
+                            icon = Icons.Default.AutoDelete,
+                            title = "自动清理历史",
+                            subtitle = "播放记录超过100条时自动清理",
+                            checked = autoCleanHistoryEnabled,
+                            onCheckedChange = { onAutoCleanHistoryToggle.invoke(it) }
+                        )
+                    }
+                    
                     SettingsSwitchItem(
                         icon = Icons.Default.HighQuality,
                         title = "高质量音频",
                         subtitle = "优先播放SQ/HQ音质",
                         checked = highQualityEnabled,
                         onCheckedChange = onHighQualityToggle
+                    )
+                    
+                    SettingsItem(
+                        icon = Icons.Default.TextFields,
+                        title = "歌词字体大小",
+                        subtitle = "${lyricsFontSize}sp",
+                        onClick = { showLyricsFontSizeDialog = true }
                     )
                 }
             }
@@ -229,6 +341,213 @@ fun SettingsScreen(
                 confirmButton = {
                     TextButton(onClick = { showCoverStyleDialog = false }) {
                         Text("取消")
+                    }
+                }
+            )
+        }
+
+        // 封面自动切换对话框
+        if (showCoverSwitchDialog) {
+            AlertDialog(
+                onDismissRequest = { showCoverSwitchDialog = false },
+                title = { Text("选择切换间隔") },
+                text = {
+                    Column {
+                        coverSwitchOptions.forEach { seconds ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onCoverSwitchIntervalChange(seconds)
+                                        showCoverSwitchDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = seconds == coverSwitchInterval,
+                                    onClick = {
+                                        onCoverSwitchIntervalChange(seconds)
+                                        showCoverSwitchDialog = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = if (seconds == 0) "关闭" else "${seconds}秒")
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showCoverSwitchDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+
+        // 主题颜色选择对话框
+        if (showColorPickerDialog) {
+            ColorPickerDialog(
+                currentColor = customPrimaryColor,
+                onColorSelected = { color ->
+                    onCustomPrimaryColorChange(color)
+                    showColorPickerDialog = false
+                },
+                onDismiss = { showColorPickerDialog = false }
+            )
+        }
+
+        // 播放速度对话框 - 使用滑块控制，精确到两位小数
+        if (showPlaybackSpeedDialog) {
+            var tempSpeed by remember { mutableStateOf(playbackSpeed) }
+            AlertDialog(
+                onDismissRequest = { showPlaybackSpeedDialog = false },
+                title = { Text("播放速度") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = String.format("%.2fx", tempSpeed),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Slider(
+                            value = tempSpeed,
+                            onValueChange = { tempSpeed = it },
+                            valueRange = 0.5f..2.0f,
+                            steps = 29, // 0.05  granularity (1.5 / 0.05 = 30 steps)
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("0.5x", style = MaterialTheme.typography.bodySmall)
+                            Text("1.0x", style = MaterialTheme.typography.bodySmall)
+                            Text("2.0x", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onPlaybackSpeedChange(tempSpeed)
+                        showPlaybackSpeedDialog = false
+                    }) {
+                        Text("确定")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPlaybackSpeedDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+
+        // 睡眠定时器对话框 - 使用滑块控制
+        if (showSleepTimerDialog) {
+            var tempMinutes by remember { mutableStateOf(sleepTimerMinutes.toFloat()) }
+            AlertDialog(
+                onDismissRequest = { showSleepTimerDialog = false },
+                title = { Text("睡眠定时器") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = if (tempMinutes <= 0) "关闭" else "${tempMinutes.toInt()} 分钟",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Slider(
+                            value = tempMinutes,
+                            onValueChange = { tempMinutes = it },
+                            valueRange = 0f..120f,
+                            steps = 23, // 5-minute granularity
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("关闭", style = MaterialTheme.typography.bodySmall)
+                            Text("30分钟", style = MaterialTheme.typography.bodySmall)
+                            Text("120分钟", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onSleepTimerChange(tempMinutes.toInt())
+                        showSleepTimerDialog = false
+                    }) {
+                        Text("确定")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showSleepTimerDialog = false }) {
+                        Text("取消")
+                    }
+                }
+            )
+        }
+        
+        // 歌词字体大小对话框
+        if (showLyricsFontSizeDialog) {
+            AlertDialog(
+                onDismissRequest = { showLyricsFontSizeDialog = false },
+                title = { Text("歌词字体大小") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "${lyricsFontSize}sp",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Slider(
+                            value = lyricsFontSize.toFloat(),
+                            onValueChange = { onLyricsFontSizeChange(it.toInt()) },
+                            valueRange = 12f..32f,
+                            steps = 9
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("小", style = MaterialTheme.typography.bodySmall)
+                            Text("中", style = MaterialTheme.typography.bodySmall)
+                            Text("大", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // 预览
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Text(
+                                text = "歌词预览示例",
+                                modifier = Modifier.padding(lyricsFontSize.dp),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = lyricsFontSize.sp
+                                )
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLyricsFontSizeDialog = false }) {
+                        Text("完成")
                     }
                 }
             )
@@ -547,6 +866,123 @@ private fun SettingsSwitchItem(
             )
         }
     }
+}
+
+/**
+ * 颜色选择器对话框
+ */
+@Composable
+private fun ColorPickerDialog(
+    currentColor: Int,
+    onColorSelected: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // 预设颜色列表
+    val presetColors = listOf(
+        Color(0xFF6750A4), // 紫色（默认）
+        Color(0xFF2196F3), // 蓝色
+        Color(0xFF4CAF50), // 绿色
+        Color(0xFFFF9800), // 橙色
+        Color(0xFFFF5722), // 深橙
+        Color(0xFFF44336), // 红色
+        Color(0xFFE91E63), // 粉色
+        Color(0xFF9C27B0), // 深紫
+        Color(0xFF3F51B5), // 靼蓝
+        Color(0xFF009688), // 青色
+        Color(0xFF8BC34A), // 浅绿
+        Color(0xFFFFEB3B), // 黄色
+        Color(0xFF795548), // 棕色
+        Color(0xFF607D8B), // 蓝灰
+        Color(0xFF000000), // 黑色
+        Color(0xFFFFFFFF), // 白色
+    )
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择主题颜色") },
+        text = {
+            Column {
+                // 默认颜色选项
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onColorSelected(-1) }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                color = Color(0xFF6750A4),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("默认颜色")
+                    if (currentColor == -1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "已选择",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                Text(
+                    text = "预设颜色",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                // 颜色网格
+                Column {
+                    presetColors.chunked(4).forEach { rowColors ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            rowColors.forEach { color ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .padding(4.dp)
+                                        .background(
+                                            color = color,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                        .clickable { onColorSelected(color.hashCode()) }
+                                ) {
+                                    if (currentColor == color.hashCode()) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "已选择",
+                                            tint = if (color == Color.White || color == Color(0xFFFFFF00)) 
+                                                Color.Black else Color.White,
+                                            modifier = Modifier.align(Alignment.Center)
+                                        )
+                                    }
+                                }
+                            }
+                            // 如果这行不满4个，填充空白
+                            repeat(4 - rowColors.size) {
+                                Spacer(modifier = Modifier.size(56.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }
 
 /**

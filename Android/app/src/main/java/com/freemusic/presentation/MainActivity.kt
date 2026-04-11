@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
             // 收集设置状态
             val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
             val isPureBlack by settingsViewModel.isPureBlack.collectAsState()
+            val customPrimaryColor by settingsViewModel.customPrimaryColor.collectAsState()
             val particlesEnabled by settingsViewModel.particlesEnabled.collectAsState()
             val particleIntensity by settingsViewModel.particleIntensity.collectAsState()
             val coverStyle by settingsViewModel.coverStyle.collectAsState()
@@ -50,7 +51,8 @@ class MainActivity : ComponentActivity() {
 
             FreeMusicTheme(
                 darkTheme = isDarkTheme,
-                pureBlack = isPureBlack
+                pureBlack = isPureBlack,
+                customPrimaryColor = if (customPrimaryColor == -1) null else customPrimaryColor
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

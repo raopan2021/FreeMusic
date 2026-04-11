@@ -79,4 +79,10 @@ interface PlayHistoryDao {
 
     @Query("DELETE FROM play_history")
     suspend fun clearHistory()
+    
+    @Query("SELECT COUNT(*) FROM play_history")
+    suspend fun getHistoryCount(): Int
+    
+    @Query("DELETE FROM play_history WHERE id NOT IN (SELECT id FROM play_history ORDER BY playedAt DESC LIMIT :keepCount)")
+    suspend fun trimHistory(keepCount: Int)
 }

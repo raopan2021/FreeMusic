@@ -94,6 +94,19 @@ class QueueViewModel @Inject constructor() : ViewModel() {
             state.copy(currentQueue = newQueue, currentIndex = newIndex)
         }
     }
+    
+    fun moveToNext(index: Int) {
+        _uiState.update { state ->
+            if (index == state.currentIndex || index == state.currentIndex + 1) return@update state
+            
+            val newQueue = state.currentQueue.toMutableList()
+            val song = newQueue.removeAt(index)
+            val insertIndex = state.currentIndex + 1
+            newQueue.add(insertIndex, song)
+            
+            state.copy(currentQueue = newQueue)
+        }
+    }
 
     fun toggleShuffle() {
         _uiState.update { state ->

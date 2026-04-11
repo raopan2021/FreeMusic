@@ -1,15 +1,15 @@
 package com.freemusic.presentation.ui.player
 
+import android.content.Intent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,18 +19,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 import com.freemusic.data.preferences.CoverStyleType
 import com.freemusic.domain.model.Song
 import com.freemusic.presentation.ui.player.cover.AnimatedAlbumCover
 import com.freemusic.presentation.ui.player.cover.CoverStyle
 import com.freemusic.presentation.viewmodel.PlayerViewModel
+import com.freemusic.util.ShakeDetector
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PlayerScreen(
     onBackClick: () -> Unit,
@@ -40,9 +54,30 @@ fun PlayerScreen(
     particlesEnabled: Boolean = true,
     particleIntensity: Float = 1f,
     coverStyleType: CoverStyleType = CoverStyleType.ROUND,
-    visualizerEnabled: Boolean = false
+    visualizerEnabled: Boolean = false,
+    shakeToSkipEnabled: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    
+    // 摇一摇检测器
+    val shakeDetector = remember { 
+        ShakeDetector(context) { viewModel.skipToNext() } 
+    }
+    
+    LaunchedEffect(shakeToSkipEnabled) {
+        if (shakeToSkipEnabled) {
+            shakeDetector.start()
+        } else {
+            shakeDetector.stop()
+        }
+    }
+    
+    DisposableEffect(Unit) {
+        onDispose {
+            shakeDetector.stop()
+        }
+    }
 
     // 启动进度更新
     LaunchedEffect(Unit) {
@@ -66,6 +101,36 @@ fun PlayerScreen(
         CoverStyleType.HEXAGON -> CoverStyle.HEXAGON
         CoverStyleType.PARALLELOGRAM -> CoverStyle.PARALLELOGRAM
     }
+    
+    // 分享处理器
+    val handleShare: () -> Unit = {
+        uiState.currentSong?.let { song ->
+            val title = song.title
+            val artist = song.artist
+            val shareText = "🎵 $title - $artist\n\n来自 FreeMusic"
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "分享歌曲")
+            context.startActivity(shareIntent)
+        }
+    }
+    
+    // 页面状态 - 用于 HorizontalPager（0=歌曲介绍, 1=完整歌词）
+    val pagerState = rememberPagerState(pageCount = { 2 }, initialPage = 0)
+    
+    // 用于 Pager 动画的 CoroutineScope
+    val pagerScope = rememberCoroutineScope()
+    
+    // 是否可以滑动到歌词页面（需要歌词加载完成）
+    val canScrollToLyrics = remember {
+        derivedStateOf {
+            // 只有当歌词已加载且不为空时才允许滑到歌词页面
+            pagerState.currentPage == 0 || (uiState.lyrics?.lrc != null && uiState.lyrics?.lrc!!.isNotBlank())
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -79,7 +144,7 @@ fun PlayerScreen(
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(80.dp),
+                    .blur(30.dp),
                 contentScale = ContentScale.Crop
             )
 
@@ -130,36 +195,40 @@ fun PlayerScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 专辑封面（带动画）
-            Box(
+            // 可滑动的2个页面：0=歌曲介绍(含3行歌词), 1=完整歌词
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .padding(horizontal = 32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                AnimatedAlbumCover(
-                    coverUrl = uiState.currentSong?.coverUrl,
-                    isPlaying = uiState.isPlaying,
-                    coverStyle = coverStyle,
-                    showVisualizer = visualizerEnabled,
-                    modifier = Modifier.fillMaxSize()
-                )
+            ) { page ->
+                when (page) {
+                    // 左侧页面：歌曲介绍 + 3行歌词
+                    0 -> SongIntroductionPage(
+                        song = uiState.currentSong,
+                        isFavorite = uiState.isFavorite,
+                        onFavoriteClick = viewModel::toggleFavorite,
+                        coverUrl = uiState.currentSong?.coverUrl,
+                        isPlaying = uiState.isPlaying,
+                        coverStyle = coverStyle,
+                        lyrics = uiState.lyrics?.lrc,
+                        currentPosition = uiState.currentPosition
+                    )
+                    // 右侧页面：完整歌词
+                    1 -> FullLyricsPage(
+                        lyrics = uiState.lyrics?.lrc,
+                        currentPosition = uiState.currentPosition,
+                        canAccess = canScrollToLyrics.value,
+                        onBackToSong = { 
+                            pagerScope.launch { 
+                                pagerState.animateScrollToPage(0) 
+                            }
+                        }
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // 歌曲信息
-            SongInfo(
-                song = uiState.currentSong,
-                isFavorite = uiState.isFavorite,
-                onFavoriteClick = viewModel::toggleFavorite,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 进度条
             ProgressBar(
@@ -170,20 +239,14 @@ fun PlayerScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 控制按钮
+            // 控制按钮（添加底部导航栏padding防止被遮挡）
             PlayerControls(
                 isPlaying = uiState.isPlaying,
                 onPlayPause = viewModel::togglePlayPause,
                 onSkipToNext = viewModel::skipToNext,
-                onSkipToPrevious = viewModel::skipToPrevious
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // 歌词显示区域
-            LyricsSection(
-                lyrics = uiState.lyrics?.lrc,
-                currentPosition = uiState.currentPosition
+                onSkipToPrevious = viewModel::skipToPrevious,
+                onShareClick = handleShare,
+                modifier = Modifier.navigationBarsPadding()
             )
         }
 
@@ -194,6 +257,228 @@ fun PlayerScreen(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = Color.White)
+            }
+        }
+    }
+}
+
+/**
+ * 左侧页面：歌曲介绍 + 3行歌词
+ */
+@Composable
+private fun SongIntroductionPage(
+    song: Song?,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
+    coverUrl: String?,
+    isPlaying: Boolean,
+    coverStyle: CoverStyle,
+    lyrics: String?,
+    currentPosition: Long
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 专辑封面（缩小一点）
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .aspectRatio(1f)
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            AnimatedAlbumCover(
+                coverUrl = coverUrl,
+                isPlaying = isPlaying,
+                coverStyle = coverStyle,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // 歌曲信息（压缩空间）
+        SongInfo(
+            song = song,
+            isFavorite = isFavorite,
+            onFavoriteClick = onFavoriteClick,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // 3行歌词（占满剩余空间）
+        MiniLyricsDisplay(
+            lyrics = lyrics,
+            currentPosition = currentPosition,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        )
+    }
+}
+
+/**
+ * 中间页面：专辑封面 + 3行歌词
+ */
+@Composable
+private fun AlbumWithMiniLyricsPage(
+    song: Song?,
+    coverUrl: String?,
+    isPlaying: Boolean,
+    coverStyle: CoverStyle,
+    visualizerEnabled: Boolean,
+    lyrics: String?,
+    currentPosition: Long
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 专辑封面
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .padding(horizontal = 32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            AnimatedAlbumCover(
+                coverUrl = coverUrl,
+                isPlaying = isPlaying,
+                coverStyle = coverStyle,
+                showVisualizer = visualizerEnabled,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // 3行歌词
+        MiniLyricsDisplay(
+            lyrics = lyrics,
+            currentPosition = currentPosition,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+        )
+    }
+}
+
+/**
+ * 右侧页面：完整歌词
+ */
+@Composable
+private fun FullLyricsPage(
+    lyrics: String?,
+    currentPosition: Long,
+    canAccess: Boolean,
+    onBackToSong: () -> Unit
+) {
+    if (!canAccess || lyrics.isNullOrBlank()) {
+        // 歌词不可用，显示提示
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (canAccess) "暂无歌词" else "歌词加载中...",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                TextButton(onClick = onBackToSong) {
+                    Text("返回歌曲", color = Color.White.copy(alpha = 0.7f))
+                }
+            }
+        }
+    } else {
+        LyricsSection(
+            lyrics = lyrics,
+            currentPosition = currentPosition,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+/**
+ * 迷你歌词显示（3行）
+ */
+@Composable
+private fun MiniLyricsDisplay(
+    lyrics: String?,
+    currentPosition: Long,
+    modifier: Modifier = Modifier
+) {
+    val lines = remember(lyrics) {
+        lyrics?.lines()
+            ?.filter { it.isNotBlank() }
+            ?.mapNotNull { parseLyricLine(it) }
+            ?: emptyList()
+    }
+    
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .padding(16.dp)
+    ) {
+        if (lines.isEmpty()) {
+            Text(
+                text = "暂无歌词",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else {
+            val currentLineIndex = lines.indexOfLast { it.timeMs <= currentPosition }
+            
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (currentLineIndex >= 0 && currentLineIndex < lines.size) {
+                    if (currentLineIndex > 0) {
+                        Text(
+                            text = lines[currentLineIndex - 1].text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.4f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Text(
+                        text = lines[currentLineIndex].text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (currentLineIndex < lines.size - 1) {
+                        Text(
+                            text = lines[currentLineIndex + 1].text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.4f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
     }
@@ -282,6 +567,11 @@ private fun ProgressBar(
                 color = Color.White.copy(alpha = 0.7f)
             )
             Text(
+                text = if (duration > 0) "${(currentPosition * 100 / duration).toInt()}%" else "",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.5f)
+            )
+            Text(
                 text = formatDuration(duration),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.7f)
@@ -295,13 +585,25 @@ private fun PlayerControls(
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
     onSkipToNext: () -> Unit,
-    onSkipToPrevious: () -> Unit
+    onSkipToPrevious: () -> Unit,
+    onShareClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 分享
+        IconButton(onClick = onShareClick) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = "分享",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        
         // 上一首
         IconButton(onClick = onSkipToPrevious) {
             Icon(
@@ -343,7 +645,8 @@ private fun PlayerControls(
 @Composable
 private fun LyricsSection(
     lyrics: String?,
-    currentPosition: Long
+    currentPosition: Long,
+    modifier: Modifier = Modifier
 ) {
     val lines = remember(lyrics) {
         lyrics?.lines()
@@ -353,11 +656,10 @@ private fun LyricsSection(
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(120.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = 0.3f))
             .padding(16.dp)
     ) {
         if (lines.isEmpty()) {

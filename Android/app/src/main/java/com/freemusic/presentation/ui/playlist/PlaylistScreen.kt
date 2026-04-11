@@ -30,7 +30,20 @@ fun PlaylistScreen(
     onDeletePlaylist: (String) -> Unit
 ) {
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
+    var currentSortOrder by remember { mutableStateOf(0) }
+    
+    val sortOptions = listOf("名称", "歌曲数量")
+    
+    // 排序后的歌单
+    val sortedPlaylists = remember(playlists, currentSortOrder) {
+        when (currentSortOrder) {
+            0 -> playlists.sortedBy { it.name.lowercase() }
+            1 -> playlists.sortedByDescending { it.songs.size }
+            else -> playlists
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -42,6 +55,9 @@ fun PlaylistScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showSortDialog = true }) {
+                        Icon(Icons.Default.Sort, contentDescription = "排序")
+                    }
                     IconButton(onClick = { showCreateDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "创建歌单")
                     }
@@ -85,7 +101,7 @@ fun PlaylistScreen(
                     .padding(paddingValues),
                 contentPadding = PaddingValues(vertical = 8.dp)
             ) {
-                items(playlists) { playlist ->
+                items(sortedPlaylists) { playlist ->
                     PlaylistItem(
                         playlist = playlist,
                         onClick = { onPlaylistClick(playlist) },
@@ -127,6 +143,45 @@ fun PlaylistScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 排序对话框
+    if (showSortDialog) {
+        AlertDialog(
+            onDismissRequest = { showSortDialog = false },
+            title = { Text("选择排序方式") },
+            text = {
+                Column {
+                    sortOptions.forEachIndexed { index, option ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    currentSortOrder = index
+                                    showSortDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = index == currentSortOrder,
+                                onClick = {
+                                    currentSortOrder = index
+                                    showSortDialog = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = option)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSortDialog = false }) {
                     Text("取消")
                 }
             }

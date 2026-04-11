@@ -18,11 +18,16 @@ import javax.inject.Inject
 data class SettingsUiState(
     val currentThemeName: String = "默认",
     val pureBlackEnabled: Boolean = false,
+    val customPrimaryColor: Int = -1, // -1 表示使用默认色
     val particleEffectName: String = "无",
     val coverStyleName: String = "圆形",
+    val coverSwitchInterval: Int = 3,
     val visualizerStyleName: String = "无",
     val equalizerPresetName: String = "平坦",
     val autoPlayEnabled: Boolean = true,
+    val playbackSpeed: Float = 1.0f,
+    val sleepTimerMinutes: Int = 0,
+    val skipSilenceEnabled: Boolean = false,
     val highQualityEnabled: Boolean = false,
     val cacheSize: String = "0 MB",
     val showAboutDialog: Boolean = false
@@ -48,6 +53,9 @@ class SettingsViewModel @Inject constructor(
     private val _isPureBlack = MutableStateFlow(false)
     val isPureBlack: StateFlow<Boolean> = _isPureBlack.asStateFlow()
 
+    private val _customPrimaryColor = MutableStateFlow(-1)
+    val customPrimaryColor: StateFlow<Int> = _customPrimaryColor.asStateFlow()
+
     // ============ 视觉效果设置 ============
     private val _particlesEnabled = MutableStateFlow(true)
     val particlesEnabled: StateFlow<Boolean> = _particlesEnabled.asStateFlow()
@@ -57,6 +65,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _coverStyle = MutableStateFlow(CoverStyleType.ROUND)
     val coverStyle: StateFlow<CoverStyleType> = _coverStyle.asStateFlow()
+
+    private val _coverSwitchInterval = MutableStateFlow(3)
+    val coverSwitchInterval: StateFlow<Int> = _coverSwitchInterval.asStateFlow()
 
     private val _visualizerEnabled = MutableStateFlow(false)
     val visualizerEnabled: StateFlow<Boolean> = _visualizerEnabled.asStateFlow()
@@ -75,12 +86,36 @@ class SettingsViewModel @Inject constructor(
     private val _autoPlay = MutableStateFlow(true)
     val autoPlay: StateFlow<Boolean> = _autoPlay.asStateFlow()
 
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
     private val _crossFadeEnabled = MutableStateFlow(false)
     val crossFadeEnabled: StateFlow<Boolean> = _crossFadeEnabled.asStateFlow()
 
     private val _crossFadeDuration = MutableStateFlow(3000)
     val crossFadeDuration: StateFlow<Int> = _crossFadeDuration.asStateFlow()
 
+    private val _sleepTimerMinutes = MutableStateFlow(0)
+    val sleepTimerMinutes: StateFlow<Int> = _sleepTimerMinutes.asStateFlow()
+    
+    private var _sleepTimerEndTimeMillis: Long = 0L
+    val sleepTimerRemainingSeconds: Int
+        get() {
+            if (_sleepTimerEndTimeMillis == 0L || _sleepTimerEndTimeMillis < System.currentTimeMillis()) {
+                return 0
+            }
+            return ((_sleepTimerEndTimeMillis - System.currentTimeMillis()) / 1000).toInt()
+        }
+
+    private val _skipSilence = MutableStateFlow(false)
+    val skipSilence: StateFlow<Boolean> = _skipSilence.asStateFlow()
+    
+    private val _shakeToSkip = MutableStateFlow(false)
+    val shakeToSkip: StateFlow<Boolean> = _shakeToSkip.asStateFlow()
+    
+    private val _autoCleanHistory = MutableStateFlow(false)
+    val autoCleanHistory: StateFlow<Boolean> = _autoCleanHistory.asStateFlow()
+    
     // ============ 歌词设置 ============
     private val _lyricsFontSize = MutableStateFlow(16)
     val lyricsFontSize: StateFlow<Int> = _lyricsFontSize.asStateFlow()
@@ -88,11 +123,20 @@ class SettingsViewModel @Inject constructor(
     init {
         // 从 PreferencesManager 加载设置
         viewModelScope.launch {
-            preferencesManager.isDarkTheme.collect { _isDarkTheme.value = it }
+            preferencesManager.isDarkTheme.collect { 
+                _isDarkTheme.value = it
+                updateUiState()
+            }
         }
         viewModelScope.launch {
             preferencesManager.isPureBlack.collect { 
                 _isPureBlack.value = it
+                updateUiState()
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.customPrimaryColor.collect { 
+                _customPrimaryColor.value = it
                 updateUiState()
             }
         }
@@ -105,6 +149,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.coverStyle.collect { 
                 _coverStyle.value = it
+                updateUiState()
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.coverSwitchInterval.collect { 
+                _coverSwitchInterval.value = it
                 updateUiState()
             }
         }
@@ -130,10 +180,28 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            preferencesManager.playbackSpeed.collect { 
+                _playbackSpeed.value = it
+                updateUiState()
+            }
+        }
+        viewModelScope.launch {
             preferencesManager.crossFadeEnabled.collect { _crossFadeEnabled.value = it }
         }
         viewModelScope.launch {
             preferencesManager.crossFadeDuration.collect { _crossFadeDuration.value = it }
+        }
+        viewModelScope.launch {
+            preferencesManager.sleepTimerMinutes.collect { _sleepTimerMinutes.value = it }
+        }
+        viewModelScope.launch {
+            preferencesManager.skipSilence.collect { _skipSilence.value = it }
+        }
+        viewModelScope.launch {
+            preferencesManager.shakeToSkip.collect { _shakeToSkip.value = it }
+        }
+        viewModelScope.launch {
+            preferencesManager.autoCleanHistory.collect { _autoCleanHistory.value = it }
         }
         viewModelScope.launch {
             preferencesManager.lyricsFontSize.collect { _lyricsFontSize.value = it }
@@ -143,12 +211,23 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun updateUiState() {
+        val themeName = when {
+            _isPureBlack.value -> "纯黑"
+            _isDarkTheme.value -> "暗色"
+            else -> "默认"
+        }
         _uiState.update { state ->
             state.copy(
+                currentThemeName = themeName,
                 pureBlackEnabled = _isPureBlack.value,
+                customPrimaryColor = _customPrimaryColor.value,
                 coverStyleName = _coverStyle.value.name,
+                coverSwitchInterval = _coverSwitchInterval.value,
                 equalizerPresetName = EqualizerPreset.entries.getOrNull(_equalizerPreset.value)?.displayName ?: "平坦",
-                autoPlayEnabled = _autoPlay.value
+                autoPlayEnabled = _autoPlay.value,
+                playbackSpeed = _playbackSpeed.value,
+                sleepTimerMinutes = _sleepTimerMinutes.value,
+                skipSilenceEnabled = _skipSilence.value
             )
         }
     }
@@ -191,6 +270,10 @@ class SettingsViewModel @Inject constructor(
         preferencesManager.setPureBlack(enabled)
     }
 
+    fun setCustomPrimaryColor(color: Int) {
+        preferencesManager.setCustomPrimaryColor(color)
+    }
+
     // ============ 视觉效果控制 ============
     fun setParticlesEnabled(enabled: Boolean) {
         preferencesManager.setParticlesEnabled(enabled)
@@ -202,6 +285,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setCoverStyle(style: CoverStyleType) {
         preferencesManager.setCoverStyle(style)
+    }
+
+    fun setCoverSwitchInterval(seconds: Int) {
+        preferencesManager.setCoverSwitchInterval(seconds)
     }
 
     fun setVisualizerEnabled(enabled: Boolean) {
@@ -226,6 +313,10 @@ class SettingsViewModel @Inject constructor(
         preferencesManager.setAutoPlay(enabled)
     }
 
+    fun setPlaybackSpeed(speed: Float) {
+        preferencesManager.setPlaybackSpeed(speed)
+    }
+
     fun setHighQuality(enabled: Boolean) {
         // 高品质播放设置 - 目前仅保存在 UI 状态
         // 实际的高品质播放逻辑需要在播放器中实现
@@ -240,6 +331,27 @@ class SettingsViewModel @Inject constructor(
         preferencesManager.setCrossFadeDuration(durationMs)
     }
 
+    fun setSleepTimer(minutes: Int) {
+        preferencesManager.setSleepTimer(minutes)
+        _sleepTimerEndTimeMillis = if (minutes > 0) {
+            System.currentTimeMillis() + minutes * 60 * 1000L
+        } else {
+            0L
+        }
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        preferencesManager.setSkipSilence(enabled)
+    }
+    
+    fun setShakeToSkip(enabled: Boolean) {
+        preferencesManager.setShakeToSkip(enabled)
+    }
+    
+    fun setAutoCleanHistory(enabled: Boolean) {
+        preferencesManager.setAutoCleanHistory(enabled)
+    }
+    
     // ============ 歌词控制 ============
     fun setLyricsFontSize(size: Int) {
         preferencesManager.setLyricsFontSize(size)

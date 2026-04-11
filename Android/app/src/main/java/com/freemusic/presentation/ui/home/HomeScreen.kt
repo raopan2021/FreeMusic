@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +20,11 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
     onLocalMusicClick: () -> Unit = {},
-    onPlaylistClick: () -> Unit = {}
+    onPlaylistClick: () -> Unit = {},
+    onFolderBrowserClick: () -> Unit = {},
+    onArtistBrowserClick: () -> Unit = {},
+    onAlbumBrowserClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -56,17 +61,52 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 QuickAccessCard(
-                    icon = Icons.Default.Folder,
+                    icon = Icons.Default.MusicNote,
                     title = "本地音乐",
                     onClick = onLocalMusicClick,
                     modifier = Modifier.weight(1f)
                 )
+                QuickAccessCard(
+                    icon = Icons.Default.Folder,
+                    title = "文件夹",
+                    onClick = onFolderBrowserClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 QuickAccessCard(
                     icon = Icons.Default.QueueMusic,
                     title = "歌单",
                     onClick = onPlaylistClick,
                     modifier = Modifier.weight(1f)
                 )
+                QuickAccessCard(
+                    icon = Icons.Default.History,
+                    title = "最近播放",
+                    onClick = onHistoryClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                QuickAccessCard(
+                    icon = Icons.Default.Album,
+                    title = "专辑",
+                    onClick = onAlbumBrowserClick,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.weight(1f))
             }
             
             Spacer(modifier = Modifier.height(8.dp))

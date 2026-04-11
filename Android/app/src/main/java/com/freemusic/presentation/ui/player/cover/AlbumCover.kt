@@ -7,6 +7,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +52,7 @@ fun AnimatedAlbumCover(
     isPlaying: Boolean,
     coverStyle: CoverStyle = CoverStyle.ROUND,
     showVisualizer: Boolean = false,
+    autoRotate: Boolean = false, // 默认不旋转
     modifier: Modifier = Modifier
 ) {
     // 旋转动画（播放时旋转）
@@ -94,7 +100,7 @@ fun AnimatedAlbumCover(
         label = "shadow"
     )
 
-    val currentRotation = if (isPlaying) rotation else 0f
+    val currentRotation = if (isPlaying && autoRotate) rotation else 0f
     val currentScale = if (isPlaying) pulseScale else 1f
     val currentBreathe = if (isPlaying) breatheScale else 1f
 
@@ -110,15 +116,33 @@ fun AnimatedAlbumCover(
     ) {
         when (coverStyle) {
             CoverStyle.ROUND -> {
-                AsyncImage(
-                    model = coverUrl,
-                    contentDescription = "专辑封面",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .shadow(shadowElevation.dp, CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+                if (coverUrl != null) {
+                    AsyncImage(
+                        model = coverUrl,
+                        contentDescription = "专辑封面",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(CircleShape)
+                            .shadow(shadowElevation.dp, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // 无封面时显示占位符
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = CircleShape,
+                        color = Color.Gray.copy(alpha = 0.3f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             CoverStyle.SQUARE -> {

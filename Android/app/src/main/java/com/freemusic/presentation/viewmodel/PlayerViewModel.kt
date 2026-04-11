@@ -14,8 +14,10 @@ import com.freemusic.domain.model.Lyrics
 import com.freemusic.domain.model.Song
 import com.freemusic.domain.model.SongWithUrl
 import com.freemusic.data.local.LocalDataSource
+import com.freemusic.data.preferences.PreferencesManager
 import com.freemusic.domain.usecase.GetLyricsUseCase
 import com.freemusic.domain.usecase.GetSongWithUrlUseCase
+import com.freemusic.domain.usecase.SearchAlbumCoverUseCase
 import com.freemusic.service.PlaybackService
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,7 +45,9 @@ class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val getSongWithUrlUseCase: GetSongWithUrlUseCase,
     private val getLyricsUseCase: GetLyricsUseCase,
-    private val localDataSource: LocalDataSource
+    private val searchAlbumCoverUseCase: SearchAlbumCoverUseCase,
+    private val localDataSource: LocalDataSource,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -51,6 +55,10 @@ class PlayerViewModel @Inject constructor(
 
     private var mediaController: MediaController? = null
     private var isMediaControllerReady = false
+    private var playbackSpeed: Float = 1.0f
+    
+    // 睡眠定时器结束时间（毫秒）
+    private var sleepTimerEndTimeMillis: Long = 0L
     
     // 待播放的本地歌曲队列（等待 mediaController 就绪）
     private val pendingLocalSongs = mutableListOf<Song>()
@@ -72,6 +80,37 @@ class PlayerViewModel @Inject constructor(
 
     init {
         initializeMediaController()
+        
+        // 观察播放速度变化
+        viewModelScope.launch {
+            preferencesManager.playbackSpeed.collect { speed ->
+                playbackSpeed = speed
+                mediaController?.setPlaybackSpeed(speed)
+            }
+        }
+        
+        // 观察睡眠定时器
+        viewModelScope.launch {
+            preferencesManager.sleepTimerMinutes.collect { minutes ->
+                sleepTimerEndTimeMillis = if (minutes > 0) {
+                    System.currentTimeMillis() + minutes * 60 * 1000L
+                } else {
+                    0L
+                }
+            }
+        }
+        
+        // 检查睡眠定时器
+        viewModelScope.launch {
+            while (true) {
+                delay(30000) // 每30秒检查一次
+                if (sleepTimerEndTimeMillis > 0 && System.currentTimeMillis() >= sleepTimerEndTimeMillis) {
+                    mediaController?.pause()
+                    sleepTimerEndTimeMillis = 0L
+                    preferencesManager.setSleepTimer(0)
+                }
+            }
+        }
     }
 
     private fun initializeMediaController() {
@@ -82,12 +121,24 @@ class PlayerViewModel @Inject constructor(
 
         val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture.addListener({
-            mediaController = controllerFuture.get()
-            mediaController?.addListener(playerListener)
-            isMediaControllerReady = true
-            
-            // MediaController 就绪后，播放待播放的歌曲
-            processPendingPlaylists()
+            try {
+                mediaController = controllerFuture.get()
+                mediaController?.addListener(playerListener)
+                isMediaControllerReady = true
+                
+                // 应用保存的播放速度
+                mediaController?.setPlaybackSpeed(preferencesManager.playbackSpeed.value)
+                
+                // MediaController 就绪后，播放待播放的歌曲
+                processPendingPlaylists()
+            } catch (e: Exception) {
+                // 如果获取失败，尝试重连
+                viewModelScope.launch {
+                    delay(1000)
+                    isMediaControllerReady = false
+                    initializeMediaController()
+                }
+            }
         }, MoreExecutors.directExecutor())
     }
     
@@ -148,9 +199,16 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun playSong(song: Song) {
+    fun playSong(song: Song, playlist: List<Song>? = null) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { 
+                it.copy(
+                    isLoading = true, 
+                    error = null,
+                    playlist = playlist ?: listOf(song),  // 使用提供的歌单，或仅当前歌曲
+                    currentIndex = playlist?.indexOf(song) ?: 0
+                ) 
+            }
             
             // 记录播放历史
             try {
@@ -168,6 +226,8 @@ class PlayerViewModel @Inject constructor(
                             onSuccess = { songWithUrl ->
                                 playMediaItem(songWithUrl)
                                 loadLyrics(songWithUrl.song)
+                                // 自动搜索封面（如果没有封面）
+                                loadAlbumCover(songWithUrl.song)
                                 observeFavoriteStatus(songWithUrl.song.id)
                                 _uiState.update { state ->
                                     state.copy(
@@ -217,24 +277,30 @@ class PlayerViewModel @Inject constructor(
     private fun playLocalSong(song: Song) {
         val uri = buildContentUri(song.id)
         
+        // 如果 mediaController 已就绪，立即播放
         if (isMediaControllerReady && mediaController != null) {
             playLocalSongInternal(uri, song)
-        } else {
-            // 加入待播放队列
-            pendingLocalSongs.add(song)
+            return
+        }
+        
+        // 加入待播放队列
+        pendingLocalSongs.add(song)
+        
+        // 如果 mediaController 还没准备好，等待它就绪
+        viewModelScope.launch {
+            // 等待最多 10 秒
+            var retryCount = 0
+            val maxRetries = 40 // 40 * 250ms = 10 秒
             
-            // 如果 mediaController 还没准备好，等待它就绪
-            if (!isMediaControllerReady) {
-                viewModelScope.launch {
-                    var retryCount = 0
-                    while (!isMediaControllerReady && retryCount < 20) {
-                        delay(250)
-                        retryCount++
-                    }
-                    if (isMediaControllerReady) {
-                        processPendingPlaylists()
-                    }
-                }
+            while (!isMediaControllerReady && retryCount < maxRetries) {
+                delay(250)
+                retryCount++
+            }
+            
+            if (isMediaControllerReady && pendingLocalSongs.contains(song)) {
+                pendingLocalSongs.remove(song)
+                val currentUri = buildContentUri(song.id)
+                playLocalSongInternal(currentUri, song)
             }
         }
     }
@@ -259,7 +325,17 @@ class PlayerViewModel @Inject constructor(
 
             controller.setMediaItem(mediaItem)
             controller.prepare()
+            controller.setPlaybackSpeed(playbackSpeed)
             controller.play()
+            
+            // 加载歌词
+            loadLyrics(song)
+            
+            // 自动搜索封面（如果没有封面）
+            loadAlbumCover(song)
+            
+            // 观察收藏状态
+            observeFavoriteStatus(song.id)
             
             _uiState.update { state ->
                 state.copy(
@@ -350,6 +426,7 @@ class PlayerViewModel @Inject constructor(
 
             controller.setMediaItem(mediaItem)
             controller.prepare()
+            controller.setPlaybackSpeed(playbackSpeed)
             controller.play()
         } ?: run {
             // MediaController 还没准备好，等待后重试
@@ -382,8 +459,6 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun loadLyrics(song: Song) {
-        if (song.neteaseId == null) return
-        
         viewModelScope.launch {
             try {
                 getLyricsUseCase(song).firstOrNull()?.let { result ->
@@ -393,6 +468,32 @@ class PlayerViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 // Ignore lyrics errors
+            }
+        }
+    }
+
+    /**
+     * 自动搜索专辑封面（当没有封面时）
+     */
+    private fun loadAlbumCover(song: Song) {
+        // 如果已经有封面，不需要搜索
+        if (!song.coverUrl.isNullOrBlank() && !song.coverUrl!!.startsWith("content://media")) {
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                val result = searchAlbumCoverUseCase(song.artist, song.title)
+                result.onSuccess { coverUrl ->
+                    // 更新当前歌曲的封面 URL
+                    _uiState.update { state ->
+                        state.copy(
+                            currentSong = state.currentSong?.copy(coverUrl = coverUrl)
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // 忽略封面搜索错误
             }
         }
     }
@@ -416,6 +517,13 @@ class PlayerViewModel @Inject constructor(
             } else {
                 controller.play()
             }
+        }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        playbackSpeed = speed
+        mediaController?.let { controller ->
+            controller.setPlaybackSpeed(speed)
         }
     }
 

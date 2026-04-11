@@ -1,5 +1,6 @@
 package com.freemusic.di
 
+import com.freemusic.data.remote.api.ItunesApi
 import com.freemusic.data.remote.api.LrclibApi
 import com.freemusic.data.remote.api.MetingApi
 import com.freemusic.data.remote.api.NeteaseApi
@@ -24,6 +25,7 @@ object NetworkModule {
     private const val NETEASE_BASE_URL = "https://zm.wwoyun.cn/"
     private const val METING_BASE_URL = "https://api.qijieya.cn/"
     private const val LRCLIB_BASE_URL = "https://lrclib.net/"
+    private const val ITUNES_BASE_URL = "https://itunes.apple.com/"
 
     @Provides
     @Singleton
@@ -108,5 +110,25 @@ object NetworkModule {
     @Singleton
     fun provideLrclibApi(@Named("lrclib") retrofit: Retrofit): LrclibApi {
         return retrofit.create(LrclibApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @Named("itunes")
+    fun provideItunesRetrofit(
+        okHttpClient: OkHttpClient,
+        json: Json
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(ITUNES_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideItunesApi(@Named("itunes") retrofit: Retrofit): ItunesApi {
+        return retrofit.create(ItunesApi::class.java)
     }
 }

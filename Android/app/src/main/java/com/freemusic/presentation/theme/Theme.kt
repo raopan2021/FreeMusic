@@ -82,6 +82,7 @@ private val LocalThemeState = staticCompositionLocalOf { mutableStateOf(ThemeSta
 fun FreeMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
+    customPrimaryColor: Int? = null, // ARGB 颜色值，null 表示使用默认
     content: @Composable () -> Unit
 ) {
     val themeState = remember { mutableStateOf(ThemeState(isDarkTheme = darkTheme, isPureBlack = pureBlack)) }
@@ -91,9 +92,13 @@ fun FreeMusicTheme(
         themeState.value = ThemeState(isDarkTheme = darkTheme, isPureBlack = pureBlack)
     }
 
+    // 计算主题色
+    val defaultPrimary = if (darkTheme) Color(0xFFD0BCFF) else Color(0xFF6750A4)
+    val targetPrimary = customPrimaryColor?.let { Color(it) } ?: defaultPrimary
+    
     // 丝滑的颜色过渡动画
     val animatedPrimary = animateColorAsState(
-        targetValue = if (themeState.value.isDarkTheme) DarkColorScheme.primary else LightColorScheme.primary,
+        targetValue = targetPrimary,
         animationSpec = tween(durationMillis = 300),
         label = "primary"
     )

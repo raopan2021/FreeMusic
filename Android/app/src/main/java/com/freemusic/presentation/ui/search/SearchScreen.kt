@@ -50,12 +50,18 @@ fun SearchScreen(
     onTagClick: (String) -> Unit,
     onHistoryItemClick: (String) -> Unit,
     onClearHistory: () -> Unit,
+    onAddToPlaylist: (Song, Playlist) -> Unit,
+    playlists: List<Playlist>,
     onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    
+    // 添加到歌单对话框
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var songToAdd by remember { mutableStateOf<Song?>(null) }
     
     Column(
         modifier = modifier
@@ -84,7 +90,11 @@ fun SearchScreen(
             Box(modifier = Modifier.weight(1f)) {
                 SearchResults(
                     results = searchResults,
-                    onSongClick = onSongClick
+                    onSongClick = onSongClick,
+                    onAddToPlaylist = { song ->
+                        songToAdd = song
+                        showAddToPlaylistDialog = true
+                    }
                 )
                 
                 if (isLoading) {
@@ -128,6 +138,57 @@ fun SearchScreen(
                 }
             }
         }
+    }
+    
+    // 添加到歌单对话框
+    if (showAddToPlaylistDialog && songToAdd != null) {
+        AlertDialog(
+            onDismissRequest = { showAddToPlaylistDialog = false },
+            title = { Text("添加到歌单") },
+            text = {
+                if (playlists.isEmpty()) {
+                    Text("暂无歌单，请先创建歌单")
+                } else {
+                    Column {
+                        playlists.forEach { playlist ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onAddToPlaylist(songToAdd!!, playlist)
+                                        showAddToPlaylistDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.QueueMusic,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = playlist.name,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "${playlist.songs.size} 首歌曲",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAddToPlaylistDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 
@@ -207,6 +268,7 @@ private fun SearchBar(
 private fun SearchResults(
     results: List<Song>,
     onSongClick: (Song) -> Unit,
+    onAddToPlaylist: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (results.isEmpty()) {
@@ -228,7 +290,8 @@ private fun SearchResults(
             items(results) { song ->
                 SearchResultItem(
                     song = song,
-                    onClick = { onSongClick(song) }
+                    onClick = { onSongClick(song) },
+                    onAddToPlaylist = { onAddToPlaylist(song) }
                 )
             }
         }
@@ -238,8 +301,11 @@ private fun SearchResults(
 @Composable
 private fun SearchResultItem(
     song: Song,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -285,6 +351,33 @@ private fun SearchResultItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+            
+            // 更多选项按钮
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "更多选项",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("添加到歌单") },
+                        onClick = {
+                            showMenu = false
+                            onAddToPlaylist()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.PlaylistAdd, contentDescription = null)
+                        }
+                    )
+                }
             }
             
             Icon(

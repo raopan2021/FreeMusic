@@ -32,13 +32,36 @@ fun QueueScreen(
     viewModel: QueueViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var selectedItems by remember { mutableStateOf(setOf<Int>()) }
+    
+    val totalDuration = uiState.currentQueue.sumOf { it.duration }.let { millis ->
+        val hours = millis / 3600000
+        val minutes = (millis % 3600000) / 60000
+        val seconds = (millis % 60000) / 1000
+        if (hours > 0) "${hours}小时${minutes}分钟" else "${minutes}分${seconds}秒"
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("播放队列") },
+                title = { 
+                    if (isSelectionMode) {
+                        Text("已选择 ${selectedItems.size} 项")
+                    } else {
+                        Text("播放队列")
+                    }
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = { 
+                        if (isSelectionMode) {
+                            isSelectionMode = false
+                            selectedItems = emptySet()
+                        } else {
+                            onBackClick()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回"
@@ -46,11 +69,30 @@ fun QueueScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::clearQueue) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = "清空队列"
-                        )
+                    if (isSelectionMode) {
+                        IconButton(onClick = {
+                            // 移除选中的项目
+                            selectedItems.sortedDescending().forEach { index ->
+                                viewModel.removeFromQueue(index)
+                            }
+                            selectedItems = emptySet()
+                            isSelectionMode = false
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "删除所选")
+                        }
+                    } else {
+                        IconButton(onClick = { showClearConfirmDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = "清空队列"
+                            )
+                        }
+                        IconButton(onClick = { isSelectionMode = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Checklist,
+                                contentDescription = "多选"
+                            )
+                        }
                     }
                 }
             )
@@ -66,6 +108,7 @@ fun QueueScreen(
                 isShuffleEnabled = uiState.isShuffleEnabled,
                 repeatMode = uiState.repeatMode,
                 totalCount = uiState.currentQueue.size,
+                totalDuration = totalDuration,
                 currentIndex = uiState.currentIndex,
                 onShuffleClick = viewModel::toggleShuffle,
                 onRepeatClick = viewModel::cycleRepeatMode
@@ -96,13 +139,56 @@ fun QueueScreen(
                         QueueItem(
                             song = song,
                             isPlaying = index == uiState.currentIndex,
-                            onClick = { onSongClick(index) },
-                            onRemove = { viewModel.removeFromQueue(index) }
+                            isSelected = index in selectedItems,
+                            isSelectionMode = isSelectionMode,
+                            onClick = { 
+                                if (isSelectionMode) {
+                                    selectedItems = if (index in selectedItems) {
+                                        selectedItems - index
+                                    } else {
+                                        selectedItems + index
+                                    }
+                                } else {
+                                    onSongClick(index)
+                                }
+                            },
+                            onRemove = { viewModel.removeFromQueue(index) },
+                            onMoveUp = { viewModel.moveItem(index, index - 1) },
+                            onMoveDown = { viewModel.moveItem(index, index + 1) },
+                            canMoveUp = index > 0,
+                            canMoveDown = index < uiState.currentQueue.size - 1,
+                            onSelectionChange = { selected ->
+                                selectedItems = if (selected) selectedItems + index else selectedItems - index
+                            }
                         )
                     }
                 }
             }
         }
+    }
+    
+    // 清空队列确认对话框
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text("清空队列") },
+            text = { Text("确定要清空播放队列吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearQueue()
+                        showClearConfirmDialog = false
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 
@@ -111,6 +197,7 @@ private fun QueueControls(
     isShuffleEnabled: Boolean,
     repeatMode: RepeatMode,
     totalCount: Int,
+    totalDuration: String,
     currentIndex: Int,
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit
@@ -122,11 +209,18 @@ private fun QueueControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "${totalCount} 首歌曲",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column {
+            Text(
+                text = "${totalCount} 首歌曲",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "总时长: $totalDuration",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -166,20 +260,38 @@ private fun QueueControls(
 private fun QueueItem(
     song: Song,
     isPlaying: Boolean,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
     onClick: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onMoveUp: () -> Unit = {},
+    onMoveDown: () -> Unit = {},
+    canMoveUp: Boolean = false,
+    canMoveDown: Boolean = false,
+    onSelectionChange: ((Boolean) -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .background(
-                if (isPlaying) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                else Color.Transparent
+                when {
+                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    isPlaying -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    else -> Color.Transparent
+                }
             )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // 选择模式下的复选框
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = onSelectionChange
+            )
+        }
+        
         // 播放指示器
         if (isPlaying) {
             Icon(
@@ -236,6 +348,28 @@ private fun QueueItem(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        // 上移按钮
+        if (canMoveUp) {
+            IconButton(onClick = onMoveUp) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowUp,
+                    contentDescription = "上移",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // 下移按钮
+        if (canMoveDown) {
+            IconButton(onClick = onMoveDown) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "下移",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         // 删除按钮
         IconButton(onClick = onRemove) {

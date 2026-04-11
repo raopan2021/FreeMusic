@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.freemusic.domain.model.Playlist
 import com.freemusic.domain.model.Song
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
@@ -29,11 +30,17 @@ fun PlayHistoryScreen(
     mostPlayed: List<Song>,
     onBackClick: () -> Unit,
     onSongClick: (Song) -> Unit,
-    onAddToPlaylist: (Song) -> Unit,
+    onAddToPlaylist: (Song, Playlist) -> Unit,
+    playlists: List<Playlist>,
     onClearHistory: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("最近播放", "播放最多")
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+    
+    // 添加到歌单对话框
+    var showAddDialog by remember { mutableStateOf(false) }
+    var songToAdd by remember { mutableStateOf<Song?>(null) }
     
     Scaffold(
         topBar = {
@@ -45,7 +52,7 @@ fun PlayHistoryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onClearHistory) {
+                    IconButton(onClick = { showClearConfirmDialog = true }) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "清空历史")
                     }
                 }
@@ -105,12 +112,90 @@ fun PlayHistoryScreen(
                         HistorySongItem(
                             song = song,
                             onClick = { onSongClick(song) },
-                            onMoreClick = { onAddToPlaylist(song) }
+                            onMoreClick = {
+                                songToAdd = song
+                                showAddDialog = true
+                            }
                         )
                     }
                 }
             }
         }
+    }
+    
+    // 添加到歌单对话框
+    if (showAddDialog && songToAdd != null) {
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("添加到歌单") },
+            text = {
+                if (playlists.isEmpty()) {
+                    Text("暂无歌单，请先创建歌单")
+                } else {
+                    Column {
+                        playlists.forEach { playlist ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onAddToPlaylist(songToAdd!!, playlist)
+                                        showAddDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.QueueMusic,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = playlist.name,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "${playlist.songs.size} 首歌曲",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+    
+    // 清空历史确认对话框
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text("清空播放历史") },
+            text = { Text("确定要清空所有播放历史吗？此操作不可恢复。") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onClearHistory()
+                        showClearConfirmDialog = false
+                    }
+                ) {
+                    Text("确定", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 

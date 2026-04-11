@@ -1,6 +1,7 @@
 package com.freemusic.presentation.ui.player
 
 import android.content.Intent
+import java.util.Locale
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -194,15 +195,18 @@ fun PlayerScreen(
             currentMode = uiState.repeatMode,
             isShuffleEnabled = uiState.isShuffleEnabled,
             onModeSelect = { mode ->
-                when (mode) {
-                    PlayRepeatMode.ALL -> {
-                        if (uiState.isShuffleEnabled) viewModel.toggleShuffle()
-                        if (uiState.repeatMode == PlayRepeatMode.ONE) viewModel.toggleRepeatMode()
-                    }
-                    PlayRepeatMode.ONE -> {
-                        if (uiState.repeatMode != PlayRepeatMode.ONE) viewModel.toggleRepeatMode()
-                    }
-                    else -> {}
+                // 计算需要切换多少次才能到达目标模式
+                fun needToggles(from: PlayRepeatMode, to: PlayRepeatMode): Int {
+                    val states = listOf(PlayRepeatMode.OFF, PlayRepeatMode.ALL, PlayRepeatMode.ONE)
+                    val fromIdx = states.indexOf(from)
+                    val toIdx = states.indexOf(to)
+                    return (toIdx - fromIdx + 3) % 3
+                }
+                val currentMode = uiState.repeatMode
+                val needed = needToggles(currentMode, mode)
+                repeat(needed) { viewModel.toggleRepeatMode() }
+                if (mode == PlayRepeatMode.ALL && uiState.isShuffleEnabled) {
+                    viewModel.toggleShuffle()
                 }
             },
             onShuffleToggle = viewModel::toggleShuffle,
@@ -214,6 +218,8 @@ fun PlayerScreen(
     // 睡眠定时器Sheet
     if (showSleepTimerSheet) {
         SleepTimerSheet(
+            currentMinutes = uiState.sleepTimerRemainingMinutes,
+            onSet = { minutes -> viewModel.setSleepTimer(minutes) },
             onDismiss = { showSleepTimerSheet = false }
         )
     }
@@ -500,13 +506,14 @@ private fun PlayerPage(
             // 睡眠定时
             IconButton(onClick = onSleepTimerToggle) {
                 if (sleepTimerRemaining > 0) {
-                    // 显示倒计时
-                    val hours = sleepTimerRemaining / 60
-                    val minutes = sleepTimerRemaining % 60
+                    // 显示倒计时，格式：H:MM:SS 或 MM:SS
+                    val totalMinutes = sleepTimerRemaining
+                    val hours = totalMinutes / 60
+                    val minutes = totalMinutes % 60
                     val timeText = if (hours > 0) {
-                        String.format("%d:%02d", hours, minutes)
+                        String.format(Locale.getDefault(), "%d:%02d:00", hours, minutes)
                     } else {
-                        String.format("%02d", minutes)
+                        String.format(Locale.getDefault(), "%d:00", minutes)
                     }
                     Text(
                         text = timeText,
@@ -717,8 +724,6 @@ private fun RepeatModeSheet(
                 modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.ONE) }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
             ListItem(
                 headlineContent = { Text("随机播放") },
                 leadingContent = { Icon(Icons.Default.Shuffle, contentDescription = null) },
@@ -741,13 +746,16 @@ private fun RepeatModeSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SleepTimerSheet(
+    currentMinutes: Int,
+    onSet: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var sliderValue by remember { mutableFloatStateOf(30f) }
+    var sliderValue by remember { mutableFloatStateOf(if (currentMinutes > 0) currentMinutes.toFloat() else 30f) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = rememberModalBottomSheetState()
     ) {
         Column(
             modifier = Modifier
@@ -761,7 +769,7 @@ private fun SleepTimerSheet(
             )
 
             Text(
-                text = "${sliderValue.toInt()} 分钟",
+                text = if (sliderValue.toInt() == 0) "关闭定时" else "${sliderValue.toInt()} 分钟",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -783,11 +791,11 @@ private fun SleepTimerSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf(15, 30, 45, 60, 90).forEach { mins ->
+                listOf(0, 15, 30, 45, 60, 90).forEach { mins ->
                     FilterChip(
                         selected = sliderValue.toInt() == mins,
                         onClick = { sliderValue = mins.toFloat() },
-                        label = { Text("${mins}分") }
+                        label = { Text(if (mins == 0) "关闭" else "${mins}分") }
                     )
                 }
             }
@@ -805,7 +813,10 @@ private fun SleepTimerSheet(
                     Text("取消")
                 }
                 Button(
-                    onClick = { onDismiss() },
+                    onClick = {
+                        onSet(sliderValue.toInt())
+                        onDismiss()
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("确定")

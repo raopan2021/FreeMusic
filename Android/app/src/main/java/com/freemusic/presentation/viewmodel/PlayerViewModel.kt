@@ -151,6 +151,10 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun setSleepTimer(minutes: Int) {
+        preferencesManager.setSleepTimer(minutes)
+    }
+
     private fun initializeMediaController() {
         val sessionToken = SessionToken(
             context,

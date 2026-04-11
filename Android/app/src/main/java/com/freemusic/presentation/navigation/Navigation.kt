@@ -1,17 +1,32 @@
 package com.freemusic.presentation.navigation
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,6 +59,7 @@ import com.freemusic.presentation.viewmodel.AlbumBrowserViewModel
 import com.freemusic.presentation.viewmodel.ArtistBrowserViewModel
 import com.freemusic.presentation.viewmodel.FolderBrowserViewModel
 import com.freemusic.presentation.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
@@ -63,6 +79,7 @@ sealed class Screen(val route: String) {
     data object AlbumBrowser : Screen("album_browser")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FreeMusicNavHost(
     navController: NavHostController = rememberNavController(),
@@ -96,15 +113,28 @@ fun FreeMusicNavHost(
     pendingAudioUri: Uri? = null,
     onPendingAudioUriConsumed: () -> Unit = {}
 ) {
+    // Player sheet 状态（需要在使用前声明）
+    val scope = rememberCoroutineScope()
+    var showPlayerSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // BackHandler: sheet 展开时按返回键关闭 sheet
+    BackHandler(enabled = showPlayerSheet) {
+        scope.launch {
+            sheetState.hide()
+            showPlayerSheet = false
+        }
+    }
+
     // 处理外部音频文件
     LaunchedEffect(pendingAudioUri) {
         if (pendingAudioUri != null) {
-            // 使用 playFromExternalUri 播放外部音频文件
             playerViewModel.playFromExternalUri(pendingAudioUri)
-            
-            // 导航到播放页面
-            navController.navigate(Screen.Player.route)
-            
+            // 展开播放页面 sheet
+            scope.launch {
+                showPlayerSheet = true
+                sheetState.show()
+            }
             onPendingAudioUriConsumed()
         }
     }
@@ -113,23 +143,22 @@ fun FreeMusicNavHost(
     val playerState by playerViewModel.uiState.collectAsState()
     val currentSong = playerState.currentSong
     val isPlaying = playerState.isPlaying
-    
-    // 获取当前路由（使用 currentBackStackEntryAsState 使其可观察）
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    
-    // 判断是否显示迷你播放器（不在Player页面且有当前歌曲）
-    val showMiniPlayer = currentSong != null && currentRoute != Screen.Player.route
-    
-    // 使用 Box 确保 MiniPlayer 可以覆盖在内容之上
+
+    // Mini Player 显示逻辑：有歌曲时显示
+    val showMiniPlayer = currentSong != null
+
     Box(modifier = Modifier.fillMaxSize()) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(
-                bottom = if (showMiniPlayer) 64.dp else 0.dp
-            )
+        // 主内容: Column(NavHost + NavigationBar)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
         ) {
+            // 页面内容 (NavHost 会填充剩余空间)
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home.route
+            ) {
         composable(Screen.Home.route) {
             val playlistState by playlistViewModel.uiState.collectAsState()
             val playlists = playlistState.playlists.map { p ->
@@ -429,8 +458,49 @@ fun FreeMusicNavHost(
             )
         }
     }
-    
-    // 底部迷你播放器 - 占满底部，不留导航栏padding
+
+        // 底部导航栏
+        val currentNavBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentNavRoute = currentNavBackStackEntry?.destination?.route
+        NavigationBar(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            val items = listOf(
+                BottomNavItem(Screen.Home.route, Icons.Default.Home, "首页"),
+                BottomNavItem(Screen.Search.route, Icons.Default.Search, "搜索"),
+                BottomNavItem(Screen.Settings.route, Icons.Default.Settings, "设置")
+            )
+            items.forEach { item ->
+                NavigationBarItem(
+                    icon = { Icon(item.icon, contentDescription = item.label) },
+                    label = { Text(item.label) },
+                    selected = currentNavRoute == item.route,
+                    onClick = {
+                        if (currentNavRoute != item.route) {
+                            // 关闭 player sheet
+                            scope.launch { sheetState.hide() }
+                            showPlayerSheet = false
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                        selectedTextColor = MaterialTheme.colorScheme.primary,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                )
+            }
+        }
+    }
+
+    // 迷你播放器 (位于 NavigationBar 上方)
     if (showMiniPlayer && currentSong != null) {
         MiniPlayer(
             currentSong = currentSong,
@@ -438,9 +508,60 @@ fun FreeMusicNavHost(
             onPlayPauseClick = { playerViewModel.togglePlayPause() },
             onNextClick = { playerViewModel.skipToNext() },
             onPreviousClick = { playerViewModel.skipToPrevious() },
-            onPlayerClick = { navController.navigate(Screen.Player.route) },
+            onPlayerClick = {
+                scope.launch {
+                    showPlayerSheet = true
+                    sheetState.show()
+                }
+            },
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
         )
     }
+
+    // 播放页面 Bottom Sheet
+    val playlistState by playlistViewModel.uiState.collectAsState()
+    if (showPlayerSheet && currentSong != null) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                scope.launch {
+                    sheetState.hide()
+                    showPlayerSheet = false
+                }
+            },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = null
+        ) {
+            PlayerScreen(
+                onBackClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        showPlayerSheet = false
+                    }
+                },
+                onQueueClick = { navController.navigate(Screen.Queue.route) },
+                viewModel = playerViewModel,
+                particlesEnabled = particlesEnabled,
+                particleIntensity = particleIntensity,
+                coverStyleType = coverStyle,
+                visualizerEnabled = visualizerEnabled,
+                equalizerPreset = equalizerPreset,
+                onParticlesToggle = onParticlesToggle,
+                onVisualizerToggle = onVisualizerToggle,
+                onEqualizerToggle = onEqualizerToggle,
+                shakeToSkipEnabled = shakeToSkip,
+                playlists = playlistState.playlists,
+                onAddSongsToPlaylist = { songs, playlist ->
+                    playlistViewModel.addSongsToPlaylist(playlist.id, songs)
+                }
+            )
+        }
+    }
 }
 }
+
+private data class BottomNavItem(
+    val route: String,
+    val icon: ImageVector,
+    val label: String
+)

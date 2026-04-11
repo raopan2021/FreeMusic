@@ -715,12 +715,16 @@ class PlayerViewModel @Inject constructor(
                 Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
                 else -> Player.REPEAT_MODE_OFF
             }
+            // 同步更新 UI 状态
+            updateRepeatShuffleState()
         }
     }
 
     fun toggleShuffle() {
         mediaController?.let { controller ->
             controller.shuffleModeEnabled = !controller.shuffleModeEnabled
+            // 同步更新 UI 状态
+            updateRepeatShuffleState()
         }
     }
 

@@ -73,6 +73,7 @@ fun PlayerScreen(
     var showQueueSheet by remember { mutableStateOf(false) }
     var showMoreSheet by remember { mutableStateOf(false) }
     var showPlaylistDialog by remember { mutableStateOf(false) }
+    var showEffectsLayer by remember { mutableStateOf(false) }
 
     val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
 
@@ -155,7 +156,8 @@ fun PlayerScreen(
                     onRepeatToggle = { showRepeatModeSheet = true },
                     onSleepTimerToggle = { showSleepTimerSheet = true },
                     onQueueToggle = { showQueueSheet = true },
-                    onMoreToggle = { showMoreSheet = true }
+                    onMoreToggle = { showMoreSheet = true },
+                    onEffectsLayerToggle = { showEffectsLayer = true }
                 )
                 1 -> LyricsPage(
                     lyrics = parsedLyrics,
@@ -227,6 +229,19 @@ fun PlayerScreen(
             currentSeconds = uiState.sleepTimerRemainingSeconds,
             onSet = { minutes -> viewModel.setSleepTimer(minutes) },
             onDismiss = { showSleepTimerSheet = false }
+        )
+    }
+
+    // 特效Layer（粒子、可视化、均衡器合并）
+    if (showEffectsLayer) {
+        EffectsLayer(
+            particlesEnabled = particlesEnabled,
+            visualizerEnabled = visualizerEnabled,
+            equalizerPreset = equalizerPreset,
+            onParticlesToggle = onParticlesToggle,
+            onVisualizerToggle = onVisualizerToggle,
+            onEqualizerToggle = onEqualizerToggle,
+            onDismiss = { showEffectsLayer = false }
         )
     }
 
@@ -343,7 +358,8 @@ private fun PlayerPage(
     onRepeatToggle: () -> Unit,
     onSleepTimerToggle: () -> Unit,
     onQueueToggle: () -> Unit,
-    onMoreToggle: () -> Unit
+    onMoreToggle: () -> Unit,
+    onEffectsLayerToggle: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -536,30 +552,12 @@ private fun PlayerPage(
                 }
             }
 
-            // 粒子效果
-            IconButton(onClick = onParticlesToggle) {
+            // 特效按钮（合并了粒子、可视化、均衡器）
+            IconButton(onClick = onEffectsLayerToggle) {
                 Icon(
-                    imageVector = Icons.Default.BubbleChart,
-                    contentDescription = "粒子效果",
-                    tint = if (particlesEnabled) primaryColor else Color.White.copy(alpha = 0.5f)
-                )
-            }
-
-            // 可视化
-            IconButton(onClick = onVisualizerToggle) {
-                Icon(
-                    imageVector = Icons.Default.Equalizer,
-                    contentDescription = "可视化",
-                    tint = if (visualizerEnabled) primaryColor else Color.White.copy(alpha = 0.5f)
-                )
-            }
-
-            // 均衡器
-            IconButton(onClick = onEqualizerToggle) {
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = "均衡器",
-                    tint = if (equalizerPreset > 0) primaryColor else Color.White.copy(alpha = 0.5f)
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "特效",
+                    tint = if (particlesEnabled || visualizerEnabled || equalizerPreset > 0) primaryColor else Color.White.copy(alpha = 0.5f)
                 )
             }
 
@@ -694,9 +692,18 @@ private fun RepeatModeSheet(
     onDismiss: () -> Unit,
     accentColor: Color = Color(0xFF5C6BC0)
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
@@ -719,7 +726,10 @@ private fun RepeatModeSheet(
                 },
                 modifier = Modifier.clickable {
                     onModeSelect(PlayRepeatMode.ALL)
-                    onDismiss()
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
                 }
             )
 
@@ -733,7 +743,10 @@ private fun RepeatModeSheet(
                 },
                 modifier = Modifier.clickable {
                     onModeSelect(PlayRepeatMode.ONE)
-                    onDismiss()
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
                 }
             )
 
@@ -747,7 +760,10 @@ private fun RepeatModeSheet(
                 },
                 modifier = Modifier.clickable {
                     onShuffleToggle()
-                    onDismiss()
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
                 }
             )
 
@@ -874,6 +890,85 @@ private fun SleepTimerSheet(
                     Text("确定")
                 }
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+/**
+ * 特效Layer（合并了粒子效果、可视化、均衡器）
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EffectsLayer(
+    particlesEnabled: Boolean,
+    visualizerEnabled: Boolean,
+    equalizerPreset: Int,
+    onParticlesToggle: () -> Unit,
+    onVisualizerToggle: () -> Unit,
+    onEqualizerToggle: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "特效",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            ListItem(
+                headlineContent = { Text("粒子效果") },
+                leadingContent = { Icon(Icons.Default.BubbleChart, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = particlesEnabled,
+                        onCheckedChange = { onParticlesToggle() }
+                    )
+                },
+                modifier = Modifier.clickable { onParticlesToggle() }
+            )
+
+            ListItem(
+                headlineContent = { Text("可视化") },
+                leadingContent = { Icon(Icons.Default.Equalizer, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = visualizerEnabled,
+                        onCheckedChange = { onVisualizerToggle() }
+                    )
+                },
+                modifier = Modifier.clickable { onVisualizerToggle() }
+            )
+
+            ListItem(
+                headlineContent = { Text("均衡器") },
+                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
+                trailingContent = {
+                    Switch(
+                        checked = equalizerPreset > 0,
+                        onCheckedChange = { onEqualizerToggle() }
+                    )
+                },
+                modifier = Modifier.clickable { onEqualizerToggle() }
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }

@@ -98,8 +98,8 @@ fun SettingsScreen(
                         currentTheme = currentTheme,
                         onThemeChange = { theme ->
                             onThemeChange(theme)
-                            // 根据主题设置纯黑模式
-                            onPureBlackToggle(theme == "纯黑")
+                            // 根据主题设置深色模式
+                            onPureBlackToggle(theme == "深色")
                         }
                     )
                     
@@ -138,6 +138,14 @@ fun SettingsScreen(
                         title = "封面自动切换",
                         subtitle = if (coverSwitchInterval == 0) "关闭" else "${coverSwitchInterval}秒",
                         onClick = { showCoverSwitchDialog = true }
+                    )
+                    
+                    // 歌词字体大小
+                    SettingsItem(
+                        icon = Icons.Default.TextFields,
+                        title = "歌词字体大小",
+                        subtitle = "${lyricsFontSize}sp",
+                        onClick = { showLyricsFontSizeDialog = true }
                     )
                 }
             }
@@ -220,13 +228,6 @@ fun SettingsScreen(
                         subtitle = "优先播放SQ/HQ音质",
                         checked = highQualityEnabled,
                         onCheckedChange = onHighQualityToggle
-                    )
-                    
-                    SettingsItem(
-                        icon = Icons.Default.TextFields,
-                        title = "歌词字体大小",
-                        subtitle = "${lyricsFontSize}sp",
-                        onClick = { showLyricsFontSizeDialog = true }
                     )
                 }
             }
@@ -649,7 +650,12 @@ private fun SettingsThemeSelector(
     currentTheme: String,
     onThemeChange: (String) -> Unit
 ) {
-    val themes = listOf("默认", "暗色", "纯黑")
+    // display name to theme value
+    val themeOptions = listOf(
+        "跟随系统" to "默认",
+        "浅色模式" to "浅色",
+        "深色模式" to "深色"
+    )
     
     Column(
         modifier = Modifier
@@ -657,7 +663,7 @@ private fun SettingsThemeSelector(
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
-            text = "主题",
+            text = "深色模式",
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(bottom = 12.dp)
         )
@@ -666,23 +672,23 @@ private fun SettingsThemeSelector(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            themes.forEach { theme ->
+            themeOptions.forEach { (displayName, themeValue) ->
                 OutlinedButton(
-                    onClick = { onThemeChange(theme) },
+                    onClick = { onThemeChange(themeValue) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (theme == currentTheme) 
+                        containerColor = if (themeValue == currentTheme) 
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
                         else 
                             Color.Transparent
                     ),
-                    border = if (theme == currentTheme) 
+                    border = if (themeValue == currentTheme) 
                         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                     else
                         ButtonDefaults.outlinedButtonBorder
                 ) {
                     Text(
-                        text = theme,
+                        text = displayName,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

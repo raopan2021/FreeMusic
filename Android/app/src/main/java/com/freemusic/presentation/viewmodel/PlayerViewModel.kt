@@ -106,6 +106,18 @@ class PlayerViewModel @Inject constructor(
             }
         }
         
+        // 定期更新播放进度（解决进度条不实时更新问题）
+        viewModelScope.launch {
+            while (true) {
+                delay(500)
+                mediaController?.let { controller ->
+                    _uiState.update { state ->
+                        state.copy(currentPosition = controller.currentPosition)
+                    }
+                }
+            }
+        }
+
         // 观察睡眠定时器
         viewModelScope.launch {
             preferencesManager.sleepTimerMinutes.collect { minutes ->

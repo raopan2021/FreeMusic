@@ -1,11 +1,12 @@
 package com.freemusic.presentation.ui.player
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CenterFocusWeak
@@ -60,7 +61,6 @@ fun QueueList(
     )
 
     // 固定颜色值，避免每次 recompose 时调用 MaterialTheme
-    val highlightBg = Color(0x4D6200EE)
     val primaryColor = Color(0xFF6200EE)
 
     Box(modifier = modifier.fillMaxWidth()) {
@@ -79,16 +79,17 @@ fun QueueList(
                     state = reorderableState,
                     key = item.song.id
                 ) { isDragging ->
-                    // 极简 item：无动画、无额外修饰符
-                    // 背景只在当前歌曲且非拖动时显示
-                    Box(
+                    // 左边播放中指示线（更简洁的高亮方式）
+                    val borderModifier = if (isCurrentSong && !isDragging) {
+                        Modifier.border(3.dp, primaryColor, RoundedCornerShape(0.dp))
+                    } else Modifier
+
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(
-                                if (isCurrentSong && !isDragging) Modifier.background(highlightBg)
-                                else Modifier
-                            )
-                            .clickable(enabled = !isCurrentSong) { onPlay(index) }
+                            .then(borderModifier)
+                            .clickable(enabled = !isCurrentSong) { onPlay(index) },
+                        color = Color.Transparent
                     ) {
                         Row(
                             modifier = Modifier

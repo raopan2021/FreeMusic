@@ -78,10 +78,35 @@ class MusicRepositoryImpl @Inject constructor(
 
     override fun getPlayUrl(songId: String): Flow<Result<String>> = flow {
         try {
-            // Meting API 直接返回 URL
+            // Meting API 返回可能是 URL 字符串或 JSON
             val responseBody = metingApi.getPlayUrl(id = songId)
-            val url = responseBody.string()
-            emit(Result.success(url))
+            val rawResponse = responseBody.string().trim()
+            
+            // 尝试解析为 JSON
+            val url = try {
+                if (rawResponse.startsWith("{")) {
+                    // JSON 对象，尝试提取 url 字段
+                    val jsonRegex = Regex(""""url""\s*:\s*"([^"]+)"""")
+                    jsonRegex.find(rawResponse)?.groupValues?.get(1) 
+                        ?: rawResponse // 如果解析失败，返回原始内容
+                } else if (rawResponse.startsWith("[")) {
+                    // JSON 数组，尝试提取第一个 url
+                    val arrayUrlRegex = Regex(""""url""\s*:\s*"([^"]+)"""")
+                    arrayUrlRegex.find(rawResponse)?.groupValues?.get(1)
+                        ?: rawResponse
+                } else {
+                    // 假设是直接的 URL
+                    rawResponse
+                }
+            } catch (e: Exception) {
+                rawResponse
+            }
+            
+            if (url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))) {
+                emit(Result.success(url))
+            } else {
+                emit(Result.failure(Exception("播放链接无效或为空")))
+            }
         } catch (e: Exception) {
             emit(Result.failure(Exception("无法获取播放链接: ${e.message}")))
         }
@@ -136,10 +161,24 @@ class MusicRepositoryImpl @Inject constructor(
                 }
             
             // 获取播放 URL
-            val urlResponse = metingApi.getPlayUrl(id = songId)
-            val url = urlResponse.string()
+            val rawResponse = metingApi.getPlayUrl(id = songId).string().trim()
             
-            if (url.isNotBlank()) {
+            // 尝试解析为 JSON
+            val url = try {
+                if (rawResponse.startsWith("{")) {
+                    val jsonRegex = Regex(""""url""\s*:\s*"([^"]+)"""")
+                    jsonRegex.find(rawResponse)?.groupValues?.get(1) ?: rawResponse
+                } else if (rawResponse.startsWith("[")) {
+                    val arrayUrlRegex = Regex(""""url""\s*:\s*"([^"]+)"""")
+                    arrayUrlRegex.find(rawResponse)?.groupValues?.get(1) ?: rawResponse
+                } else {
+                    rawResponse
+                }
+            } catch (e: Exception) {
+                rawResponse
+            }
+            
+            if (url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))) {
                 emit(Result.success(SongWithUrl(song, url)))
             } else {
                 emit(Result.failure(Exception("播放链接无效")))

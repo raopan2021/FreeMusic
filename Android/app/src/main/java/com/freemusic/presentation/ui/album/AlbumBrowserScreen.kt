@@ -71,12 +71,7 @@ fun AlbumBrowserScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("专辑") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                }
+                title = { Text("专辑") }
             )
         }
     ) { paddingValues ->
@@ -111,12 +106,7 @@ fun AlbumBrowserScreen(
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(uiState.selectedAlbum!!) },
-                            navigationIcon = {
-                                IconButton(onClick = { viewModel.clearSelection() }) {
-                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                                }
-                            }
+                            title = { Text(uiState.selectedAlbum!!) }
                         )
                     }
                 ) { paddingValues ->

@@ -60,21 +60,6 @@ fun QueueScreen(
                         Text("播放队列")
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = { 
-                        if (isSelectionMode) {
-                            isSelectionMode = false
-                            selectedItems = emptySet()
-                        } else {
-                            onBackClick()
-                        }
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "返回"
-                        )
-                    }
-                },
                 actions = {
                     if (isSelectionMode) {
                         IconButton(onClick = {

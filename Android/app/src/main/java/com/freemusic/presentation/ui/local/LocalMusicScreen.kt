@@ -97,18 +97,6 @@ fun LocalMusicScreen(
                         Text("本地音乐")
                     }
                 },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (isSelectionMode) {
-                            isSelectionMode = false
-                            selectedSongs = emptySet()
-                        } else {
-                            onBackClick()
-                        }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (isSelectionMode) "取消" else "返回")
-                    }
-                },
                 actions = {
                     if (hasPermission) {
                         if (isSelectionMode) {

@@ -58,11 +58,6 @@ fun PlaylistDetailScreen(
         topBar = {
             TopAppBar(
                 title = { Text(playlist.name) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 actions = {
                     // 排序按钮
                     Box {

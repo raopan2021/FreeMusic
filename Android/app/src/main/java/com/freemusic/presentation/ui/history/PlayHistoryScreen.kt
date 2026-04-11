@@ -46,11 +46,6 @@ fun PlayHistoryScreen(
         topBar = {
             TopAppBar(
                 title = { Text("播放历史") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 actions = {
                     IconButton(onClick = { showClearConfirmDialog = true }) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "清空历史")

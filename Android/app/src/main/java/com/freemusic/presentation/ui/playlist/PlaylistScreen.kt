@@ -49,11 +49,6 @@ fun PlaylistScreen(
         topBar = {
             TopAppBar(
                 title = { Text("我的歌单") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
                 actions = {
                     IconButton(onClick = { showSortDialog = true }) {
                         Icon(Icons.Default.Sort, contentDescription = "排序")

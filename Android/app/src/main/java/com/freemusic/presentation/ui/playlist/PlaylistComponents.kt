@@ -81,13 +81,7 @@ fun PlaylistDetailHeader(
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    contentDescription = "返回",
-                    tint = Color.White
-                )
-            }
+            // 返回按钮已移除
             
             Row {
                 IconButton(onClick = onFavoriteClick) {

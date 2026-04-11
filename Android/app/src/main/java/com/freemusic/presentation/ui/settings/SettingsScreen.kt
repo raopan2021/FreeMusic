@@ -91,12 +91,7 @@ fun SettingsScreen(
             // 顶部导航
             item {
                 TopAppBar(
-                    title = { Text("设置") },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
-                    }
+                    title = { Text("设置") }
                 )
             }
             

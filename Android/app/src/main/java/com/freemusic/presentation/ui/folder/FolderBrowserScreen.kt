@@ -66,18 +66,7 @@ fun FolderBrowserScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (uiState.currentPath == null) "文件夹" else uiState.currentPath!!.substringAfterLast("/")) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (uiState.currentPath != null) {
-                            viewModel.navigateUp()
-                        } else {
-                            onBackClick()
-                        }
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                }
+                title = { Text(if (uiState.currentPath == null) "文件夹" else uiState.currentPath!!.substringAfterLast("/")) }
             )
         }
     ) { paddingValues ->

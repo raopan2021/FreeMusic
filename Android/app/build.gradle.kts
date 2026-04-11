@@ -114,6 +114,8 @@ dependencies {
 
     // RecyclerView for drag-and-drop queue
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+    // Reorderable - 拖动排序
+    implementation("sh.calvin.reorderable:reorderable:3.0.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

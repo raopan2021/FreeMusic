@@ -4,8 +4,12 @@ import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -883,12 +887,13 @@ private fun QueueSheet(
                     textAlign = TextAlign.Center
                 )
             } else {
-                QueueRecyclerView(
+                QueueList(
                     queueItems = queueItems,
                     currentIndex = currentIndex,
                     onRemove = onRemove,
                     onMove = onMove,
                     onPlay = onPlay,
+                    sheetHeight = sheetHeight,
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(

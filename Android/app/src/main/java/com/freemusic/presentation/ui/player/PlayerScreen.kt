@@ -57,6 +57,9 @@ fun PlayerScreen(
     coverStyleType: CoverStyleType = CoverStyleType.ROUND,
     visualizerEnabled: Boolean = false,
     equalizerPreset: Int = 0,
+    onParticlesToggle: () -> Unit = {},
+    onVisualizerToggle: () -> Unit = {},
+    onEqualizerToggle: () -> Unit = {},
     shakeToSkipEnabled: Boolean = false,
     // Playlists for "Add to Playlist"
     playlists: List<Playlist> = emptyList(),
@@ -137,10 +140,13 @@ fun PlayerScreen(
                     primaryColor = primaryColor,
                     lyrics = parsedLyrics,
                     currentLyricIndex = currentLyricIndex,
-                    sleepTimerRemaining = uiState.sleepTimerRemainingMinutes,
+                    sleepTimerRemainingSeconds = uiState.sleepTimerRemainingSeconds,
                     particlesEnabled = particlesEnabled,
                     visualizerEnabled = visualizerEnabled,
                     equalizerPreset = equalizerPreset,
+                    onParticlesToggle = onParticlesToggle,
+                    onVisualizerToggle = onVisualizerToggle,
+                    onEqualizerToggle = onEqualizerToggle,
                     onSeek = { progress -> viewModel.seekTo((progress * uiState.duration).toLong()) },
                     onPlayPause = viewModel::togglePlayPause,
                     onPrevious = viewModel::skipToPrevious,
@@ -218,7 +224,7 @@ fun PlayerScreen(
     // 睡眠定时器Sheet
     if (showSleepTimerSheet) {
         SleepTimerSheet(
-            currentMinutes = uiState.sleepTimerRemainingMinutes,
+            currentSeconds = uiState.sleepTimerRemainingSeconds,
             onSet = { minutes -> viewModel.setSleepTimer(minutes) },
             onDismiss = { showSleepTimerSheet = false }
         )
@@ -320,14 +326,14 @@ private fun PlayerPage(
     primaryColor: Color,
     lyrics: List<LyricLine>,
     currentLyricIndex: Int,
-    sleepTimerRemaining: Int,
+    sleepTimerRemainingSeconds: Long,
     // 设置参数
     particlesEnabled: Boolean = true,
     visualizerEnabled: Boolean = false,
     equalizerPreset: Int = 0,
     onParticlesToggle: () -> Unit = {},
     onVisualizerToggle: () -> Unit = {},
-    onEqualizerClick: () -> Unit = {},
+    onEqualizerToggle: () -> Unit = {},
     // 回调
     onSeek: (Float) -> Unit,
     onPlayPause: () -> Unit,
@@ -505,15 +511,16 @@ private fun PlayerPage(
 
             // 睡眠定时
             IconButton(onClick = onSleepTimerToggle) {
-                if (sleepTimerRemaining > 0) {
+                if (sleepTimerRemainingSeconds > 0) {
                     // 显示倒计时，格式：H:MM:SS 或 MM:SS
-                    val totalMinutes = sleepTimerRemaining
-                    val hours = totalMinutes / 60
-                    val minutes = totalMinutes % 60
+                    val totalSeconds = sleepTimerRemainingSeconds
+                    val hours = totalSeconds / 3600
+                    val minutes = (totalSeconds % 3600) / 60
+                    val seconds = totalSeconds % 60
                     val timeText = if (hours > 0) {
-                        String.format(Locale.getDefault(), "%d:%02d:00", hours, minutes)
+                        String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
                     } else {
-                        String.format(Locale.getDefault(), "%d:00", minutes)
+                        String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
                     }
                     Text(
                         text = timeText,
@@ -548,7 +555,7 @@ private fun PlayerPage(
             }
 
             // 均衡器
-            IconButton(onClick = onEqualizerClick) {
+            IconButton(onClick = onEqualizerToggle) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = "均衡器",
@@ -710,7 +717,10 @@ private fun RepeatModeSheet(
                         Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
                     }
                 },
-                modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.ALL) }
+                modifier = Modifier.clickable {
+                    onModeSelect(PlayRepeatMode.ALL)
+                    onDismiss()
+                }
             )
 
             ListItem(
@@ -721,7 +731,10 @@ private fun RepeatModeSheet(
                         Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
                     }
                 },
-                modifier = Modifier.clickable { onModeSelect(PlayRepeatMode.ONE) }
+                modifier = Modifier.clickable {
+                    onModeSelect(PlayRepeatMode.ONE)
+                    onDismiss()
+                }
             )
 
             ListItem(
@@ -732,7 +745,10 @@ private fun RepeatModeSheet(
                         Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
                     }
                 },
-                modifier = Modifier.clickable { onShuffleToggle() }
+                modifier = Modifier.clickable {
+                    onShuffleToggle()
+                    onDismiss()
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -746,16 +762,34 @@ private fun RepeatModeSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SleepTimerSheet(
-    currentMinutes: Int,
-    onSet: (Int) -> Unit,
+    currentSeconds: Long,
+    onSet: (Int) -> Unit,  // 仍以分钟为单位
     onDismiss: () -> Unit
 ) {
+    // 将当前秒数转换为分钟（用于 slider）
+    val currentMinutes = if (currentSeconds > 0) (currentSeconds / 60).toInt() else 0
     var sliderValue by remember { mutableFloatStateOf(if (currentMinutes > 0) currentMinutes.toFloat() else 30f) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    // 显示当前剩余时间
+    val displayTime = if (currentSeconds > 0) {
+        val h = currentSeconds / 3600
+        val m = (currentSeconds % 3600) / 60
+        val s = currentSeconds % 60
+        if (h > 0) String.format(Locale.getDefault(), "%d:%02d:%02d", h, m, s)
+        else String.format(Locale.getDefault(), "%d:%02d", m, s)
+    } else null
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
         containerColor = MaterialTheme.colorScheme.surface,
-        sheetState = rememberModalBottomSheetState()
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier
@@ -765,8 +799,18 @@ private fun SleepTimerSheet(
             Text(
                 text = "睡眠定时",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             )
+
+            // 剩余时间显示
+            if (displayTime != null) {
+                Text(
+                    text = "剩余 $displayTime",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
             Text(
                 text = if (sliderValue.toInt() == 0) "关闭定时" else "${sliderValue.toInt()} 分钟",
@@ -807,7 +851,12 @@ private fun SleepTimerSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
-                    onClick = { onDismiss() },
+                    onClick = {
+                        scope.launch {
+                            sheetState.hide()
+                            onDismiss()
+                        }
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("取消")
@@ -815,7 +864,10 @@ private fun SleepTimerSheet(
                 Button(
                     onClick = {
                         onSet(sliderValue.toInt())
-                        onDismiss()
+                        scope.launch {
+                            sheetState.hide()
+                            onDismiss()
+                        }
                     },
                     modifier = Modifier.weight(1f)
                 ) {

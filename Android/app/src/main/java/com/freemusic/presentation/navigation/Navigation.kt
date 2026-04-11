@@ -76,6 +76,10 @@ fun FreeMusicNavHost(
     particleIntensity: Float = 1f,
     coverStyle: CoverStyleType = CoverStyleType.ROUND,
     visualizerEnabled: Boolean = false,
+    // 特效回调（由 SettingsViewModel 提供）
+    onParticlesToggle: () -> Unit = {},
+    onVisualizerToggle: () -> Unit = {},
+    onEqualizerToggle: () -> Unit = {},
     // 音效设置
     equalizerPreset: Int = 0,
     bassBoost: Int = 0,
@@ -201,6 +205,12 @@ fun FreeMusicNavHost(
                 coverStyleType = coverStyle,
                 visualizerEnabled = visualizerEnabled,
                 equalizerPreset = equalizerPreset,
+                onParticlesToggle = { settingsViewModel.setParticlesEnabled(!particlesEnabled) },
+                onVisualizerToggle = { settingsViewModel.setVisualizerEnabled(!visualizerEnabled) },
+                onEqualizerToggle = {
+                    val nextIdx = if (equalizerPreset >= EqualizerPreset.entries.size - 1) 0 else equalizerPreset + 1
+                    settingsViewModel.setEqualizerPreset(nextIdx)
+                },
                 shakeToSkipEnabled = shakeToSkip,
                 // 歌单
                 playlists = playlistState.playlists,
@@ -262,8 +272,6 @@ fun FreeMusicNavHost(
                 onAutoPlayToggle = settingsViewModel::setAutoPlay,
                 playbackSpeed = settingsState.playbackSpeed,
                 onPlaybackSpeedChange = settingsViewModel::setPlaybackSpeed,
-                sleepTimerMinutes = settingsState.sleepTimerMinutes,
-                onSleepTimerChange = settingsViewModel::setSleepTimer,
                 skipSilenceEnabled = settingsState.skipSilenceEnabled,
                 onSkipSilenceToggle = settingsViewModel::setSkipSilence,
                 highQualityEnabled = settingsState.highQualityEnabled,

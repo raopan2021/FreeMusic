@@ -50,7 +50,7 @@ data class PlayerUiState(
     val isFavorite: Boolean = false,
     val repeatMode: PlayRepeatMode = PlayRepeatMode.OFF,
     val isShuffleEnabled: Boolean = false,
-    val sleepTimerRemainingMinutes: Int = 0  // 睡眠定时剩余分钟数，0表示未设置
+    val sleepTimerRemainingSeconds: Long = 0L  // 睡眠定时剩余秒数，0表示未设置
 )
 
 @HiltViewModel
@@ -139,13 +139,13 @@ class PlayerViewModel @Inject constructor(
                         mediaController?.pause()
                         sleepTimerEndTimeMillis = 0L
                         preferencesManager.setSleepTimer(0)
-                        _uiState.update { it.copy(sleepTimerRemainingMinutes = 0) }
+                        _uiState.update { it.copy(sleepTimerRemainingSeconds = 0L) }
                     } else {
-                        val remainingMinutes = ((remainingMs + 59999) / 60000).toInt() // 向上取整
-                        _uiState.update { it.copy(sleepTimerRemainingMinutes = remainingMinutes) }
+                        val remainingSeconds = (remainingMs / 1000).toLong()
+                        _uiState.update { it.copy(sleepTimerRemainingSeconds = remainingSeconds) }
                     }
                 } else {
-                    _uiState.update { it.copy(sleepTimerRemainingMinutes = 0) }
+                    _uiState.update { it.copy(sleepTimerRemainingSeconds = 0L) }
                 }
             }
         }

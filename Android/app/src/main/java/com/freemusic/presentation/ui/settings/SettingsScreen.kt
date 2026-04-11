@@ -43,9 +43,6 @@ fun SettingsScreen(
     onAutoPlayToggle: (Boolean) -> Unit,
     playbackSpeed: Float,
     onPlaybackSpeedChange: (Float) -> Unit,
-    sleepTimerMinutes: Int,
-    sleepTimerRemainingSeconds: Int = 0,
-    onSleepTimerChange: (Int) -> Unit,
     lyricsFontSize: Int = 16,
     onLyricsFontSizeChange: (Int) -> Unit = {},
     skipSilenceEnabled: Boolean,
@@ -73,7 +70,6 @@ fun SettingsScreen(
     var showCoverSwitchDialog by remember { mutableStateOf(false) }
     var showColorPickerDialog by remember { mutableStateOf(false) }
     var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
-    var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showLyricsFontSizeDialog by remember { mutableStateOf(false) }
     
     val particleEffects = listOf("无", "星星", "泡泡", "烟花")
@@ -81,7 +77,6 @@ fun SettingsScreen(
     val equalizerPresets = listOf("平坦", "低音增强", "高音增强", "人声", "古典", "摇滚")
     val coverSwitchOptions = listOf(0, 1, 3, 5, 10, 15, 30)
     val playbackSpeedOptions = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
-    val sleepTimerOptions = listOf(0, 15, 30, 45, 60, 90, 120)
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -189,21 +184,6 @@ fun SettingsScreen(
                         title = "播放速度",
                         subtitle = "${playbackSpeed}x",
                         onClick = { showPlaybackSpeedDialog = true }
-                    )
-                    
-                    SettingsItem(
-                        icon = Icons.Default.Bedtime,
-                        title = "睡眠定时器",
-                        subtitle = if (sleepTimerMinutes > 0) {
-                            if (sleepTimerRemainingSeconds > 0) {
-                                val mins = sleepTimerRemainingSeconds / 60
-                                val secs = sleepTimerRemainingSeconds % 60
-                                "${mins}分${secs}秒后停止"
-                            } else {
-                                "${sleepTimerMinutes}分钟后停止"
-                            }
-                        } else "关闭",
-                        onClick = { showSleepTimerDialog = true }
                     )
                     
                     SettingsSwitchItem(
@@ -442,58 +422,10 @@ fun SettingsScreen(
             )
         }
 
-        // 睡眠定时器对话框 - 使用滑块控制
-        if (showSleepTimerDialog) {
-            var tempMinutes by remember { mutableStateOf(sleepTimerMinutes.toFloat()) }
-            AlertDialog(
-                onDismissRequest = { showSleepTimerDialog = false },
-                title = { Text("睡眠定时器") },
-                text = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = if (tempMinutes <= 0) "关闭" else "${tempMinutes.toInt()} 分钟",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Slider(
-                            value = tempMinutes,
-                            onValueChange = { tempMinutes = it },
-                            valueRange = 0f..120f,
-                            steps = 23, // 5-minute granularity
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("关闭", style = MaterialTheme.typography.bodySmall)
-                            Text("30分钟", style = MaterialTheme.typography.bodySmall)
-                            Text("120分钟", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onSleepTimerChange(tempMinutes.toInt())
-                        showSleepTimerDialog = false
-                    }) {
-                        Text("确定")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showSleepTimerDialog = false }) {
-                        Text("取消")
-                    }
-                }
-            )
-        }
         
         // 歌词字体大小对话框
         if (showLyricsFontSizeDialog) {
+            var sliderValue by remember { mutableFloatStateOf(lyricsFontSize.toFloat()) }
             AlertDialog(
                 onDismissRequest = { showLyricsFontSizeDialog = false },
                 title = { Text("歌词字体大小") },
@@ -503,14 +435,14 @@ fun SettingsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "${lyricsFontSize}sp",
+                            text = "${sliderValue.toInt()}sp",
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Slider(
-                            value = lyricsFontSize.toFloat(),
-                            onValueChange = { onLyricsFontSizeChange(it.toInt()) },
+                            value = sliderValue,
+                            onValueChange = { sliderValue = it },
                             valueRange = 12f..32f,
                             steps = 9
                         )
@@ -532,17 +464,25 @@ fun SettingsScreen(
                         ) {
                             Text(
                                 text = "歌词预览示例",
-                                modifier = Modifier.padding(lyricsFontSize.dp),
+                                modifier = Modifier.padding(sliderValue.toInt().dp),
                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontSize = lyricsFontSize.sp
+                                    fontSize = sliderValue.toInt().sp
                                 )
                             )
                         }
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showLyricsFontSizeDialog = false }) {
+                    TextButton(onClick = {
+                        onLyricsFontSizeChange(sliderValue.toInt())
+                        showLyricsFontSizeDialog = false
+                    }) {
                         Text("完成")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLyricsFontSizeDialog = false }) {
+                        Text("取消")
                     }
                 }
             )

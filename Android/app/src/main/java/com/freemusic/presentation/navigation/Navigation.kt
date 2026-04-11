@@ -127,7 +127,14 @@ fun FreeMusicNavHost(
             )
         ) {
         composable(Screen.Home.route) {
-            // 简化版首页 - 直接导航到搜索
+            val playlistState by playlistViewModel.uiState.collectAsState()
+            val playlists = playlistState.playlists.map { p ->
+                com.freemusic.presentation.ui.home.PlaylistUiModel(
+                    id = p.id.hashCode().toLong(),
+                    name = p.name,
+                    songCount = p.songs.size
+                )
+            }
             com.freemusic.presentation.ui.home.HomeScreen(
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
@@ -136,7 +143,9 @@ fun FreeMusicNavHost(
                 onFolderBrowserClick = { navController.navigate(Screen.FolderBrowser.route) },
                 onArtistBrowserClick = { navController.navigate(Screen.ArtistBrowser.route) },
                 onAlbumBrowserClick = { navController.navigate(Screen.AlbumBrowser.route) },
-                onHistoryClick = { navController.navigate(Screen.PlayHistory.route) }
+                onHistoryClick = { navController.navigate(Screen.PlayHistory.route) },
+                playlists = playlists,
+                onCreatePlaylist = { /* TODO: 创建歌单 */ }
             )
         }
         

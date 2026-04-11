@@ -223,6 +223,7 @@ fun PlayerScreen(
             currentIndex = uiState.currentIndex,
             onRemove = { index -> viewModel.removeFromQueue(index) },
             onMove = { from, to -> viewModel.moveQueueItem(from, to) },
+            onPlay = { index -> viewModel.playFromQueue(index) },
             onClear = { viewModel.clearQueue() },
             onDismiss = { showQueueSheet = false }
         )
@@ -824,6 +825,7 @@ private fun QueueSheet(
     currentIndex: Int,
     onRemove: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
+    onPlay: (Int) -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -877,6 +879,7 @@ private fun QueueSheet(
                     currentIndex = currentIndex,
                     onRemove = onRemove,
                     onMove = onMove,
+                    onPlay = onPlay,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = sheetHeight)
@@ -897,6 +900,7 @@ private fun QueueList(
     currentIndex: Int,
     onRemove: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
+    onPlay: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -957,6 +961,12 @@ private fun QueueList(
                                     Modifier.background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
                                 } else Modifier
                             )
+                            .clickable {
+                                // 如果不是当前播放的歌曲，则切换到这首歌播放
+                                if (!isCurrentSong) {
+                                    onPlay(index)
+                                }
+                            }
                             .padding(vertical = 8.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

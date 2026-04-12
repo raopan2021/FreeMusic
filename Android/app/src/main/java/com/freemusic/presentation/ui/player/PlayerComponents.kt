@@ -15,6 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -47,15 +49,46 @@ fun MiniPlayer(
         shadowElevation = 8.dp
     ) {
         Column {
-            // 进度条
-            LinearProgressIndicator(
-                progress = progress,
+            // 彗星进度条
+            Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp),
-                color = primaryColor,
-                trackColor = Color.Transparent
-            )
+                    .height(3.dp)
+            ) {
+                val progressWidth = size.width * progress
+                val gradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        primaryColor.copy(alpha = 0.1f),
+                        primaryColor.copy(alpha = 0.4f),
+                        primaryColor.copy(alpha = 0.8f),
+                        primaryColor
+                    )
+                )
+                // 绘制进度条背景
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.1f),
+                            primaryColor.copy(alpha = 0.1f)
+                        )
+                    )
+                )
+                // 绘制进度
+                if (progressWidth > 0) {
+                    drawRect(brush = gradient, size = Size(progressWidth, size.height))
+                    // 彗星头部发光效果
+                    drawCircle(
+                        color = primaryColor,
+                        radius = size.height * 2f,
+                        center = Offset(progressWidth, size.height / 2)
+                    )
+                    drawCircle(
+                        color = primaryColor.copy(alpha = 0.5f),
+                        radius = size.height * 4f,
+                        center = Offset(progressWidth, size.height / 2)
+                    )
+                }
+            }
             
             Row(
                 modifier = Modifier

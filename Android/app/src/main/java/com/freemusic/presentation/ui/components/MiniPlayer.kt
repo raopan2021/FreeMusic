@@ -18,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -366,19 +368,47 @@ fun FloatingMiniPlayer(
         tonalElevation = 8.dp
     ) {
         Column {
-            // 进度条
+            // 彗星进度条
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp))
+                    .height(4.dp)
             ) {
-                LinearProgressIndicator(
-                    progress = animatedProgress,
-                    modifier = Modifier.fillMaxSize(),
-                    color = primaryColor,
-                    trackColor = primaryColor.copy(alpha = 0.1f)
-                )
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val progressWidth = size.width * animatedProgress
+                    val gradient = Brush.horizontalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.1f),
+                            primaryColor.copy(alpha = 0.4f),
+                            primaryColor.copy(alpha = 0.8f),
+                            primaryColor
+                        )
+                    )
+                    // 绘制进度条背景
+                    drawRect(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                primaryColor.copy(alpha = 0.1f),
+                                primaryColor.copy(alpha = 0.1f)
+                            )
+                        )
+                    )
+                    // 绘制进度
+                    if (progressWidth > 0) {
+                        drawRect(brush = gradient, size = Size(progressWidth, size.height))
+                        // 彗星头部发光效果
+                        drawCircle(
+                            color = primaryColor,
+                            radius = size.height * 2f,
+                            center = Offset(progressWidth, size.height / 2)
+                        )
+                        drawCircle(
+                            color = primaryColor.copy(alpha = 0.5f),
+                            radius = size.height * 4f,
+                            center = Offset(progressWidth, size.height / 2)
+                        )
+                    }
+                }
             }
             
             Row(

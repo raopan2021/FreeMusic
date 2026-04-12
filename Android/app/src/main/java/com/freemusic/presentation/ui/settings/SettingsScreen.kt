@@ -127,13 +127,19 @@ fun SettingsScreen(
                         }
                     )
                     
-                    // 深色模式开关
+                    // 深色模式选择器
+                    SettingsThemeSelector(
+                        currentTheme = currentTheme,
+                        onThemeChange = onThemeChange
+                    )
+
+                    // 纯黑主题开关
                     SettingsSwitchItem(
                         icon = Icons.Default.DarkMode,
-                        title = "深色模式",
-                        subtitle = "启用深色主题",
-                        checked = currentTheme == "深色",
-                        onCheckedChange = { onThemeChange(if (it) "深色" else "浅色") }
+                        title = "纯黑主题",
+                        subtitle = "使用纯黑背景（更省电）",
+                        checked = pureBlackEnabled,
+                        onCheckedChange = onPureBlackToggle
                     )
 
                     // 封面样式

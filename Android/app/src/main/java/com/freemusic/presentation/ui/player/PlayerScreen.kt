@@ -254,7 +254,8 @@ fun PlayerScreen(
     // 歌词设置Layer（长按歌词弹出）
     if (showLyricsSettingsLayer) {
         LyricsSettingsLayer(
-            onDismiss = { showLyricsSettingsLayer = false }
+            onDismiss = { showLyricsSettingsLayer = false },
+            onOpenSettings = { showLyricsSettingsLayer = false }
         )
     }
 
@@ -1009,7 +1010,8 @@ private fun EffectsLayer(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LyricsSettingsLayer(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenSettings: () -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -1035,7 +1037,7 @@ private fun LyricsSettingsLayer(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             // 外观设置
             Text(
                 text = "外观",
@@ -1046,21 +1048,23 @@ private fun LyricsSettingsLayer(
             ListItem(
                 headlineContent = { Text("深色模式") },
                 leadingContent = { Icon(Icons.Default.DarkMode, contentDescription = null) },
-                modifier = Modifier.clickable { /* TODO: 打开深色模式设置 */ }
+                modifier = Modifier.clickable { onDismiss() }
             )
             ListItem(
                 headlineContent = { Text("主题颜色") },
                 leadingContent = { Icon(Icons.Default.Palette, contentDescription = null) },
-                modifier = Modifier.clickable { /* TODO: 打开主题颜色设置 */ }
+                trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable { onOpenSettings(); onDismiss() }
             )
             ListItem(
                 headlineContent = { Text("歌词字体大小") },
                 leadingContent = { Icon(Icons.Default.TextFields, contentDescription = null) },
-                modifier = Modifier.clickable { /* TODO: 打开字体大小设置 */ }
+                trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable { onOpenSettings(); onDismiss() }
             )
-            
+
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            
+
             // 播放设置
             Text(
                 text = "播放设置",
@@ -1071,19 +1075,20 @@ private fun LyricsSettingsLayer(
             ListItem(
                 headlineContent = { Text("播放速度") },
                 leadingContent = { Icon(Icons.Default.Speed, contentDescription = null) },
-                modifier = Modifier.clickable { /* TODO: 打开播放速度设置 */ }
+                trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                modifier = Modifier.clickable { onOpenSettings(); onDismiss() }
             )
             ListItem(
                 headlineContent = { Text("跳过静音") },
                 leadingContent = { Icon(Icons.Default.SkipNext, contentDescription = null) },
-                modifier = Modifier.clickable { /* TODO: 打开跳过静音设置 */ }
+                modifier = Modifier.clickable { onDismiss() }
             )
             ListItem(
                 headlineContent = { Text("高质量音频") },
                 leadingContent = { Icon(Icons.Default.HighQuality, contentDescription = null) },
-                modifier = Modifier.clickable { /* TODO: 打开高质量音频设置 */ }
+                modifier = Modifier.clickable { onDismiss() }
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

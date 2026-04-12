@@ -237,7 +237,7 @@ class SettingsViewModel @Inject constructor(
     private fun updateUiState() {
         val themeName = when {
             _isPureBlack.value -> "纯黑"
-            _isDarkTheme.value -> "暗色"
+            _isDarkTheme.value -> "深色"
             else -> "默认"
         }
         _uiState.update { state ->

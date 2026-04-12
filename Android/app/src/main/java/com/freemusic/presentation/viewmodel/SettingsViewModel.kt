@@ -235,9 +235,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun updateUiState() {
-        val themeName = when {
-            _isPureBlack.value -> "纯黑"
-            _isDarkTheme.value -> "深色"
+        // 优先使用 _themeMode（用户明确选择的主题），否则根据深色/纯黑状态计算
+        val themeName = when (_themeMode.value) {
+            "浅色" -> "浅色"
+            "深色" -> if (_isPureBlack.value) "纯黑" else "深色"
             else -> "默认"
         }
         _uiState.update { state ->
@@ -383,16 +384,11 @@ class SettingsViewModel @Inject constructor(
 
     // ============ 其他设置 ============
     fun setTheme(theme: String) {
-        _uiState.update { it.copy(currentThemeName = theme) }
         preferencesManager.setThemeMode(theme)
         
-        // 根据主题名称设置深色模式
+        // 深色模式默认使用纯黑（不需要单独开关）
         when (theme) {
-            "深色" -> {
-                preferencesManager.setDarkTheme(true)
-                preferencesManager.setPureBlack(false)
-            }
-            "纯黑" -> {
+            "深色", "纯黑" -> {
                 preferencesManager.setDarkTheme(true)
                 preferencesManager.setPureBlack(true)
             }

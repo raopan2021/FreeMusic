@@ -79,7 +79,7 @@ fun PlayerScreen(
     var showEffectsLayer by remember { mutableStateOf(false) }
     var showLyricsSettingsLayer by remember { mutableStateOf(false) }
 
-    val primaryColor = Color(0xFF5C6BC0) // PrimaryIndigo equivalent
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     // Pager状态:0=播放页,1=歌词页
     val pagerState = rememberPagerState(pageCount = { 2 })

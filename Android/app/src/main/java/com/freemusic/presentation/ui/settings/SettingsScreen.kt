@@ -133,15 +133,6 @@ fun SettingsScreen(
                         onThemeChange = onThemeChange
                     )
 
-                    // 纯黑主题开关
-                    SettingsSwitchItem(
-                        icon = Icons.Default.DarkMode,
-                        title = "纯黑主题",
-                        subtitle = "使用纯黑背景（更省电）",
-                        checked = pureBlackEnabled,
-                        onCheckedChange = onPureBlackToggle
-                    )
-
                     // 封面样式
                     SettingsItem(
                         icon = Icons.Default.Image,

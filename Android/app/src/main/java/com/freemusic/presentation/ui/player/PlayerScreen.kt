@@ -1374,7 +1374,8 @@ private fun MoreOptionsSheet(
                     Icon(
                         if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = null,
-                        tint = if (isFavorite) Color.Red else Color.Gray
+                        tint = if (isFavorite) Color.Red else Color.Gray,
+                        modifier = Modifier.clickable { onFavoriteToggle() }
                     )
                 },
                 modifier = Modifier.clickable { onFavoriteToggle() }

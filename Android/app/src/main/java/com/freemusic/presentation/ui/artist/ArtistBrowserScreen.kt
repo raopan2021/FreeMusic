@@ -102,7 +102,12 @@ fun ArtistBrowserScreen(
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(uiState.selectedArtist!!) }
+                            title = { Text(uiState.selectedArtist!!) },
+                            navigationIcon = {
+                                IconButton(onClick = { viewModel.clearSelection() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                                }
+                            }
                         )
                     }
                 ) { paddingValues ->

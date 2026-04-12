@@ -6,6 +6,7 @@ import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.freemusic.domain.model.Song
+import com.freemusic.util.ArtistNameNormalizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -132,11 +133,9 @@ class ArtistBrowserViewModel @Inject constructor(
     /**
      * 规范化艺术家名称，避免大小写/多余空格导致同一艺术家出现多次
      * 例如: "BEYOND", "Beyond", "beyond  " 都归一化为 "beyond"
+     * "g.e.m.邓紫棋" 和 "g.e.m. 邓紫棋" 统一处理
      */
     private fun normalizeArtistName(name: String): String {
-        return name
-            .trim()
-            .replace("\\s+".toRegex(), " ")
-            .lowercase()
+        return ArtistNameNormalizer.normalize(name)
     }
 }

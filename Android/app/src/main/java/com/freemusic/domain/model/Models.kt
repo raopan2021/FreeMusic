@@ -11,7 +11,8 @@ data class Song(
     val coverUrl: String?,
     val duration: Long, // 毫秒
     val neteaseId: String? = null,
-    val isNetease: Boolean = true
+    val isNetease: Boolean = true,
+    val playCount: Int = 0  // 播放次数
 )
 
 /**

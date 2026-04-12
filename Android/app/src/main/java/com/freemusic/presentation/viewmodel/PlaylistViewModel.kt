@@ -234,7 +234,8 @@ fun Song.toSongData() = SongData(
     coverUrl = coverUrl,
     duration = duration,
     neteaseId = neteaseId,
-    isNetease = isNetease
+    isNetease = isNetease,
+    playCount = playCount
 )
 
 fun SongData.toSong() = Song(
@@ -245,7 +246,8 @@ fun SongData.toSong() = Song(
     coverUrl = coverUrl,
     duration = duration,
     neteaseId = neteaseId,
-    isNetease = isNetease
+    isNetease = isNetease,
+    playCount = playCount
 )
 
 fun Playlist.toPlaylistData() = PlaylistData(

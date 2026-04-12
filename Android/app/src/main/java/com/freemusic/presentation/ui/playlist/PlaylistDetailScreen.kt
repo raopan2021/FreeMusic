@@ -123,9 +123,7 @@ fun PlaylistDetailScreen(
             
             if (playlist.songs.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -158,9 +156,7 @@ fun PlaylistDetailScreen(
                 }
             } else if (filteredSongs.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -171,9 +167,7 @@ fun PlaylistDetailScreen(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
                     item {
@@ -224,13 +218,27 @@ private fun PlaylistSongItem(
             )
         },
         supportingContent = {
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (song.playCount > 0) {
+                    Text(
+                        text = "▶ ${song.playCount}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PrimaryIndigo,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         },
         leadingContent = {
             if (song.coverUrl != null) {

@@ -375,7 +375,8 @@ class PreferencesManager @Inject constructor(
                 song.coverUrl ?: "",
                 song.duration.toString(),
                 song.neteaseId ?: "",
-                song.isNetease.toString()
+                song.isNetease.toString(),
+                song.playCount.toString()
             ).joinToString("|||FIELD|||")
         }
         return listOf(playlist.id, playlist.name, songsEncoded).joinToString("|||INFO|||")
@@ -425,7 +426,8 @@ class PreferencesManager @Inject constructor(
             coverUrl = fields[4].ifEmpty { null },
             duration = fields[5].toLongOrNull() ?: 0L,
             neteaseId = fields[6].ifEmpty { null },
-            isNetease = fields[7].toBooleanStrictOrNull() ?: false
+            isNetease = fields[7].toBooleanStrictOrNull() ?: false,
+            playCount = if (fields.size > 8) fields[8].toIntOrNull() ?: 0 else 0
         )
     }
 
@@ -443,7 +445,8 @@ class PreferencesManager @Inject constructor(
                     song.coverUrl ?: "",
                     song.duration.toString(),
                     song.neteaseId ?: "",
-                    song.isNetease.toString()
+                    song.isNetease.toString(),
+                    song.playCount.toString()
                 ).joinToString("|||FIELD|||")
             }
             prefs.edit().putString(KEY_FAVORITES, encoded).apply()
@@ -583,5 +586,6 @@ data class SongData(
     val coverUrl: String?,
     val duration: Long,
     val neteaseId: String?,
-    val isNetease: Boolean
+    val isNetease: Boolean,
+    val playCount: Int = 0
 )

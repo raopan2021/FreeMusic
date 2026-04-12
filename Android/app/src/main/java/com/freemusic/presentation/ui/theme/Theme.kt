@@ -209,7 +209,7 @@ object ThemePresets {
             secondary = Color(0xFF6ABEF5),
             tertiary = Color(0xFF3A8ED5),
             background = Color(0xFF0D2A3D),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF1E3A4D),
             onPrimary = Color.White,
             onSecondary = Color.White,
@@ -241,7 +241,7 @@ object ThemePresets {
             secondary = Color(0xFFE73C51),
             tertiary = Color(0xFFB71C31),
             background = Color(0xFF1A0A0A),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF2D1515),
             onPrimary = Color.White,
             onSecondary = Color.White,
@@ -273,7 +273,7 @@ object ThemePresets {
             secondary = Color(0xFF3A6F6D),
             tertiary = Color(0xFF26A69A),
             background = Color(0xFF0A1A19),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF1A2A28),
             onPrimary = Color.Black,
             onSecondary = Color.White,
@@ -305,7 +305,7 @@ object ThemePresets {
             secondary = Color(0xFFB0B0B0),
             tertiary = Color(0xFF757575),
             background = Color(0xFF1A1A1A),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF2D2D2D),
             onPrimary = Color.Black,
             onSecondary = Color.Black,
@@ -337,7 +337,7 @@ object ThemePresets {
             secondary = Color(0xFFF6C8C8),
             tertiary = Color(0xFFD4A0A0),
             background = Color(0xFF1A1212),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF2D1F1F),
             onPrimary = Color.Black,
             onSecondary = Color.Black,
@@ -369,7 +369,7 @@ object ThemePresets {
             secondary = Color(0xFFBA68C8),
             tertiary = Color(0xFFAB47BC),
             background = Color(0xFF1A121A),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF2D1F2D),
             onPrimary = Color.Black,
             onSecondary = Color.White,
@@ -401,7 +401,7 @@ object ThemePresets {
             secondary = Color(0xFFE93F8C),
             tertiary = Color(0xFFEC407A),
             background = Color(0xFF1A0A12),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF2D1520),
             onPrimary = Color.Black,
             onSecondary = Color.White,
@@ -433,7 +433,7 @@ object ThemePresets {
             secondary = Color(0xFF5A5A5A),
             tertiary = Color(0xFF3A3A3A),
             background = Color(0xFF1A1A1A),
-            surface = Color(0xFF121212),
+            surface = Color(0xFF1E1E1E),
             surfaceVariant = Color(0xFF2D2D2D),
             onPrimary = Color.White,
             onSecondary = Color.White,
@@ -529,26 +529,42 @@ fun FreeMusicTheme(
     if (themePreset != null) {
         val colors = if (darkTheme) themePreset.darkColors else themePreset.lightColors
         
-        val presetColorScheme = darkColorScheme(
-            primary = colors.primary,
-            secondary = colors.secondary,
-            tertiary = colors.tertiary,
-            background = colors.background,
-            surface = colors.surface,
-            surfaceVariant = colors.surfaceVariant,
-            onPrimary = colors.onPrimary,
-            onSecondary = colors.onSecondary,
-            onBackground = colors.onBackground,
-            onSurface = colors.onSurface,
-            onSurfaceVariant = colors.onSurfaceVariant
-        )
+        val colorScheme = if (darkTheme) {
+            darkColorScheme(
+                primary = colors.primary,
+                secondary = colors.secondary,
+                tertiary = colors.tertiary,
+                background = colors.background,
+                surface = colors.surface,
+                surfaceVariant = colors.surfaceVariant,
+                onPrimary = colors.onPrimary,
+                onSecondary = colors.onSecondary,
+                onBackground = colors.onBackground,
+                onSurface = colors.onSurface,
+                onSurfaceVariant = colors.onSurfaceVariant
+            )
+        } else {
+            lightColorScheme(
+                primary = colors.primary,
+                secondary = colors.secondary,
+                tertiary = colors.tertiary,
+                background = colors.background,
+                surface = colors.surface,
+                surfaceVariant = colors.surfaceVariant,
+                onPrimary = colors.onPrimary,
+                onSecondary = colors.onSecondary,
+                onBackground = colors.onBackground,
+                onSurface = colors.onSurface,
+                onSurfaceVariant = colors.onSurfaceVariant
+            )
+        }
         
         val view = LocalView.current
         if (!view.isInEditMode) {
-            LaunchedEffect(presetColorScheme.background) {
+            LaunchedEffect(colorScheme.background) {
                 val window = (view.context as Activity).window
-                window.statusBarColor = presetColorScheme.background.toArgb()
-                window.navigationBarColor = presetColorScheme.surface.toArgb()
+                window.statusBarColor = colorScheme.background.toArgb()
+                window.navigationBarColor = colorScheme.surface.toArgb()
                 WindowCompat.getInsetsController(window, view).apply {
                     isAppearanceLightStatusBars = !darkTheme
                     isAppearanceLightNavigationBars = !darkTheme
@@ -557,7 +573,7 @@ fun FreeMusicTheme(
         }
 
         MaterialTheme(
-            colorScheme = presetColorScheme,
+            colorScheme = colorScheme,
             typography = Typography,
             content = content
         )

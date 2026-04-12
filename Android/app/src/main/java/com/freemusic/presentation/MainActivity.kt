@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
             // 根据主题模式计算实际使用的深色模式
             val effectiveDarkTheme = when (themeMode) {
                 "默认" -> isSystemInDarkTheme()
-                "暗色", "纯黑" -> true
+                "深色", "纯黑" -> true
                 else -> false
             }
 

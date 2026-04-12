@@ -118,12 +118,9 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
-        // 初始化时检查：如果睡眠定时器已过期，清除它
-        // （这样可以实现：关闭 App 后定时器自动失效）
-        val savedEndTime = preferencesManager.sleepTimerEndTime.value
-        if (savedEndTime > 0 && savedEndTime < System.currentTimeMillis()) {
-            preferencesManager.clearSleepTimer()
-        }
+        // 初始化时清除睡眠定时器
+        // 关闭 App 后重新打开，定时器失效，不继续倒计时
+        preferencesManager.clearSleepTimer()
 
         // 观察睡眠定时器（监听结束时间戳）
         viewModelScope.launch {

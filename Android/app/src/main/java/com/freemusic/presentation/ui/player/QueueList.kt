@@ -69,7 +69,7 @@ fun QueueList(
     )
 
     // 固定颜色值，避免每次 recompose 时调用 MaterialTheme
-    val primaryColor = Color(0xFF6200EE)
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Box(modifier = modifier.fillMaxWidth()) {
         LazyColumn(

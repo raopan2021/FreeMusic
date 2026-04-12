@@ -103,7 +103,7 @@ fun QueueList(
                             Icon(
                                 imageVector = Icons.Default.DragHandle,
                                 contentDescription = "拖动排序",
-                                tint = Color.Gray,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                 modifier = Modifier
                                     .padding(start = 4.dp, end = 8.dp)
                                     .draggableHandle()
@@ -114,14 +114,14 @@ fun QueueList(
                                     text = song.title,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isCurrentSong) primaryColor else Color.Unspecified,
+                                    color = if (isCurrentSong) primaryColor else MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = song.artist ?: "未知艺术家",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -134,7 +134,7 @@ fun QueueList(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "删除",
-                                    tint = Color.Gray,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -147,7 +147,7 @@ fun QueueList(
         if (queueItems.isNotEmpty()) {
             FloatingActionButton(
                 onClick = scrollToCenter,
-                containerColor = Color(0xFF6200EE),
+                containerColor = primaryColor,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(8.dp)
@@ -156,7 +156,7 @@ fun QueueList(
                 Icon(
                     imageVector = Icons.Default.CenterFocusWeak,
                     contentDescription = "定位当前播放",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }

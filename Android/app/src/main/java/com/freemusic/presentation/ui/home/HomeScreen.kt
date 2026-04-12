@@ -43,6 +43,7 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)

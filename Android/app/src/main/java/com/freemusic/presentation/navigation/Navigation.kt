@@ -478,47 +478,6 @@ fun FreeMusicNavHost(
                 }
             )
         }
-
-        // 底部导航栏
-        val currentNavBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentNavRoute = currentNavBackStackEntry?.destination?.route
-        NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.navigationBarsPadding()
-        ) {
-            val items = listOf(
-                BottomNavItem(Screen.Home.route, Icons.Default.Home, "首页"),
-                BottomNavItem(Screen.Search.route, Icons.Default.Search, "搜索"),
-                BottomNavItem(Screen.Settings.route, Icons.Default.Settings, "设置")
-            )
-            items.forEach { item ->
-                NavigationBarItem(
-                    icon = { Icon(item.icon, contentDescription = item.label) },
-                    label = { Text(item.label) },
-                    selected = currentNavRoute == item.route,
-                    onClick = {
-                        if (currentNavRoute != item.route) {
-                            // 关闭 player sheet
-                            scope.launch { sheetState.hide() }
-                            showPlayerSheet = false
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                )
-            }
-        }
     }
 
     // 播放页面 Bottom Sheet

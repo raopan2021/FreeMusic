@@ -118,14 +118,11 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
-        // 观察睡眠定时器
+        // 观察睡眠定时器（监听结束时间戳）
         viewModelScope.launch {
-            preferencesManager.sleepTimerMinutes.collect { minutes ->
-                sleepTimerEndTimeMillis = if (minutes > 0) {
-                    System.currentTimeMillis() + minutes * 60 * 1000L
-                } else {
-                    0L
-                }
+            preferencesManager.sleepTimerEndTime.collect { endTime ->
+                // 直接使用保存的结束时间戳
+                sleepTimerEndTimeMillis = endTime
             }
         }
         
@@ -138,7 +135,7 @@ class PlayerViewModel @Inject constructor(
                     if (remainingMs <= 0) {
                         mediaController?.pause()
                         sleepTimerEndTimeMillis = 0L
-                        preferencesManager.setSleepTimer(0)
+                        preferencesManager.clearSleepTimer()
                         _uiState.update { it.copy(sleepTimerRemainingSeconds = 0L) }
                     } else {
                         val remainingSeconds = (remainingMs / 1000).toLong()
@@ -749,10 +746,8 @@ class PlayerViewModel @Inject constructor(
 
     fun skipToPrevious() {
         mediaController?.let { controller ->
-            if (controller.currentPosition > 3000) {
-                controller.seekTo(0)
-            } else if (controller.hasPreviousMediaItem()) {
-                controller.seekToPrevious()
+            if (controller.hasPreviousMediaItem()) {
+                controller.seekToPreviousMediaItem()
                 // 确保上一首自动播放
                 if (!controller.isPlaying) {
                     controller.play()

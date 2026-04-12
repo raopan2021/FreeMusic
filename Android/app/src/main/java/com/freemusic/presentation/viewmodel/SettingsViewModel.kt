@@ -99,16 +99,17 @@ class SettingsViewModel @Inject constructor(
     private val _crossFadeDuration = MutableStateFlow(3000)
     val crossFadeDuration: StateFlow<Int> = _crossFadeDuration.asStateFlow()
 
-    private val _sleepTimerMinutes = MutableStateFlow(0)
-    val sleepTimerMinutes: StateFlow<Int> = _sleepTimerMinutes.asStateFlow()
-    
-    private var _sleepTimerEndTimeMillis: Long = 0L
+    // 睡眠定时器结束时间戳（用于检测计时器是否过期）
+    private val _sleepTimerEndTime = MutableStateFlow(0L)
+    val sleepTimerEndTime: StateFlow<Long> = _sleepTimerEndTime.asStateFlow()
+
     val sleepTimerRemainingSeconds: Int
         get() {
-            if (_sleepTimerEndTimeMillis == 0L || _sleepTimerEndTimeMillis < System.currentTimeMillis()) {
+            val endTime = _sleepTimerEndTime.value
+            if (endTime == 0L || endTime < System.currentTimeMillis()) {
                 return 0
             }
-            return ((_sleepTimerEndTimeMillis - System.currentTimeMillis()) / 1000).toInt()
+            return ((endTime - System.currentTimeMillis()) / 1000).toInt()
         }
 
     private val _skipSilence = MutableStateFlow(false)
@@ -202,7 +203,7 @@ class SettingsViewModel @Inject constructor(
             preferencesManager.crossFadeDuration.collect { _crossFadeDuration.value = it }
         }
         viewModelScope.launch {
-            preferencesManager.sleepTimerMinutes.collect { _sleepTimerMinutes.value = it }
+            preferencesManager.sleepTimerEndTime.collect { _sleepTimerEndTime.value = it }
         }
         viewModelScope.launch {
             preferencesManager.skipSilence.collect { _skipSilence.value = it }
@@ -239,7 +240,7 @@ class SettingsViewModel @Inject constructor(
                 equalizerPresetName = EqualizerPreset.entries.getOrNull(_equalizerPreset.value)?.displayName ?: "平坦",
                 autoPlayEnabled = _autoPlay.value,
                 playbackSpeed = _playbackSpeed.value,
-                sleepTimerMinutes = _sleepTimerMinutes.value,
+                // sleepTimerMinutes no longer stored, using sleepTimerRemainingSeconds in UI
                 skipSilenceEnabled = _skipSilence.value
             )
         }
@@ -346,11 +347,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setSleepTimer(minutes: Int) {
         preferencesManager.setSleepTimer(minutes)
-        _sleepTimerEndTimeMillis = if (minutes > 0) {
-            System.currentTimeMillis() + minutes * 60 * 1000L
-        } else {
-            0L
-        }
     }
 
     fun setSkipSilence(enabled: Boolean) {

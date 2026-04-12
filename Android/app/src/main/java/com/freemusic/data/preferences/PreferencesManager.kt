@@ -149,13 +149,23 @@ class PreferencesManager @Inject constructor(
         _playbackSpeed.value = speed
     }
 
-    // 睡眠定时器（分钟，0 表示关闭）
-    private val _sleepTimerMinutes = MutableStateFlow(prefs.getInt(KEY_SLEEP_TIMER, 0))
-    val sleepTimerMinutes: StateFlow<Int> = _sleepTimerMinutes.asStateFlow()
+    // 睡眠定时器结束时间戳（毫秒，0 表示未设置）
+    private val _sleepTimerEndTime = MutableStateFlow(prefs.getLong(KEY_SLEEP_TIMER_END_TIME, 0L))
+    val sleepTimerEndTime: StateFlow<Long> = _sleepTimerEndTime.asStateFlow()
 
     fun setSleepTimer(minutes: Int) {
-        prefs.edit().putInt(KEY_SLEEP_TIMER, minutes).apply()
-        _sleepTimerMinutes.value = minutes
+        val endTime = if (minutes > 0) {
+            System.currentTimeMillis() + minutes * 60 * 1000L
+        } else {
+            0L
+        }
+        prefs.edit().putLong(KEY_SLEEP_TIMER_END_TIME, endTime).apply()
+        _sleepTimerEndTime.value = endTime
+    }
+
+    fun clearSleepTimer() {
+        prefs.edit().putLong(KEY_SLEEP_TIMER_END_TIME, 0L).apply()
+        _sleepTimerEndTime.value = 0L
     }
 
     // 跳过静音
@@ -337,7 +347,7 @@ class PreferencesManager @Inject constructor(
         private const val KEY_PLAYBACK_SPEED = "playback_speed"
         private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
-        private const val KEY_SLEEP_TIMER = "sleep_timer"
+        private const val KEY_SLEEP_TIMER_END_TIME = "sleep_timer_end_time"
         private const val KEY_SKIP_SILENCE = "skip_silence"
         private const val KEY_SHAKE_TO_SKIP = "shake_to_skip"
         private const val KEY_AUTO_CLEAN_HISTORY = "auto_clean_history"

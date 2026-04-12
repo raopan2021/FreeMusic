@@ -50,6 +50,7 @@ import com.freemusic.presentation.ui.playlist.PlaylistScreen
 import com.freemusic.presentation.ui.queue.QueueScreen
 import com.freemusic.presentation.ui.search.SearchScreen
 import com.freemusic.presentation.ui.settings.SettingsScreen
+import com.freemusic.presentation.ui.settings.ThemePresetScreen
 import com.freemusic.presentation.viewmodel.ImportViewModel
 import com.freemusic.presentation.viewmodel.LocalMusicViewModel
 import com.freemusic.presentation.viewmodel.PlayHistoryViewModel
@@ -78,6 +79,7 @@ sealed class Screen(val route: String) {
     data object FolderBrowser : Screen("folder_browser")
     data object ArtistBrowser : Screen("artist_browser")
     data object AlbumBrowser : Screen("album_browser")
+    data object ThemePreset : Screen("theme_preset")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -327,7 +329,24 @@ fun FreeMusicNavHost(
                 onLyricsFontSizeChange = settingsViewModel::setLyricsFontSize,
                 onBackClick = { navController.popBackStack() },
                 onImportClick = { navController.navigate(Screen.Import.route) },
-                onAboutClick = settingsViewModel::showAboutDialog
+                onAboutClick = settingsViewModel::showAboutDialog,
+                onThemePresetClick = { navController.navigate(Screen.ThemePreset.route) }
+            )
+        }
+        
+        composable(
+            Screen.ThemePreset.route,
+            enterTransition = { slideInHorizontally(initialOffsetX = { it }) + fadeIn() },
+            exitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() },
+            popEnterTransition = { slideInHorizontally(initialOffsetX = { -it }) + fadeIn() },
+            popExitTransition = { slideOutHorizontally(targetOffsetX = { it }) + fadeOut() }
+        ) {
+            val settingsState by settingsViewModel.uiState.collectAsState()
+            
+            ThemePresetScreen(
+                currentPresetId = settingsState.themePresetId,
+                onPresetChange = settingsViewModel::setThemePresetId,
+                onBackClick = { navController.popBackStack() }
             )
         }
         

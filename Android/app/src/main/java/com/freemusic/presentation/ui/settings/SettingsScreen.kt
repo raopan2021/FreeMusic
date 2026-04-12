@@ -62,11 +62,11 @@ fun SettingsScreen(
     onBackClick: () -> Unit = {},
     onImportClick: () -> Unit = {},
     onAboutClick: () -> Unit = {},
+    onThemePresetClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     primaryColor: androidx.compose.ui.graphics.Color = PrimaryIndigo
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
-    var showThemePresetDialog by remember { mutableStateOf(false) }
     var showParticleDialog by remember { mutableStateOf(false) }
     var showCoverStyleDialog by remember { mutableStateOf(false) }
     var showVisualizerDialog by remember { mutableStateOf(false) }
@@ -103,7 +103,7 @@ fun SettingsScreen(
                         icon = Icons.Default.Palette,
                         title = "主题预设",
                         subtitle = "选择完整配色方案",
-                        onClick = { showThemePresetDialog = true }
+                        onClick = onThemePresetClick
                     )
                     
                     // 主题颜色（自定义颜色）
@@ -382,18 +382,6 @@ fun SettingsScreen(
                     showColorPickerDialog = false
                 },
                 onDismiss = { showColorPickerDialog = false }
-            )
-        }
-        
-        // 主题预设选择对话框
-        if (showThemePresetDialog) {
-            ThemePresetDialog(
-                currentPresetId = themePresetId,
-                onPresetSelected = { preset ->
-                    onThemePresetChange(preset.id)
-                    showThemePresetDialog = false
-                },
-                onDismiss = { showThemePresetDialog = false }
             )
         }
 
@@ -967,109 +955,159 @@ private fun ColorPickerDialog(
 }
 
 /**
- * 主题预设选择对话框
+ * 主题预设页面
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ThemePresetDialog(
+fun ThemePresetScreen(
     currentPresetId: String?,
-    onPresetSelected: (ThemePreset) -> Unit,
-    onDismiss: () -> Unit
+    onPresetChange: (String?) -> Unit,
+    onBackClick: () -> Unit
 ) {
-    val presets = ThemePresets.allPresets
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("选择主题预设") },
-        text = {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+    // 预览用的深色模式状态
+    var isDarkPreview by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("主题预设") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // 深色/浅色模式切换
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(presets) { preset ->
+                Text(
+                    text = "预览模式",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isDarkPreview) "深色" else "浅色",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = isDarkPreview,
+                        onCheckedChange = { isDarkPreview = it }
+                    )
+                }
+            }
+
+            HorizontalDivider()
+
+            // 预设列表
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(ThemePresets.allPresets) { preset ->
                     val isSelected = preset.id == currentPresetId
-                    
-                    val surfaceColor = Color.White
-                    
+
+                    // 根据预览模式选择对应配色
+                    val previewColors = if (isDarkPreview) preset.darkColors else preset.lightColors
+
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onPresetSelected(preset) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = surfaceColor,
-                        tonalElevation = if (isSelected) 4.dp else 2.dp,
-                        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
+                            .clickable { onPresetChange(preset.id) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = previewColors.surface,
+                        tonalElevation = if (isSelected) 4.dp else 1.dp,
+                        border = if (isSelected) BorderStroke(2.dp, previewColors.primary) else null
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(16.dp)
                         ) {
-                            // 颜色预览
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // 主题色圆点（使用浅色版本的primary）
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(
-                                            color = preset.lightColors.primary,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
+                                Text(
+                                    text = preset.displayName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = previewColors.onSurface
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                // 浅/深色模式预览条
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(18.dp, 8.dp)
-                                            .background(
-                                                color = preset.lightColors.background,
-                                                shape = RoundedCornerShape(bottomStart = 4.dp)
-                                            )
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .size(18.dp, 8.dp)
-                                            .background(
-                                                color = preset.darkColors.background,
-                                                shape = RoundedCornerShape(bottomEnd = 4.dp)
-                                            )
+
+                                // 选中指示
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "已选择",
+                                        tint = previewColors.primary
                                     )
                                 }
                             }
-                            
-                            Spacer(modifier = Modifier.width(12.dp))
-                            
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = preset.displayName,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "支持深色/浅色模式",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            
-                            // 颜色条预览
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // 颜色预览条
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 listOf(
-                                    preset.lightColors.primary,
-                                    preset.lightColors.secondary,
-                                    preset.lightColors.tertiary
-                                ).forEach { color ->
+                                    previewColors.primary to "主色",
+                                    previewColors.secondary to "次色",
+                                    previewColors.tertiary to "强调色"
+                                ).forEach { (color, label) ->
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .background(
+                                                    color = color,
+                                                    shape = RoundedCornerShape(8.dp)
+                                                )
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = previewColors.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                // 背景/表面色
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(16.dp)
+                                            .size(40.dp)
                                             .background(
-                                                color = color,
-                                                shape = RoundedCornerShape(4.dp)
+                                                color = previewColors.background,
+                                                shape = RoundedCornerShape(8.dp)
                                             )
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "背景",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = previewColors.onSurfaceVariant
                                     )
                                 }
                             }
@@ -1077,18 +1115,10 @@ private fun ThemePresetDialog(
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
         }
-    )
+    }
 }
 
-/**
- * 将封面样式枚举名称转换为显示名称
- */
 private fun coverStyleToDisplayName(style: String): String {
     return when (style) {
         "ROUND" -> "圆形"

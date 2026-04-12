@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
+import com.freemusic.presentation.ui.theme.ThemePreset
+import com.freemusic.presentation.ui.theme.ThemePresets
 
 /**
  * 设置屏幕
@@ -62,6 +64,7 @@ fun SettingsScreen(
     primaryColor: androidx.compose.ui.graphics.Color = PrimaryIndigo
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showThemePresetDialog by remember { mutableStateOf(false) }
     var showParticleDialog by remember { mutableStateOf(false) }
     var showCoverStyleDialog by remember { mutableStateOf(false) }
     var showVisualizerDialog by remember { mutableStateOf(false) }
@@ -93,21 +96,19 @@ fun SettingsScreen(
             // 外观设置
             item {
                 SettingsSection(title = "外观") {
-                    // 主题选择(3个Radio Button)
-                    SettingsThemeSelector(
-                        currentTheme = currentTheme,
-                        onThemeChange = { theme ->
-                            onThemeChange(theme)
-                            // 根据主题设置深色模式
-                            onPureBlackToggle(theme == "深色")
-                        }
-                    )
-
-                    // 主题颜色
+                    // 主题预设选择
                     SettingsItem(
                         icon = Icons.Default.Palette,
-                        title = "主题颜色",
-                        subtitle = if (customPrimaryColor == -1) "默认紫色" else "自定义",
+                        title = "主题预设",
+                        subtitle = "选择完整配色方案",
+                        onClick = { showThemePresetDialog = true }
+                    )
+                    
+                    // 主题颜色（自定义颜色）
+                    SettingsItem(
+                        icon = Icons.Default.ColorLens,
+                        title = "自定义主题色",
+                        subtitle = if (customPrimaryColor == -1) "跟随主题预设" else "自定义颜色",
                         onClick = { showColorPickerDialog = true },
                         trailing = {
                             Box(
@@ -115,13 +116,22 @@ fun SettingsScreen(
                                     .size(24.dp)
                                     .background(
                                         color = if (customPrimaryColor == -1)
-                                            Color(0xFF6750A4)
+                                            MaterialTheme.colorScheme.primary
                                         else
                                             Color(customPrimaryColor),
                                         shape = RoundedCornerShape(4.dp)
                                     )
                             )
                         }
+                    )
+                    
+                    // 深色模式开关
+                    SettingsSwitchItem(
+                        icon = Icons.Default.DarkMode,
+                        title = "深色模式",
+                        subtitle = "启用深色主题",
+                        checked = currentTheme == "深色",
+                        onCheckedChange = { onThemeChange(if (it) "深色" else "浅色") }
                     )
 
                     // 封面样式
@@ -370,6 +380,18 @@ fun SettingsScreen(
                     showColorPickerDialog = false
                 },
                 onDismiss = { showColorPickerDialog = false }
+            )
+        }
+        
+        // 主题预设选择对话框
+        if (showThemePresetDialog) {
+            ThemePresetDialog(
+                onPresetSelected = { preset ->
+                    onCustomPrimaryColorChange(-1) // 清除自定义颜色，使用预设
+                    onThemeChange(if (preset.isDark) "深色" else "浅色")
+                    showThemePresetDialog = false
+                },
+                onDismiss = { showThemePresetDialog = false }
             )
         }
 
@@ -928,6 +950,120 @@ private fun ColorPickerDialog(
                             // 如果这行不满2个，填充空白
                             if (rowColors.size < 2) {
                                 Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 主题预设选择对话框
+ */
+@Composable
+private fun ThemePresetDialog(
+    onPresetSelected: (ThemePreset) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val presets = ThemePresets.allPresets
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("选择主题预设") },
+        text = {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(presets) { preset ->
+                    val backgroundColor = if (preset.isDark) {
+                        Color(0xFF1E1E1E)
+                    } else {
+                        Color(0xFFF5F5F5)
+                    }
+                    
+                    val surfaceColor = if (preset.isDark) {
+                        Color(0xFF2D2D2D)
+                    } else {
+                        Color.White
+                    }
+                    
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPresetSelected(preset) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = surfaceColor,
+                        tonalElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 颜色预览
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // 主题色圆点
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            color = preset.primary,
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                // 深色模式指示
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp, 8.dp)
+                                        .background(
+                                            color = backgroundColor,
+                                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
+                                        )
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = preset.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = if (preset.isDark) "深色模式" else "浅色模式",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            // 颜色条预览
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                listOf(
+                                    preset.primary,
+                                    preset.secondary,
+                                    preset.tertiary
+                                ).forEach { color ->
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .background(
+                                                color = color,
+                                                shape = RoundedCornerShape(4.dp)
+                                            )
+                                    )
+                                }
                             }
                         }
                     }

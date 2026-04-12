@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -267,13 +268,12 @@ private fun QueueItem(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .background(
-                when {
-                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                    isPlaying -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    else -> Color.Transparent
-                }
+                if (isPlaying) 
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                else 
+                    Color.Transparent
             )
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // 选择模式下的复选框
@@ -318,6 +318,7 @@ private fun QueueItem(
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = if (isPlaying) 
@@ -328,7 +329,11 @@ private fun QueueItem(
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (isPlaying) FontWeight.Medium else FontWeight.Normal,
+                color = if (isPlaying) 
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                else 
+                    MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

@@ -127,6 +127,183 @@ data class ThemePalette(
     val background: Color
 )
 
+/**
+ * 完整的主题预设
+ */
+data class ThemePreset(
+    val id: String,
+    val displayName: String,
+    val isDark: Boolean,
+    val primary: Color,
+    val secondary: Color,
+    val tertiary: Color,
+    val background: Color,
+    val surface: Color,
+    val surfaceVariant: Color,
+    val onPrimary: Color,
+    val onSecondary: Color,
+    val onBackground: Color,
+    val onSurface: Color,
+    val onSurfaceVariant: Color
+)
+
+/**
+ * 预设主题列表
+ */
+object ThemePresets {
+    // 默认紫色主题（亮色）
+    val DefaultLight = ThemePreset(
+        id = "default_light",
+        displayName = "默认紫（浅色）",
+        isDark = false,
+        primary = Color(0xFF6750A4),
+        secondary = Color(0xFF625B71),
+        tertiary = Color(0xFF7D5260),
+        background = Color(0xFFF8F9FA),
+        surface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFFE7E0EC),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFF1C1B1F),
+        onSurface = Color(0xFF1C1B1F),
+        onSurfaceVariant = Color(0xFF49454F)
+    )
+    
+    // 默认紫色主题（深色）
+    val DefaultDark = ThemePreset(
+        id = "default_dark",
+        displayName = "默认紫（深色）",
+        isDark = true,
+        primary = Color(0xFFD0BCFF),
+        secondary = Color(0xFFCCC2DC),
+        tertiary = Color(0xFFEFB8C8),
+        background = Color(0xFF1C1B1F),
+        surface = Color(0xFF1C1B1F),
+        surfaceVariant = Color(0xFF49454F),
+        onPrimary = Color(0xFF381E72),
+        onSecondary = Color(0xFF332D41),
+        onBackground = Color(0xFFE6E1E5),
+        onSurface = Color(0xFFE6E1E5),
+        onSurfaceVariant = Color(0xFFCAC4D0)
+    )
+    
+    // 海湾蓝主题
+    val OceanBlue = ThemePreset(
+        id = "ocean_blue",
+        displayName = "海湾蓝",
+        isDark = false,
+        primary = Color(0xFF36B5E5),
+        secondary = Color(0xFF5C9EBF),
+        tertiary = Color(0xFF2D8BAF),
+        background = Color(0xFFF5F9FC),
+        surface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFFE3F2FD),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFF0D3B4D),
+        onSurface = Color(0xFF0D3B4D),
+        onSurfaceVariant = Color(0xFF1976D2)
+    )
+    
+    // 熔岩橙主题
+    val LavaOrange = ThemePreset(
+        id = "lava_orange",
+        displayName = "熔岩橙",
+        isDark = false,
+        primary = Color(0xFFFF6532),
+        secondary = Color(0xFFE55A2B),
+        tertiary = Color(0xFFFF8F66),
+        background = Color(0xFFFFF5F2),
+        surface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFFFFE4DC),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFF4A1A0A),
+        onSurface = Color(0xFF4A1A0A),
+        onSurfaceVariant = Color(0xFFE64A19)
+    )
+    
+    // 霞光紫主题
+    val AuroraPurple = ThemePreset(
+        id = "aurora_purple",
+        displayName = "霞光紫",
+        isDark = false,
+        primary = Color(0xFF9B6EE8),
+        secondary = Color(0xFF7B5ED4),
+        tertiary = Color(0xFFB98EF0),
+        background = Color(0xFFFAF8FF),
+        surface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFFEDE7F6),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFF2A1A4A),
+        onSurface = Color(0xFF2A1A4A),
+        onSurfaceVariant = Color(0xFF7E57C2)
+    )
+    
+    // 极地白主题（深色模式）
+    val ArcticWhiteDark = ThemePreset(
+        id = "arctic_white_dark",
+        displayName = "极地白（深色）",
+        isDark = true,
+        primary = Color(0xFF36B5E5),
+        secondary = Color(0xFF5C9EBF),
+        tertiary = Color(0xFF2D8BAF),
+        background = Color(0xFF121212),
+        surface = Color(0xFF1E1E1E),
+        surfaceVariant = Color(0xFF2D2D2D),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFFE0E0E0),
+        onSurface = Color(0xFFE0E0E0),
+        onSurfaceVariant = Color(0xFFB0BEC5)
+    )
+    
+    // 烈焰红主题
+    val FlameRed = ThemePreset(
+        id = "flame_red",
+        displayName = "烈焰红",
+        isDark = false,
+        primary = Color(0xFFC41E3A),
+        secondary = Color(0xFFB01830),
+        tertiary = Color(0xFFE53951),
+        background = Color(0xFFFFF5F5),
+        surface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFFFFEBEE),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFF4A0A12),
+        onSurface = Color(0xFF4A0A12),
+        onSurfaceVariant = Color(0xFFD32F2F)
+    )
+    
+    // 橄榄绿主题
+    val OliveGreen = ThemePreset(
+        id = "olive_green",
+        displayName = "橄榄绿",
+        isDark = false,
+        primary = Color(0xFF6B8E23),
+        secondary = Color(0xFF5A7A1E),
+        tertiary = Color(0xFF8FB032),
+        background = Color(0xFFF5F9F0),
+        surface = Color(0xFFFFFFFF),
+        surfaceVariant = Color(0xFFE8F5E9),
+        onPrimary = Color.White,
+        onSecondary = Color.White,
+        onBackground = Color(0xFF1A2A0A),
+        onSurface = Color(0xFF1A2A0A),
+        onSurfaceVariant = Color(0xFF558B2F)
+    )
+    
+    // 获取所有预设主题
+    val allPresets = listOf(
+        DefaultLight, DefaultDark, OceanBlue, LavaOrange, AuroraPurple, ArcticWhiteDark, FlameRed, OliveGreen
+    )
+    
+    // 根据ID获取预设
+    fun getPresetById(id: String): ThemePreset? = allPresets.find { it.id == id }
+}
+
 enum class MusicMood {
     HAPPY, SAD, ENERGETIC, CALM, ROMANTIC, DEFAULT
 }
@@ -196,8 +373,63 @@ fun FreeMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     dynamicColor: Boolean = false,
+    themePreset: ThemePreset? = null, // 完整主题预设
     content: @Composable () -> Unit
 ) {
+    // 如果有预设主题，直接使用预设的配色
+    if (themePreset != null) {
+        val presetColorScheme = if (themePreset.isDark) {
+            darkColorScheme(
+                primary = themePreset.primary,
+                secondary = themePreset.secondary,
+                tertiary = themePreset.tertiary,
+                background = themePreset.background,
+                surface = themePreset.surface,
+                surfaceVariant = themePreset.surfaceVariant,
+                onPrimary = themePreset.onPrimary,
+                onSecondary = themePreset.onSecondary,
+                onBackground = themePreset.onBackground,
+                onSurface = themePreset.onSurface,
+                onSurfaceVariant = themePreset.onSurfaceVariant
+            )
+        } else {
+            lightColorScheme(
+                primary = themePreset.primary,
+                secondary = themePreset.secondary,
+                tertiary = themePreset.tertiary,
+                background = themePreset.background,
+                surface = themePreset.surface,
+                surfaceVariant = themePreset.surfaceVariant,
+                onPrimary = themePreset.onPrimary,
+                onSecondary = themePreset.onSecondary,
+                onBackground = themePreset.onBackground,
+                onSurface = themePreset.onSurface,
+                onSurfaceVariant = themePreset.onSurfaceVariant
+            )
+        }
+        
+        val view = LocalView.current
+        if (!view.isInEditMode) {
+            LaunchedEffect(presetColorScheme.background) {
+                val window = (view.context as Activity).window
+                window.statusBarColor = presetColorScheme.background.toArgb()
+                window.navigationBarColor = presetColorScheme.surface.toArgb()
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !themePreset.isDark
+                    isAppearanceLightNavigationBars = !themePreset.isDark
+                }
+            }
+        }
+
+        MaterialTheme(
+            colorScheme = presetColorScheme,
+            typography = Typography,
+            content = content
+        )
+        return
+    }
+    
+    // 否则使用默认/动态/纯色配色
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

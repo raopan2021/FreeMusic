@@ -116,7 +116,7 @@ fun SongCard(
                         repeat(3) { index ->
                             MusicWaveBar(
                                 index = index,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.width(3.dp).height(12.dp)
                             )
                         }
@@ -132,14 +132,14 @@ fun SongCard(
                             .padding(4.dp)
                             .size(32.dp)
                             .background(
-                                color = Color.Black.copy(alpha = 0.3f),
+                                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f),
                                 shape = CircleShape
                             )
                     ) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
                             contentDescription = "收藏",
-                            tint = if (isFavorite) Color.Red else Color.White,
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -315,7 +315,7 @@ fun FeaturedSongCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)
                             ),
                             startY = 0f,
                             endY = 10000f
@@ -337,7 +337,7 @@ fun FeaturedSongCard(
                     Text(
                         text = "Featured",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -348,7 +348,7 @@ fun FeaturedSongCard(
                     text = song.title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -356,7 +356,7 @@ fun FeaturedSongCard(
                 Text(
                     text = song.artist,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -369,7 +369,7 @@ fun FeaturedSongCard(
                     .align(Alignment.BottomEnd)
                     .padding(20.dp),
                 containerColor = primaryColor,
-                contentColor = Color.White
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
@@ -445,7 +445,7 @@ fun AnimatedSongListItem(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.3f)),
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
@@ -455,7 +455,7 @@ fun AnimatedSongListItem(
                                 repeat(3) { i ->
                                     MusicWaveBar(
                                         index = i,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.width(2.dp).height(10.dp)
                                     )
                                 }
@@ -471,7 +471,7 @@ fun AnimatedSongListItem(
                             Icon(
                                 imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "收藏",
-                                tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                         }
                     }

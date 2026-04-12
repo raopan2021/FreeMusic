@@ -17,11 +17,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class PlaylistUiState(
-    val playlists: List<Playlist> = emptyList(),
-    val favorites: List<Song> = emptyList(),
+    val playlists: List<Playlist> = emptyList(),  // 包含"我喜欢的音乐"
     val isLoading: Boolean = false,
     val error: String? = null
-)
+) {
+    // 便捷方法：获取收藏歌单
+    val favoritesPlaylist: Playlist?
+        get() = playlists.find { it.id == "favorites" }
+    
+    // 便捷方法：获取收藏歌曲列表
+    val favorites: List<Song>
+        get() = favoritesPlaylist?.songs ?: emptyList()
+}
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
@@ -37,31 +44,37 @@ class PlaylistViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        // 加载收藏歌曲
-        val savedFavorites = preferencesManager.getFavorites().map { it.toSong() }
-        
         // 加载本地歌单
         val savedPlaylists = preferencesManager.getLocalPlaylists().map { it.toPlaylist() }
         
-        // 创建"我喜欢的音乐"歌单（包含收藏的歌曲）
+        // 创建"我喜欢的音乐"歌单
         val favoritesPlaylist = Playlist(
             id = "favorites",
             name = "我喜欢的音乐",
             coverUrl = null,
-            songs = savedFavorites
+            songs = emptyList()
         )
         
         // 歌单列表 = "我喜欢的音乐" + 用户创建的歌单
         _uiState.update {
-            it.copy(
-                playlists = listOf(favoritesPlaylist) + savedPlaylists,
-                favorites = savedFavorites
-            )
+            it.copy(playlists = listOf(favoritesPlaylist) + savedPlaylists)
+        }
+        
+        // 加载收藏歌曲到"我喜欢的音乐"歌单
+        viewModelScope.launch {
+            val savedFavorites = preferencesManager.getFavorites().map { it.toSong() }
+            _uiState.update { state ->
+                state.copy(
+                    playlists = state.playlists.map { p ->
+                        if (p.id == "favorites") p.copy(songs = savedFavorites) else p
+                    }
+                )
+            }
         }
     }
 
     private fun savePlaylists() {
-        // 只保存非收藏歌单（收藏歌单通过 saveFavorites 保存）
+        // 只保存非收藏歌单
         val nonFavoritePlaylists = _uiState.value.playlists.filter { it.id != "favorites" }
         val playlistDataList = nonFavoritePlaylists.map { it.toPlaylistData() }
         preferencesManager.saveLocalPlaylists(playlistDataList)
@@ -72,12 +85,14 @@ class PlaylistViewModel @Inject constructor(
         preferencesManager.saveFavorites(favoriteData)
     }
 
-    fun createPlaylist(name: String, songs: List<Song>) {
+    // ============ 歌单管理 ============
+
+    fun createPlaylist(name: String, songs: List<Song> = emptyList()) {
         val newPlaylist = Playlist(
             id = "local_${System.currentTimeMillis()}",
             name = name,
             coverUrl = songs.firstOrNull()?.coverUrl,
-            songs = songs
+            songs = songs.distinctBy { it.id }  // 去重
         )
         
         _uiState.update { state ->
@@ -87,7 +102,7 @@ class PlaylistViewModel @Inject constructor(
     }
 
     fun deletePlaylist(playlistId: String) {
-        if (playlistId == "favorites") return // 不能删除默认歌单
+        if (playlistId == "favorites") return // 不能删除收藏歌单
         
         _uiState.update { state ->
             state.copy(playlists = state.playlists.filter { it.id != playlistId })
@@ -95,18 +110,30 @@ class PlaylistViewModel @Inject constructor(
         savePlaylists()
     }
 
+    // ============ 歌曲管理（防重复） ============
+
+    /**
+     * 添加歌曲到歌单（如果已存在则不添加）
+     */
     fun addToPlaylist(playlistId: String, song: Song) {
         _uiState.update { state ->
             state.copy(
                 playlists = state.playlists.map { playlist ->
                     if (playlist.id == playlistId) {
-                        playlist.copy(songs = playlist.songs + song)
+                        // 检查歌曲是否已存在
+                        if (playlist.songs.any { it.id == song.id }) {
+                            playlist // 已存在，不重复添加
+                        } else {
+                            playlist.copy(songs = playlist.songs + song)
+                        }
                     } else {
                         playlist
                     }
                 }
             )
         }
+        
+        // 保存
         if (playlistId == "favorites") {
             saveFavorites()
         } else {
@@ -114,18 +141,24 @@ class PlaylistViewModel @Inject constructor(
         }
     }
     
+    /**
+     * 批量添加歌曲到歌单（去重）
+     */
     fun addSongsToPlaylist(playlistId: String, songs: List<Song>) {
         _uiState.update { state ->
             state.copy(
                 playlists = state.playlists.map { playlist ->
                     if (playlist.id == playlistId) {
-                        playlist.copy(songs = playlist.songs + songs)
+                        val existingIds = playlist.songs.map { it.id }.toSet()
+                        val newSongs = songs.filter { it.id !in existingIds }
+                        playlist.copy(songs = playlist.songs + newSongs)
                     } else {
                         playlist
                     }
                 }
             )
         }
+        
         if (playlistId == "favorites") {
             saveFavorites()
         } else {
@@ -133,6 +166,9 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 从歌单移除歌曲
+     */
     fun removeFromPlaylist(playlistId: String, songId: String) {
         _uiState.update { state ->
             state.copy(
@@ -142,15 +178,10 @@ class PlaylistViewModel @Inject constructor(
                     } else {
                         playlist
                     }
-                },
-                // 同时从收藏中移除
-                favorites = if (playlistId == "favorites") {
-                    state.favorites.filter { it.id != songId }
-                } else {
-                    state.favorites
                 }
             )
         }
+        
         if (playlistId == "favorites") {
             saveFavorites()
         } else {
@@ -158,47 +189,36 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
-    // ============ 我喜欢的音乐（收藏）管理 ============
+    // ============ 收藏/我喜欢管理 ============
     
+    /**
+     * 添加到收藏（快捷方法）
+     */
     fun addToFavorites(song: Song) {
-        _uiState.update { state ->
-            if (state.favorites.any { it.id == song.id }) {
-                state // 已收藏，不重复添加
-            } else {
-                // 同时添加到收藏列表和收藏歌单
-                val newFavorites = state.favorites + song
-                state.copy(
-                    favorites = newFavorites,
-                    playlists = state.playlists.map { p ->
-                        if (p.id == "favorites") p.copy(songs = newFavorites) else p
-                    }
-                )
-            }
-        }
-        saveFavorites()
+        addToPlaylist("favorites", song)
     }
 
+    /**
+     * 从收藏移除（快捷方法）
+     */
     fun removeFromFavorites(songId: String) {
-        _uiState.update { state ->
-            val newFavorites = state.favorites.filter { it.id != songId }
-            state.copy(
-                favorites = newFavorites,
-                playlists = state.playlists.map { p ->
-                    if (p.id == "favorites") p.copy(songs = newFavorites) else p
-                }
-            )
-        }
-        saveFavorites()
+        removeFromPlaylist("favorites", songId)
     }
 
+    /**
+     * 切换收藏状态
+     */
     fun toggleFavorite(song: Song) {
-        if (_uiState.value.favorites.any { it.id == song.id }) {
+        if (isFavorite(song.id)) {
             removeFromFavorites(song.id)
         } else {
             addToFavorites(song)
         }
     }
 
+    /**
+     * 检查是否已收藏
+     */
     fun isFavorite(songId: String): Boolean {
         return _uiState.value.favorites.any { it.id == songId }
     }

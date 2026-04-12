@@ -387,17 +387,8 @@ fun FreeMusicNavHost(
             val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
             val playlistState by playlistViewModel.uiState.collectAsState()
             
-            // 特殊处理"我喜欢的音乐"
-            val displayPlaylist = if (playlistId == "favorites") {
-                Playlist(
-                    id = "favorites",
-                    name = "我喜欢的音乐",
-                    coverUrl = null,
-                    songs = playlistState.favorites
-                )
-            } else {
-                playlistState.playlists.find { it.id == playlistId }
-            }
+            // 从 playlists 中查找（现在 favorites 也在列表中）
+            val displayPlaylist = playlistState.playlists.find { it.id == playlistId }
             
             if (displayPlaylist != null) {
                 PlaylistDetailScreen(
@@ -408,15 +399,10 @@ fun FreeMusicNavHost(
                         navController.navigate(Screen.Player.route)
                     },
                     onAddSongs = {
-                        // 导航到搜索页，用户可以搜索歌曲并添加到歌单
                         navController.navigate(Screen.Search.route)
                     },
                     onRemoveSong = { song ->
-                        if (playlistId == "favorites") {
-                            playlistViewModel.removeFromFavorites(song.id)
-                        } else {
-                            playlistViewModel.removeFromPlaylist(playlistId, song.id)
-                        }
+                        playlistViewModel.removeFromPlaylist(playlistId, song.id)
                     }
                 )
             }

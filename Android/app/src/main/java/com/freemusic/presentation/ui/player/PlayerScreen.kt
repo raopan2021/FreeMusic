@@ -451,7 +451,7 @@ private fun PlayerPage(
                 colors = SliderDefaults.colors(
                     thumbColor = primaryColor,
                     activeTrackColor = primaryColor,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 )
             )
             Row(
@@ -461,12 +461,12 @@ private fun PlayerPage(
                 Text(
                     text = currentTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
                 Text(
                     text = totalTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -484,7 +484,7 @@ private fun PlayerPage(
                 Icon(
                     imageVector = Icons.Default.SkipPrevious,
                     contentDescription = "上一首",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -505,7 +505,7 @@ private fun PlayerPage(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "暂停" else "播放",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -515,7 +515,7 @@ private fun PlayerPage(
                 Icon(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "下一首",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -540,8 +540,8 @@ private fun PlayerPage(
                     },
                     contentDescription = "循环模式",
                     tint = when (repeatMode) {
-                        PlayRepeatMode.OFF -> Color.White.copy(alpha = 0.5f)
-                        else -> Color.White
+                        PlayRepeatMode.OFF -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        else -> MaterialTheme.colorScheme.onSurface
                     }
                 )
             }
@@ -568,7 +568,7 @@ private fun PlayerPage(
                     Icon(
                         imageVector = Icons.Default.AccessTime,
                         contentDescription = "睡眠定时",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -578,7 +578,7 @@ private fun PlayerPage(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = "特效",
-                    tint = if (particlesEnabled || visualizerEnabled || equalizerPreset > 0) primaryColor else Color.White.copy(alpha = 0.5f)
+                    tint = if (particlesEnabled || visualizerEnabled || equalizerPreset > 0) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
 
@@ -587,7 +587,7 @@ private fun PlayerPage(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.QueueMusic,
                     contentDescription = "播放队列",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
 

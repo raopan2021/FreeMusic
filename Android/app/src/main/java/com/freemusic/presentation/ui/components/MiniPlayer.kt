@@ -440,7 +440,7 @@ fun FloatingMiniPlayer(
                             Icon(
                                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                                 contentDescription = if (isPlaying) "暂停" else "播放",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier
                                     .padding(8.dp)
                                     .size(28.dp)

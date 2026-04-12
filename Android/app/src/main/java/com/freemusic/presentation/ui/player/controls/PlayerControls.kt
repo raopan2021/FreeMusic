@@ -206,7 +206,7 @@ fun AnimatedPlayButton(
         Icon(
             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
             contentDescription = if (isPlaying) "暂停" else "播放",
-            tint = Color.White,
+            tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.size(size * 0.4f)
         )
     }
@@ -238,7 +238,7 @@ fun QuickActionsBar(
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "收藏",
-                tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
+                tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
             )
         }
         
@@ -308,7 +308,7 @@ fun SpeedSelector(
                 Text(
                     text = "${speed}x",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }

@@ -144,7 +144,12 @@ fun FreeMusicNavHost(
     val currentSong = playerState.currentSong
     val isPlaying = playerState.isPlaying
 
-    // Mini Player 显示逻辑：有歌曲时显示
+    // 获取当前页面
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val isOnPlayerScreen = currentRoute == Screen.Player.route
+
+    // Mini Player 显示逻辑：有歌曲且不在播放页面时显示
     val showMiniPlayer = currentSong != null
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -463,7 +468,8 @@ fun FreeMusicNavHost(
     }
 
         // 迷你播放器 (位于 NavigationBar 上方)
-        if (showMiniPlayer && currentSong != null) {
+        // 有歌曲、不在播放页面、不在 Queue 页面时显示
+        if (showMiniPlayer && currentSong != null && !isOnPlayerScreen && currentRoute != Screen.Queue.route) {
             MiniPlayer(
                 currentSong = currentSong,
                 isPlaying = isPlaying,
@@ -471,10 +477,8 @@ fun FreeMusicNavHost(
                 onNextClick = { playerViewModel.skipToNext() },
                 onPreviousClick = { playerViewModel.skipToPrevious() },
                 onPlayerClick = {
-                    scope.launch {
-                        showPlayerSheet = true
-                        sheetState.show()
-                    }
+                    // 直接打开播放页面
+                    navController.navigate(Screen.Player.route)
                 }
             )
         }

@@ -959,7 +959,7 @@ class PlayerViewModel @Inject constructor(
     fun toggleFavorite() {
         val currentSong = _uiState.value.currentSong ?: return
         val isFavorite = _uiState.value.isFavorite
-        setFavorite(currentSong.id, !isFavorite)
+        setFavorite(currentSong, !isFavorite)
     }
     
     fun startProgressUpdates() {
@@ -967,18 +967,13 @@ class PlayerViewModel @Inject constructor(
         // 这里不需要额外的实现
     }
 
-    fun setFavorite(songId: String, isFavorite: Boolean) {
+    fun setFavorite(song: Song, isFavorite: Boolean) {
         viewModelScope.launch {
             try {
                 if (isFavorite) {
-                    // 需要获取完整的 Song 对象才能添加收藏
-                    // 这里暂时不做任何操作，因为 setFavorite 通常需要完整的 Song 对象
-                    val currentSong = _uiState.value.currentSong
-                    if (currentSong != null) {
-                        localDataSource.addFavorite(currentSong)
-                    }
+                    localDataSource.addFavorite(song)
                 } else {
-                    localDataSource.removeFavorite(songId)
+                    localDataSource.removeFavorite(song.id)
                 }
             } catch (e: Exception) {
                 // Ignore errors

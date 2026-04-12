@@ -104,4 +104,34 @@ class PlaylistViewModel @Inject constructor(
             )
         }
     }
+
+    // ============ 我喜欢的音乐（收藏）管理 ============
+    
+    fun addToFavorites(song: Song) {
+        _uiState.update { state ->
+            if (state.favorites.any { it.id == song.id }) {
+                state // 已收藏，不重复添加
+            } else {
+                state.copy(favorites = state.favorites + song)
+            }
+        }
+    }
+
+    fun removeFromFavorites(songId: String) {
+        _uiState.update { state ->
+            state.copy(favorites = state.favorites.filter { it.id != songId })
+        }
+    }
+
+    fun toggleFavorite(song: Song) {
+        if (_uiState.value.favorites.any { it.id == song.id }) {
+            removeFromFavorites(song.id)
+        } else {
+            addToFavorites(song)
+        }
+    }
+
+    fun isFavorite(songId: String): Boolean {
+        return _uiState.value.favorites.any { it.id == songId }
+    }
 }

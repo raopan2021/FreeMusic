@@ -1,5 +1,6 @@
 package com.freemusic.presentation.navigation
 
+import com.freemusic.domain.model.Playlist
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -186,7 +187,9 @@ fun FreeMusicNavHost(
                     navController.navigate(Screen.PlaylistDetail.createRoute("favorites"))
                 },
                 playlists = playlists,
-                onCreatePlaylist = { /* TODO: 创建歌单 */ }
+                onCreatePlaylist = { name -> 
+                    playlistViewModel.createPlaylist(name, emptyList())
+                }
             )
         }
         
@@ -380,14 +383,25 @@ fun FreeMusicNavHost(
         composable(Screen.PlaylistDetail.route) { backStackEntry ->
             val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
             val playlistState by playlistViewModel.uiState.collectAsState()
-            val playlist = playlistState.playlists.find { it.id == playlistId }
             
-            if (playlist != null) {
+            // 特殊处理"我喜欢的音乐"
+            val displayPlaylist = if (playlistId == "favorites") {
+                Playlist(
+                    id = "favorites",
+                    name = "我喜欢的音乐",
+                    coverUrl = null,
+                    songs = playlistState.favorites
+                )
+            } else {
+                playlistState.playlists.find { it.id == playlistId }
+            }
+            
+            if (displayPlaylist != null) {
                 PlaylistDetailScreen(
-                    playlist = playlist,
+                    playlist = displayPlaylist,
                     onBackClick = { navController.popBackStack() },
                     onSongClick = { song ->
-                        playerViewModel.playSong(song, playlist.songs)
+                        playerViewModel.playSong(song, displayPlaylist.songs)
                         navController.navigate(Screen.Player.route)
                     },
                     onAddSongs = {
@@ -395,7 +409,11 @@ fun FreeMusicNavHost(
                         navController.navigate(Screen.Search.route)
                     },
                     onRemoveSong = { song ->
-                        playlistViewModel.removeFromPlaylist(playlistId, song.id)
+                        if (playlistId == "favorites") {
+                            playlistViewModel.removeFromFavorites(song.id)
+                        } else {
+                            playlistViewModel.removeFromPlaylist(playlistId, song.id)
+                        }
                     }
                 )
             }

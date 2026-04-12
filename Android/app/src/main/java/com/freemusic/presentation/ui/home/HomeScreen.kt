@@ -37,8 +37,11 @@ fun HomeScreen(
     onHistoryClick: () -> Unit = {},
     onFavoritesClick: () -> Unit = {},
     playlists: List<PlaylistUiModel> = emptyList(),
-    onCreatePlaylist: () -> Unit = {}
+    onCreatePlaylist: (String) -> Unit = {}
 ) {
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -155,7 +158,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             FloatingActionButton(
-                onClick = onCreatePlaylist,
+                onClick = { showCreateDialog = true },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(48.dp)
             ) {
@@ -177,6 +180,47 @@ fun HomeScreen(
                     modifier = Modifier.size(20.dp)
                 )
             }
+        }
+        
+        // 创建歌单对话框
+        if (showCreateDialog) {
+            AlertDialog(
+                onDismissRequest = { 
+                    showCreateDialog = false
+                    newPlaylistName = ""
+                },
+                title = { Text("创建歌单") },
+                text = {
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        label = { Text("歌单名称") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (newPlaylistName.isNotBlank()) {
+                                onCreatePlaylist(newPlaylistName)
+                                newPlaylistName = ""
+                                showCreateDialog = false
+                            }
+                        }
+                    ) {
+                        Text("创建")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { 
+                        showCreateDialog = false
+                        newPlaylistName = ""
+                    }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
     }
 }

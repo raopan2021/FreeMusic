@@ -35,10 +35,16 @@ class LocalMusicViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(LocalMusicUiState())
     val uiState: StateFlow<LocalMusicUiState> = _uiState.asStateFlow()
+    
+    // 歌手名称修复缓存，避免同一歌手重复查询
+    private val artistFixCache = mutableMapOf<String, String>()
 
     fun scanLocalMusic(sortOrder: Int = 0) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, scannedCount = 0, error = null) }
+            
+            // 清除缓存
+            artistFixCache.clear()
             
             try {
                 val songs = withContext(Dispatchers.IO) {
@@ -77,13 +83,24 @@ class LocalMusicViewModel @Inject constructor(
     }
     
     /**
-     * 快速修复未知歌手（用于扫描时）
-     * 只做简单的空格/标点清理，不做昂贵的数据库匹配
+     * 快速修复未知歌手（带缓存优化）
+     * 同一歌手只查询一次数据库
      */
     private fun fixUnknownArtist(currentArtist: String): String {
-        // 扫描时不进行昂贵的 KnownArtists 匹配
-        // 这个会在后台单独处理
-        return currentArtist
+        // 先查缓存
+        artistFixCache[currentArtist]?.let { return it }
+        
+        // 缓存未命中，进行 KnownArtists 匹配
+        val fixed = if (ArtistNameNormalizer.isUnknown(currentArtist)) {
+            val match = KnownArtists.findMatch(currentArtist)
+            match ?: currentArtist
+        } else {
+            currentArtist
+        }
+        
+        // 加入缓存
+        artistFixCache[currentArtist] = fixed
+        return fixed
     }
     
     /**

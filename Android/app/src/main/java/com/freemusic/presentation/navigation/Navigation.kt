@@ -289,6 +289,8 @@ fun FreeMusicNavHost(
                 onPureBlackToggle = settingsViewModel::setPureBlack,
                 customPrimaryColor = settingsState.customPrimaryColor,
                 onCustomPrimaryColorChange = settingsViewModel::setCustomPrimaryColor,
+                themePresetId = settingsState.themePresetId,
+                onThemePresetChange = settingsViewModel::setThemePresetId,
                 particleEffect = settingsState.particleEffectName,
                 onParticleEffectChange = settingsViewModel::setParticleEffect,
                 coverStyle = settingsState.coverStyleName,

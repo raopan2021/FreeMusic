@@ -53,6 +53,19 @@ class PreferencesManager @Inject constructor(
         prefs.edit().putLong(KEY_CUSTOM_PRIMARY_COLOR, color.toLong()).apply()
         _customPrimaryColor.value = color
     }
+    
+    // 主题预设ID（null表示不使用预设）
+    private val _themePresetId = MutableStateFlow(prefs.getString(KEY_THEME_PRESET_ID, null))
+    val themePresetId: StateFlow<String?> = _themePresetId.asStateFlow()
+    
+    fun setThemePresetId(presetId: String?) {
+        if (presetId == null) {
+            prefs.edit().remove(KEY_THEME_PRESET_ID).apply()
+        } else {
+            prefs.edit().putString(KEY_THEME_PRESET_ID, presetId).apply()
+        }
+        _themePresetId.value = presetId
+    }
 
     // ============ 特效设置 ============
 
@@ -470,6 +483,7 @@ class PreferencesManager @Inject constructor(
         private const val KEY_DARK_THEME = "dark_theme"
         private const val KEY_PURE_BLACK = "pure_black"
         private const val KEY_CUSTOM_PRIMARY_COLOR = "custom_primary_color"
+        private const val KEY_THEME_PRESET_ID = "theme_preset_id"
 
         // Effects
         private const val KEY_PARTICLES_ENABLED = "particles_enabled"

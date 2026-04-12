@@ -19,6 +19,7 @@ data class SettingsUiState(
     val currentThemeName: String = "默认",
     val pureBlackEnabled: Boolean = false,
     val customPrimaryColor: Int = -1, // -1 表示使用默认色
+    val themePresetId: String? = null, // 主题预设ID
     val particleEffectName: String = "无",
     val coverStyleName: String = "圆形",
     val coverSwitchInterval: Int = 3,
@@ -59,6 +60,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _customPrimaryColor = MutableStateFlow(-1)
     val customPrimaryColor: StateFlow<Int> = _customPrimaryColor.asStateFlow()
+    
+    private val _themePresetId = MutableStateFlow<String?>(null)
+    val themePresetId: StateFlow<String?> = _themePresetId.asStateFlow()
 
     // ============ 视觉效果设置 ============
     private val _particlesEnabled = MutableStateFlow(true)
@@ -152,6 +156,12 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            preferencesManager.themePresetId.collect { 
+                _themePresetId.value = it
+                updateUiState()
+            }
+        }
+        viewModelScope.launch {
             preferencesManager.particlesEnabled.collect { _particlesEnabled.value = it }
         }
         viewModelScope.launch {
@@ -235,6 +245,7 @@ class SettingsViewModel @Inject constructor(
                 currentThemeName = themeName,
                 pureBlackEnabled = _isPureBlack.value,
                 customPrimaryColor = _customPrimaryColor.value,
+                themePresetId = _themePresetId.value,
                 coverStyleName = _coverStyle.value.name,
                 coverSwitchInterval = _coverSwitchInterval.value,
                 equalizerPresetName = EqualizerPreset.entries.getOrNull(_equalizerPreset.value)?.displayName ?: "平坦",
@@ -286,6 +297,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setCustomPrimaryColor(color: Int) {
         preferencesManager.setCustomPrimaryColor(color)
+    }
+    
+    fun setThemePresetId(presetId: String?) {
+        preferencesManager.setThemePresetId(presetId)
     }
 
     // ============ 视觉效果控制 ============

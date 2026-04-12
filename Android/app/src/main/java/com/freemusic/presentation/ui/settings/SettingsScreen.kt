@@ -31,6 +31,8 @@ fun SettingsScreen(
     onPureBlackToggle: (Boolean) -> Unit,
     customPrimaryColor: Int,
     onCustomPrimaryColorChange: (Int) -> Unit,
+    themePresetId: String?,
+    onThemePresetChange: (String?) -> Unit,
     particleEffect: String,
     onParticleEffectChange: (String) -> Unit,
     coverStyle: String,
@@ -386,9 +388,9 @@ fun SettingsScreen(
         // 主题预设选择对话框
         if (showThemePresetDialog) {
             ThemePresetDialog(
+                currentPresetId = themePresetId,
                 onPresetSelected = { preset ->
-                    onCustomPrimaryColorChange(-1) // 清除自定义颜色，使用预设
-                    onThemeChange(if (preset.isDark) "深色" else "浅色")
+                    onThemePresetChange(preset.id)
                     showThemePresetDialog = false
                 },
                 onDismiss = { showThemePresetDialog = false }
@@ -969,6 +971,7 @@ private fun ColorPickerDialog(
  */
 @Composable
 private fun ThemePresetDialog(
+    currentPresetId: String?,
     onPresetSelected: (ThemePreset) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -982,6 +985,8 @@ private fun ThemePresetDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(presets) { preset ->
+                    val isSelected = preset.id == currentPresetId
+                    
                     val backgroundColor = if (preset.isDark) {
                         Color(0xFF1E1E1E)
                     } else {
@@ -1000,7 +1005,8 @@ private fun ThemePresetDialog(
                             .clickable { onPresetSelected(preset) },
                         shape = RoundedCornerShape(12.dp),
                         color = surfaceColor,
-                        tonalElevation = 2.dp
+                        tonalElevation = if (isSelected) 4.dp else 2.dp,
+                        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),

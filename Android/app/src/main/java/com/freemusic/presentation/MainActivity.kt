@@ -13,7 +13,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.freemusic.presentation.navigation.FreeMusicNavHost
-import com.freemusic.presentation.theme.FreeMusicTheme
+import com.freemusic.presentation.ui.theme.FreeMusicTheme
+import com.freemusic.presentation.ui.theme.ThemePreset
+import com.freemusic.presentation.ui.theme.ThemePresets
 import com.freemusic.presentation.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsViewModel.themeMode.collectAsState()
             val isPureBlack by settingsViewModel.isPureBlack.collectAsState()
             val customPrimaryColor by settingsViewModel.customPrimaryColor.collectAsState()
+            val themePresetId by settingsViewModel.themePresetId.collectAsState()
             val particlesEnabled by settingsViewModel.particlesEnabled.collectAsState()
             val particleIntensity by settingsViewModel.particleIntensity.collectAsState()
             val coverStyle by settingsViewModel.coverStyle.collectAsState()
@@ -61,10 +64,13 @@ class MainActivity : ComponentActivity() {
                 else -> false
             }
 
+            // 根据主题预设获取主题
+            val themePreset: ThemePreset? = themePresetId?.let { ThemePresets.getPresetById(it) }
+            
             FreeMusicTheme(
                 darkTheme = effectiveDarkTheme,
                 pureBlack = isPureBlack && themeMode == "纯黑",
-                customPrimaryColor = if (customPrimaryColor == -1) null else customPrimaryColor
+                themePreset = themePreset
             ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

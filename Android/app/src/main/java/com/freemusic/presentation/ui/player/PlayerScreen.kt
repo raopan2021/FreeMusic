@@ -269,9 +269,7 @@ fun PlayerScreen(
             isShuffleEnabled = uiState.isShuffleEnabled,
             onModeSelect = { mode ->
                 // 计算需要切换多少次才能到达目标模式
-                // 如果点击的是当前模式，则切换到 OFF
                 fun needToggles(from: PlayRepeatMode, to: PlayRepeatMode): Int {
-                    if (from == to) return 1 // 点击当前模式，切换到 OFF
                     val states = listOf(PlayRepeatMode.OFF, PlayRepeatMode.ALL, PlayRepeatMode.ONE)
                     val fromIdx = states.indexOf(from)
                     val toIdx = states.indexOf(to)
@@ -790,7 +788,7 @@ private fun RepeatModeSheet(
     onModeSelect: (PlayRepeatMode) -> Unit,
     onShuffleToggle: () -> Unit,
     onDismiss: () -> Unit,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = Color(0xFF5C6BC0)
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -814,24 +812,6 @@ private fun RepeatModeSheet(
                 text = "循环模式",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            // 关闭
-            ListItem(
-                headlineContent = { Text("关闭") },
-                leadingContent = { Icon(Icons.Default.Repeat, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                trailingContent = {
-                    if (currentMode == PlayRepeatMode.OFF && !isShuffleEnabled) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = accentColor)
-                    }
-                },
-                modifier = Modifier.clickable {
-                    onModeSelect(PlayRepeatMode.OFF)
-                    scope.launch {
-                        sheetState.hide()
-                        onDismiss()
-                    }
-                }
             )
 
             // 列表循环

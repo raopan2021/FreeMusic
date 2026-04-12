@@ -650,7 +650,8 @@ private fun LyricsPage(
                     text = currentLine?.text ?: "",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontSize = (lyricsFontSize + 8).sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = (lyricsFontSize + 12).sp
                     ),
                     color = primaryColor,
                     modifier = Modifier
@@ -667,7 +668,8 @@ private fun LyricsPage(
                     text = nextLine?.text ?: "",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontSize = (lyricsFontSize + 4).sp,
-                        fontWeight = FontWeight.Normal
+                        fontWeight = FontWeight.Normal,
+                        lineHeight = (lyricsFontSize + 8).sp
                     ),
                     color = Color.White.copy(alpha = 0.6f),
                     modifier = Modifier

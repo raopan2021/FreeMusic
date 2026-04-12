@@ -361,7 +361,7 @@ fun FloatingMiniPlayer(
                 shadowElevation = 16f
             }
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(0.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
@@ -371,7 +371,7 @@ fun FloatingMiniPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
-                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                    .clip(RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp))
             ) {
                 LinearProgressIndicator(
                     progress = animatedProgress,

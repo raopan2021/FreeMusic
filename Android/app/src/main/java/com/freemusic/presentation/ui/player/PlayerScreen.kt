@@ -63,7 +63,7 @@ fun PlayerScreen(
     equalizerPreset: Int = 0,
     onParticlesToggle: () -> Unit = {},
     onVisualizerToggle: () -> Unit = {},
-    onEqualizerToggle: () -> Unit = {},
+    onEqualizerSelect: (Int) -> Unit = {},
     shakeToSkipEnabled: Boolean = false,
     lyricsFontSize: Int = 16,
     // Playlists for "Add to Playlist"
@@ -210,7 +210,7 @@ fun PlayerScreen(
                     equalizerPreset = equalizerPreset,
                     onParticlesToggle = onParticlesToggle,
                     onVisualizerToggle = onVisualizerToggle,
-                    onEqualizerToggle = onEqualizerToggle,
+                    onEqualizerSelect = onEqualizerSelect,
                     onSeek = { progress -> viewModel.seekTo((progress * uiState.duration).toLong()) },
                     onPlayPause = viewModel::togglePlayPause,
                     onPrevious = viewModel::skipToPrevious,
@@ -305,7 +305,7 @@ fun PlayerScreen(
             equalizerPreset = equalizerPreset,
             onParticlesToggle = onParticlesToggle,
             onVisualizerToggle = onVisualizerToggle,
-            onEqualizerToggle = onEqualizerToggle,
+            onEqualizerSelect = onEqualizerSelect,
             onDismiss = { showEffectsLayer = false }
         )
     }
@@ -422,7 +422,7 @@ private fun PlayerPage(
     equalizerPreset: Int = 0,
     onParticlesToggle: () -> Unit = {},
     onVisualizerToggle: () -> Unit = {},
-    onEqualizerToggle: () -> Unit = {},
+    onEqualizerSelect: (Int) -> Unit = {},
     // 回调
     onSeek: (Float) -> Unit,
     onPlayPause: () -> Unit,
@@ -1005,11 +1005,24 @@ private fun EffectsLayer(
     equalizerPreset: Int,
     onParticlesToggle: () -> Unit,
     onVisualizerToggle: () -> Unit,
-    onEqualizerToggle: () -> Unit,
+    onEqualizerSelect: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+
+    // 均衡器预设选项
+    val equalizerPresets = listOf(
+        "平坦" to 0,
+        "低音增强" to 1,
+        "高音增强" to 2,
+        "人声" to 3,
+        "摇滚" to 4,
+        "流行" to 5,
+        "爵士" to 6,
+        "古典" to 7,
+        "电子" to 8
+    )
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -1026,10 +1039,18 @@ private fun EffectsLayer(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // ========== 粒子效果 ==========
             Text(
-                text = "特效",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
+                text = "粒子效果",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "背景特效动画",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
             ListItem(
@@ -1044,6 +1065,22 @@ private fun EffectsLayer(
                 modifier = Modifier.clickable { onParticlesToggle() }
             )
 
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // ========== 可视化 ==========
+            Text(
+                text = "可视化",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "专辑封面随音频动态效果",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
             ListItem(
                 headlineContent = { Text("可视化") },
                 leadingContent = { Icon(Icons.Default.Equalizer, contentDescription = null) },
@@ -1056,17 +1093,45 @@ private fun EffectsLayer(
                 modifier = Modifier.clickable { onVisualizerToggle() }
             )
 
-            ListItem(
-                headlineContent = { Text("均衡器") },
-                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
-                trailingContent = {
-                    Switch(
-                        checked = equalizerPreset > 0,
-                        onCheckedChange = { onEqualizerToggle() }
-                    )
-                },
-                modifier = Modifier.clickable { onEqualizerToggle() }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // ========== 均衡器 ==========
+            Text(
+                text = "均衡器",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
+            Text(
+                text = "调整音频频率",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // 均衡器预设选择
+            equalizerPresets.chunked(3).forEach { rowPresets ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowPresets.forEach { (name, index) ->
+                        val isSelected = equalizerPreset == index
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onEqualizerSelect(index) },
+                            label = { Text(name, style = MaterialTheme.typography.bodySmall) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // 填充空白
+                    repeat(3 - rowPresets.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
         }

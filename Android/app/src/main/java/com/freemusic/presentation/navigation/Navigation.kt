@@ -90,7 +90,7 @@ fun FreeMusicNavHost(
     // 特效回调（由 SettingsViewModel 提供）
     onParticlesToggle: () -> Unit = {},
     onVisualizerToggle: () -> Unit = {},
-    onEqualizerToggle: () -> Unit = {},
+    onEqualizerSelect: (Int) -> Unit = {},
     // 音效设置
     equalizerPreset: Int = 0,
     bassBoost: Int = 0,
@@ -243,10 +243,7 @@ fun FreeMusicNavHost(
                 equalizerPreset = equalizerPreset,
                 onParticlesToggle = { settingsViewModel.setParticlesEnabled(!particlesEnabled) },
                 onVisualizerToggle = { settingsViewModel.setVisualizerEnabled(!visualizerEnabled) },
-                onEqualizerToggle = {
-                    val nextIdx = if (equalizerPreset >= EqualizerPreset.entries.size - 1) 0 else equalizerPreset + 1
-                    settingsViewModel.setEqualizerPreset(nextIdx)
-                },
+                onEqualizerSelect = { settingsViewModel.setEqualizerPreset(it) },
                 shakeToSkipEnabled = shakeToSkip,
                 lyricsFontSize = lyricsFontSize,
                 // 歌单
@@ -534,7 +531,7 @@ fun FreeMusicNavHost(
                 equalizerPreset = equalizerPreset,
                 onParticlesToggle = onParticlesToggle,
                 onVisualizerToggle = onVisualizerToggle,
-                onEqualizerToggle = onEqualizerToggle,
+                onEqualizerSelect = onEqualizerSelect,
                 shakeToSkipEnabled = shakeToSkip,
                 playlists = playlistState.playlists,
                 onAddSongsToPlaylist = { songs, playlist ->

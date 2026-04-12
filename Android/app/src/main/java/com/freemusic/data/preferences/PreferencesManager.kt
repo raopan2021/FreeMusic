@@ -319,6 +319,27 @@ class PreferencesManager @Inject constructor(
         _cacheSize.value = sizeMb
     }
 
+    // ============ 播放队列持久化 ============
+    // 保存播放队列（歌曲ID列表和当前索引）
+    fun savePlaybackQueue(songIds: List<String>, currentIndex: Int) {
+        if (songIds.isEmpty()) {
+            prefs.edit().remove(KEY_PLAYBACK_QUEUE).apply()
+            prefs.edit().remove(KEY_PLAYBACK_INDEX).apply()
+        } else {
+            prefs.edit().putString(KEY_PLAYBACK_QUEUE, songIds.joinToString(",")).apply()
+            prefs.edit().putInt(KEY_PLAYBACK_INDEX, currentIndex).apply()
+        }
+    }
+
+    fun getPlaybackQueueIds(): List<String> {
+        val queueStr = prefs.getString(KEY_PLAYBACK_QUEUE, null) ?: return emptyList()
+        return if (queueStr.isEmpty()) emptyList() else queueStr.split(",")
+    }
+
+    fun getPlaybackQueueIndex(): Int {
+        return prefs.getInt(KEY_PLAYBACK_INDEX, 0)
+    }
+
     companion object {
         private const val PREFS_NAME = "freemusic_prefs"
 
@@ -364,6 +385,10 @@ class PreferencesManager @Inject constructor(
         private const val KEY_CACHE_ENABLED = "cache_enabled"
         private const val KEY_CACHE_SIZE = "cache_size"
         private const val KEY_MIN_SONG_DURATION = "min_song_duration"
+
+        // Playback Queue
+        private const val KEY_PLAYBACK_QUEUE = "playback_queue"
+        private const val KEY_PLAYBACK_INDEX = "playback_index"
     }
 }
 

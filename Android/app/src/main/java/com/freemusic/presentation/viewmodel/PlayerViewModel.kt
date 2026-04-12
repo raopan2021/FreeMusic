@@ -3,6 +3,7 @@ package com.freemusic.presentation.viewmodel
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -25,6 +26,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
@@ -122,6 +124,14 @@ class PlayerViewModel @Inject constructor(
         // 关闭 App 后重新打开，定时器失效，不继续倒计时
         preferencesManager.clearSleepTimer()
 
+        // 观察播放队列变化，自动保存
+        viewModelScope.launch {
+            _uiState.collect { state ->
+                val songIds = state.queueItems.map { it.song.id }
+                preferencesManager.savePlaybackQueue(songIds, state.currentIndex)
+            }
+        }
+
         // 观察睡眠定时器（监听结束时间戳）
         viewModelScope.launch {
             preferencesManager.sleepTimerEndTime.collect { endTime ->
@@ -156,6 +166,149 @@ class PlayerViewModel @Inject constructor(
         preferencesManager.setSleepTimer(minutes)
     }
 
+    /**
+     * 扫描本地音乐并恢复播放队列
+     * 如果没有保存的队列，则扫描本地音乐作为默认队列
+     */
+    private suspend fun restoreQueueFromLocalMusic() {
+        val songIds = preferencesManager.getPlaybackQueueIds()
+        
+        val songs = withContext(kotlinx.coroutines.Dispatchers.IO) {
+            scanLocalMusicSync()
+        }
+        
+        if (songs.isEmpty()) return
+        
+        val queueItems: List<QueueItem>
+        val currentIndex: Int
+        
+        if (songIds.isNotEmpty()) {
+            // 恢复保存的队列（按保存顺序过滤本地歌曲）
+            val songMap = songs.associateBy { it.id }
+            var restoredItems = songIds.mapNotNull { id -> songMap[id] }.map { QueueItem(it) }
+            var restoredIndex = preferencesManager.getPlaybackQueueIndex()
+                .coerceIn(0, (restoredItems.size - 1).coerceAtLeast(0))
+            
+            if (restoredItems.isEmpty()) {
+                // 保存的歌曲都不在本地，使用全部本地歌曲
+                restoredItems = songs.map { QueueItem(it) }
+                restoredIndex = 0
+            }
+            queueItems = restoredItems
+            currentIndex = restoredIndex
+        } else {
+            // 没有保存的队列，使用全部本地歌曲作为默认队列
+            queueItems = songs.map { QueueItem(it) }
+            currentIndex = 0
+        }
+        
+        _uiState.update {
+            it.copy(
+                queueItems = queueItems,
+                playlist = queueItems.map { item -> item.song },
+                currentIndex = currentIndex,
+                currentSong = queueItems[currentIndex].song
+            )
+        }
+        
+        // 如果有 mediaController，填充媒体项
+        mediaController?.let { controller ->
+            val mediaItems = queueItems.map { item ->
+                val contentUri = buildContentUri(item.song.id)
+                MediaItem.Builder()
+                    .setMediaId(item.song.id)
+                    .setUri(contentUri)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(item.song.title)
+                            .setArtist(item.song.artist)
+                            .setAlbumTitle(item.song.album)
+                            .setArtworkUri(item.song.coverUrl?.let { Uri.parse(it) })
+                            .build()
+                    )
+                    .build()
+            }
+            controller.setMediaItems(mediaItems, currentIndex, 0)
+        }
+    }
+
+    /**
+     * 同步扫描本地音乐（不通过 ViewModel）
+     */
+    private fun scanLocalMusicSync(): List<Song> {
+        val songs = mutableListOf<Song>()
+        val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        }
+        
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DISPLAY_NAME,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.DATE_ADDED
+        )
+        
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} = ?"
+        val selectionArgs = arrayOf("1")
+        
+        var cursor: android.database.Cursor? = null
+        try {
+            cursor = context.contentResolver.query(
+                collection, projection, selection, selectionArgs,
+                "${MediaStore.Audio.Media.TITLE} ASC"
+            )
+            
+            if (cursor == null || cursor.count == 0) return emptyList()
+            
+            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+            val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+            val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val albumIdCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+            val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+            
+            while (cursor.moveToNext()) {
+                val duration = cursor.getLong(durationCol)
+                if (duration < 60000) continue
+                
+                val id = cursor.getLong(idCol)
+                val title = cursor.getString(titleCol) ?: "Unknown"
+                val artist = cursor.getString(artistCol) ?: "Unknown"
+                val album = cursor.getString(albumCol) ?: "Unknown"
+                val albumId = cursor.getLong(albumIdCol)
+                
+                val contentUri = android.content.ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id
+                )
+                
+                songs.add(
+                    Song(
+                        id = contentUri.toString(),
+                        title = title,
+                        artist = artist,
+                        album = album,
+                        coverUrl = null,
+                        duration = duration,
+                        isNetease = false
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            cursor?.close()
+        }
+        
+        return songs
+    }
+
     private fun initializeMediaController() {
         val sessionToken = SessionToken(
             context,
@@ -174,6 +327,11 @@ class PlayerViewModel @Inject constructor(
                 
                 // 初始化重复和随机状态
                 updateRepeatShuffleState()
+                
+                // 恢复保存的播放队列
+                viewModelScope.launch {
+                    restoreQueueFromLocalMusic()
+                }
                 
                 // MediaController 就绪后，播放待播放的歌曲
                 processPendingPlaylists()

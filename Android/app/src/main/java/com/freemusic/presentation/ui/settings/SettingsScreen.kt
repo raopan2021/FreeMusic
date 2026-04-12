@@ -987,17 +987,7 @@ private fun ThemePresetDialog(
                 items(presets) { preset ->
                     val isSelected = preset.id == currentPresetId
                     
-                    val backgroundColor = if (preset.isDark) {
-                        Color(0xFF1E1E1E)
-                    } else {
-                        Color(0xFFF5F5F5)
-                    }
-                    
-                    val surfaceColor = if (preset.isDark) {
-                        Color(0xFF2D2D2D)
-                    } else {
-                        Color.White
-                    }
+                    val surfaceColor = Color.White
                     
                     Surface(
                         modifier = Modifier
@@ -1016,25 +1006,37 @@ private fun ThemePresetDialog(
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                // 主题色圆点
+                                // 主题色圆点（使用浅色版本的primary）
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
                                         .background(
-                                            color = preset.primary,
+                                            color = preset.lightColors.primary,
                                             shape = RoundedCornerShape(8.dp)
                                         )
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
-                                // 深色模式指示
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp, 8.dp)
-                                        .background(
-                                            color = backgroundColor,
-                                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
-                                        )
-                                )
+                                // 浅/深色模式预览条
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp, 8.dp)
+                                            .background(
+                                                color = preset.lightColors.background,
+                                                shape = RoundedCornerShape(bottomStart = 4.dp)
+                                            )
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp, 8.dp)
+                                            .background(
+                                                color = preset.darkColors.background,
+                                                shape = RoundedCornerShape(bottomEnd = 4.dp)
+                                            )
+                                    )
+                                }
                             }
                             
                             Spacer(modifier = Modifier.width(12.dp))
@@ -1046,7 +1048,7 @@ private fun ThemePresetDialog(
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = if (preset.isDark) "深色模式" else "浅色模式",
+                                    text = "支持深色/浅色模式",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1057,9 +1059,9 @@ private fun ThemePresetDialog(
                                 horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
                                 listOf(
-                                    preset.primary,
-                                    preset.secondary,
-                                    preset.tertiary
+                                    preset.lightColors.primary,
+                                    preset.lightColors.secondary,
+                                    preset.lightColors.tertiary
                                 ).forEach { color ->
                                     Box(
                                         modifier = Modifier

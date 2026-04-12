@@ -128,12 +128,9 @@ data class ThemePalette(
 )
 
 /**
- * 完整的主题预设
+ * 完整的主题预设（包含深色和浅色两套配色）
  */
-data class ThemePreset(
-    val id: String,
-    val displayName: String,
-    val isDark: Boolean,
+data class ThemeColorScheme(
     val primary: Color,
     val secondary: Color,
     val tertiary: Color,
@@ -147,214 +144,309 @@ data class ThemePreset(
     val onSurfaceVariant: Color
 )
 
+data class ThemePreset(
+    val id: String,
+    val displayName: String,
+    val lightColors: ThemeColorScheme,
+    val darkColors: ThemeColorScheme
+)
+
 /**
  * 预设主题列表 - 小米SU7全系外观颜色
  */
 object ThemePresets {
-    // 默认紫色主题（亮色）
-    val DefaultLight = ThemePreset(
-        id = "default_light",
-        displayName = "默认紫（浅色）",
-        isDark = false,
-        primary = Color(0xFF6750A4),
-        secondary = Color(0xFF625B71),
-        tertiary = Color(0xFF7D5260),
-        background = Color(0xFFF8F9FA),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFE7E0EC),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF1C1B1F),
-        onSurface = Color(0xFF1C1B1F),
-        onSurfaceVariant = Color(0xFF49454F)
+    // 默认紫色主题
+    val Default = ThemePreset(
+        id = "default",
+        displayName = "默认紫",
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFF6750A4),
+            secondary = Color(0xFF625B71),
+            tertiary = Color(0xFF7D5260),
+            background = Color(0xFFF8F9FA),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFE7E0EC),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF1C1B1F),
+            onSurface = Color(0xFF1C1B1F),
+            onSurfaceVariant = Color(0xFF49454F)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFFD0BCFF),
+            secondary = Color(0xFFCCC2DC),
+            tertiary = Color(0xFFEFB8C8),
+            background = Color(0xFF1C1B1F),
+            surface = Color(0xFF1C1B1F),
+            surfaceVariant = Color(0xFF49454F),
+            onPrimary = Color(0xFF381E72),
+            onSecondary = Color(0xFF332D41),
+            onBackground = Color(0xFFE6E1E5),
+            onSurface = Color(0xFFE6E1E5),
+            onSurfaceVariant = Color(0xFFCAC4D0)
+        )
     )
     
-    // 默认紫色主题（深色）
-    val DefaultDark = ThemePreset(
-        id = "default_dark",
-        displayName = "默认紫（深色）",
-        isDark = true,
-        primary = Color(0xFFD0BCFF),
-        secondary = Color(0xFFCCC2DC),
-        tertiary = Color(0xFFEFB8C8),
-        background = Color(0xFF1C1B1F),
-        surface = Color(0xFF1C1B1F),
-        surfaceVariant = Color(0xFF49454F),
-        onPrimary = Color(0xFF381E72),
-        onSecondary = Color(0xFF332D41),
-        onBackground = Color(0xFFE6E1E5),
-        onSurface = Color(0xFFE6E1E5),
-        onSurfaceVariant = Color(0xFFCAC4D0)
-    )
-    
-    // 卡布里蓝（浅色）
+    // 卡布里蓝
     val CabriBlue = ThemePreset(
         id = "cabri_blue",
         displayName = "卡布里蓝",
-        isDark = false,
-        primary = Color(0xFF4A9EE5),
-        secondary = Color(0xFF3A8ED5),
-        tertiary = Color(0xFF6ABEF5),
-        background = Color(0xFFF5F9FC),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFE3F2FD),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF0D2A3D),
-        onSurface = Color(0xFF0D2A3D),
-        onSurfaceVariant = Color(0xFF1976D2)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFF4A9EE5),
+            secondary = Color(0xFF3A8ED5),
+            tertiary = Color(0xFF6ABEF5),
+            background = Color(0xFFF5F9FC),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFE3F2FD),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF0D2A3D),
+            onSurface = Color(0xFF0D2A3D),
+            onSurfaceVariant = Color(0xFF1976D2)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFF4A9EE5),
+            secondary = Color(0xFF6ABEF5),
+            tertiary = Color(0xFF3A8ED5),
+            background = Color(0xFF0D2A3D),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF1E3A4D),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFFE3F2FD),
+            onSurface = Color(0xFFE3F2FD),
+            onSurfaceVariant = Color(0xFF90CAF9)
+        )
     )
     
-    // 赤霞红（浅色）
+    // 赤霞红
     val ChiXiaRed = ThemePreset(
         id = "chi_xia_red",
         displayName = "赤霞红",
-        isDark = false,
-        primary = Color(0xFFC72C41),
-        secondary = Color(0xFFB71C31),
-        tertiary = Color(0xFFE73C51),
-        background = Color(0xFFFFF5F5),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFFFEBEE),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF4A0A12),
-        onSurface = Color(0xFF4A0A12),
-        onSurfaceVariant = Color(0xFFD32F2F)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFFC72C41),
+            secondary = Color(0xFFB71C31),
+            tertiary = Color(0xFFE73C51),
+            background = Color(0xFFFFF5F5),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFFFEBEE),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF4A0A12),
+            onSurface = Color(0xFF4A0A12),
+            onSurfaceVariant = Color(0xFFD32F2F)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFFEF5350),
+            secondary = Color(0xFFE73C51),
+            tertiary = Color(0xFFB71C31),
+            background = Color(0xFF1A0A0A),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF2D1515),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFFFFEBEE),
+            onSurface = Color(0xFFFFEBEE),
+            onSurfaceVariant = Color(0xFFEF9A9A)
+        )
     )
     
-    // 靛石绿（浅色）
+    // 靛石绿
     val DianStoneGreen = ThemePreset(
         id = "dian_stone_green",
         displayName = "靛石绿",
-        isDark = false,
-        primary = Color(0xFF2A4F4D),
-        secondary = Color(0xFF1A3F3D),
-        tertiary = Color(0xFF3A6F6D),
-        background = Color(0xFFF5F9F8),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFE8F5F3),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF0A1A19),
-        onSurface = Color(0xFF0A1A19),
-        onSurfaceVariant = Color(0xFF1B8F7D)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFF2A4F4D),
+            secondary = Color(0xFF1A3F3D),
+            tertiary = Color(0xFF3A6F6D),
+            background = Color(0xFFF5F9F8),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFE8F5F3),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF0A1A19),
+            onSurface = Color(0xFF0A1A19),
+            onSurfaceVariant = Color(0xFF1B8F7D)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFF4DB6AC),
+            secondary = Color(0xFF3A6F6D),
+            tertiary = Color(0xFF26A69A),
+            background = Color(0xFF0A1A19),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF1A2A28),
+            onPrimary = Color.Black,
+            onSecondary = Color.White,
+            onBackground = Color(0xFFE8F5F3),
+            onSurface = Color(0xFFE8F5F3),
+            onSurfaceVariant = Color(0xFF80CBC4)
+        )
     )
     
-    // 雅灰（浅色）
+    // 雅灰
     val YaGray = ThemePreset(
         id = "ya_gray",
         displayName = "雅灰",
-        isDark = false,
-        primary = Color(0xFFA3AAAF),
-        secondary = Color(0xFF939A9F),
-        tertiary = Color(0xFFB3BABF),
-        background = Color(0xFFF8F9FA),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFECEFF1),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF1C1B1F),
-        onSurface = Color(0xFF1C1B1F),
-        onSurfaceVariant = Color(0xFF78909C)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFF6B6B6B),
+            secondary = Color(0xFF5A5A5A),
+            tertiary = Color(0xFF8A8A8A),
+            background = Color(0xFFF5F5F5),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFEEEEEE),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF1C1B1F),
+            onSurface = Color(0xFF1C1B1F),
+            onSurfaceVariant = Color(0xFF757575)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFF9E9E9E),
+            secondary = Color(0xFFB0B0B0),
+            tertiary = Color(0xFF757575),
+            background = Color(0xFF1A1A1A),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF2D2D2D),
+            onPrimary = Color.Black,
+            onSecondary = Color.Black,
+            onBackground = Color(0xFFE0E0E0),
+            onSurface = Color(0xFFE0E0E0),
+            onSurfaceVariant = Color(0xFFBDBDBD)
+        )
     )
     
-    // 流金粉（浅色）
+    // 流金粉
     val LiuJinPink = ThemePreset(
         id = "liu_jin_pink",
         displayName = "流金粉",
-        isDark = false,
-        primary = Color(0xFFE6B8B8),
-        secondary = Color(0xFFD6A8A8),
-        tertiary = Color(0xFFF6C8C8),
-        background = Color(0xFFFCF8F8),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFFFF0F0),
-        onPrimary = Color(0xFF3A1A1A),
-        onSecondary = Color(0xFF3A1A1A),
-        onBackground = Color(0xFF2A1A1A),
-        onSurface = Color(0xFF2A1A1A),
-        onSurfaceVariant = Color(0xFFB08080)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFFD4A0A0),
+            secondary = Color(0xFFC49090),
+            tertiary = Color(0xFFE4B0B0),
+            background = Color(0xFFFCF8F8),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFFFF0F0),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF2A1A1A),
+            onSurface = Color(0xFF2A1A1A),
+            onSurfaceVariant = Color(0xFFB08080)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFFE6B8B8),
+            secondary = Color(0xFFF6C8C8),
+            tertiary = Color(0xFFD4A0A0),
+            background = Color(0xFF1A1212),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF2D1F1F),
+            onPrimary = Color.Black,
+            onSecondary = Color.Black,
+            onBackground = Color(0xFFFFF0F0),
+            onSurface = Color(0xFFFFF0F0),
+            onSurfaceVariant = Color(0xFFD4A0A0)
+        )
     )
     
-    // 霞光紫（浅色）
+    // 霞光紫
     val XiaGuangPurple = ThemePreset(
         id = "xia_guang_purple",
         displayName = "霞光紫",
-        isDark = false,
-        primary = Color(0xFF996699),
-        secondary = Color(0xFF895689),
-        tertiary = Color(0xFFA976A9),
-        background = Color(0xFFFAF8FC),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFF3EEF3),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF2A1A2A),
-        onSurface = Color(0xFF2A1A2A),
-        onSurfaceVariant = Color(0xFF7E57C2)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFF996699),
+            secondary = Color(0xFF895689),
+            tertiary = Color(0xFFA976A9),
+            background = Color(0xFFFAF8FC),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFF3EEF3),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF2A1A2A),
+            onSurface = Color(0xFF2A1A2A),
+            onSurfaceVariant = Color(0xFF7E57C2)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFFCE93D8),
+            secondary = Color(0xFFBA68C8),
+            tertiary = Color(0xFFAB47BC),
+            background = Color(0xFF1A121A),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF2D1F2D),
+            onPrimary = Color.Black,
+            onSecondary = Color.White,
+            onBackground = Color(0xFFF3EEF3),
+            onSurface = Color(0xFFF3EEF3),
+            onSurfaceVariant = Color(0xFFCE93D8)
+        )
     )
     
-    // 璀璨洋红（浅色）
+    // 璀璨洋红
     val CuiCanMagenta = ThemePreset(
         id = "cui_can_magenta",
         displayName = "璀璨洋红",
-        isDark = false,
-        primary = Color(0xFFD92F7C),
-        secondary = Color(0xFFC91F6C),
-        tertiary = Color(0xFFE93F8C),
-        background = Color(0xFFFFF5FA),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFFFF0F5),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFF4A0A2A),
-        onSurface = Color(0xFF4A0A2A),
-        onSurfaceVariant = Color(0xFFE91E63)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFFD92F7C),
+            secondary = Color(0xFFC91F6C),
+            tertiary = Color(0xFFE93F8C),
+            background = Color(0xFFFFF5FA),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFFFF0F5),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF4A0A2A),
+            onSurface = Color(0xFF4A0A2A),
+            onSurfaceVariant = Color(0xFFE91E63)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFFF06292),
+            secondary = Color(0xFFE93F8C),
+            tertiary = Color(0xFFEC407A),
+            background = Color(0xFF1A0A12),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF2D1520),
+            onPrimary = Color.Black,
+            onSecondary = Color.White,
+            onBackground = Color(0xFFFFF0F5),
+            onSurface = Color(0xFFFFF0F5),
+            onSurfaceVariant = Color(0xFFF48FB1)
+        )
     )
     
-    // 珍珠白（浅色）
-    val PearlWhite = ThemePreset(
-        id = "pearl_white",
-        displayName = "珍珠白",
-        isDark = false,
-        primary = Color(0xFFF0F0F0),
-        secondary = Color(0xFFE0E0E0),
-        tertiary = Color(0xFFFFFFFF),
-        background = Color(0xFFFAFAFA),
-        surface = Color(0xFFFFFFFF),
-        surfaceVariant = Color(0xFFF5F5F5),
-        onPrimary = Color(0xFF1C1B1F),
-        onSecondary = Color(0xFF1C1B1F),
-        onBackground = Color(0xFF1C1B1F),
-        onSurface = Color(0xFF1C1B1F),
-        onSurfaceVariant = Color(0xFF9E9E9E)
-    )
-    
-    // 曜石黑（深色）
+    // 曜石黑
     val YaoShiBlack = ThemePreset(
         id = "yao_shi_black",
         displayName = "曜石黑",
-        isDark = true,
-        primary = Color(0xFF4A4A4A),
-        secondary = Color(0xFF3A3A3A),
-        tertiary = Color(0xFF5A5A5A),
-        background = Color(0xFF1A1A1A),
-        surface = Color(0xFF121212),
-        surfaceVariant = Color(0xFF2D2D2D),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onBackground = Color(0xFFE0E0E0),
-        onSurface = Color(0xFFE0E0E0),
-        onSurfaceVariant = Color(0xFFB0BEC5)
+        lightColors = ThemeColorScheme(
+            primary = Color(0xFF4A4A4A),
+            secondary = Color(0xFF3A3A3A),
+            tertiary = Color(0xFF5A5A5A),
+            background = Color(0xFFF5F5F5),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFEEEEEE),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFF1A1A1A),
+            onSurface = Color(0xFF1A1A1A),
+            onSurfaceVariant = Color(0xFF757575)
+        ),
+        darkColors = ThemeColorScheme(
+            primary = Color(0xFF4A4A4A),
+            secondary = Color(0xFF5A5A5A),
+            tertiary = Color(0xFF3A3A3A),
+            background = Color(0xFF1A1A1A),
+            surface = Color(0xFF121212),
+            surfaceVariant = Color(0xFF2D2D2D),
+            onPrimary = Color.White,
+            onSecondary = Color.White,
+            onBackground = Color(0xFFE0E0E0),
+            onSurface = Color(0xFFE0E0E0),
+            onSurfaceVariant = Color(0xFFB0BEC5)
+        )
     )
     
     // 获取所有预设主题
     val allPresets = listOf(
-        DefaultLight, DefaultDark, 
-        CabriBlue, ChiXiaRed, DianStoneGreen, YaGray, 
-        LiuJinPink, XiaGuangPurple, CuiCanMagenta, PearlWhite, 
-        YaoShiBlack
+        Default, CabriBlue, ChiXiaRed, DianStoneGreen, 
+        YaGray, LiuJinPink, XiaGuangPurple, CuiCanMagenta, YaoShiBlack
     )
     
     // 根据ID获取预设
@@ -433,37 +525,23 @@ fun FreeMusicTheme(
     themePreset: ThemePreset? = null, // 完整主题预设
     content: @Composable () -> Unit
 ) {
-    // 如果有预设主题，直接使用预设的配色
+    // 如果有预设主题，根据 darkTheme 参数选择配色
     if (themePreset != null) {
-        val presetColorScheme = if (themePreset.isDark) {
-            darkColorScheme(
-                primary = themePreset.primary,
-                secondary = themePreset.secondary,
-                tertiary = themePreset.tertiary,
-                background = themePreset.background,
-                surface = themePreset.surface,
-                surfaceVariant = themePreset.surfaceVariant,
-                onPrimary = themePreset.onPrimary,
-                onSecondary = themePreset.onSecondary,
-                onBackground = themePreset.onBackground,
-                onSurface = themePreset.onSurface,
-                onSurfaceVariant = themePreset.onSurfaceVariant
-            )
-        } else {
-            lightColorScheme(
-                primary = themePreset.primary,
-                secondary = themePreset.secondary,
-                tertiary = themePreset.tertiary,
-                background = themePreset.background,
-                surface = themePreset.surface,
-                surfaceVariant = themePreset.surfaceVariant,
-                onPrimary = themePreset.onPrimary,
-                onSecondary = themePreset.onSecondary,
-                onBackground = themePreset.onBackground,
-                onSurface = themePreset.onSurface,
-                onSurfaceVariant = themePreset.onSurfaceVariant
-            )
-        }
+        val colors = if (darkTheme) themePreset.darkColors else themePreset.lightColors
+        
+        val presetColorScheme = darkColorScheme(
+            primary = colors.primary,
+            secondary = colors.secondary,
+            tertiary = colors.tertiary,
+            background = colors.background,
+            surface = colors.surface,
+            surfaceVariant = colors.surfaceVariant,
+            onPrimary = colors.onPrimary,
+            onSecondary = colors.onSecondary,
+            onBackground = colors.onBackground,
+            onSurface = colors.onSurface,
+            onSurfaceVariant = colors.onSurfaceVariant
+        )
         
         val view = LocalView.current
         if (!view.isInEditMode) {
@@ -472,8 +550,8 @@ fun FreeMusicTheme(
                 window.statusBarColor = presetColorScheme.background.toArgb()
                 window.navigationBarColor = presetColorScheme.surface.toArgb()
                 WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = !themePreset.isDark
-                    isAppearanceLightNavigationBars = !themePreset.isDark
+                    isAppearanceLightStatusBars = !darkTheme
+                    isAppearanceLightNavigationBars = !darkTheme
                 }
             }
         }

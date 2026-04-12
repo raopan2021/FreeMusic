@@ -361,12 +361,7 @@ fun MiniQueueCard(
                         contentDescription = null,
                         modifier = Modifier
                             .size(40.dp)
-                            .clip(CircleShape)
-                            .border(
-                                width = if (isCurrent) 2.dp else 0.dp,
-                                color = if (isCurrent) primaryColor else Color.Transparent,
-                                shape = CircleShape
-                            ),
+                            .clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 }

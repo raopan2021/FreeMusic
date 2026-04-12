@@ -1349,12 +1349,6 @@ private fun MoreOptionsSheet(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "更多",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
             // 歌曲信息
             if (song != null) {
                 ListItem(
@@ -1383,21 +1377,21 @@ private fun MoreOptionsSheet(
                         tint = if (isFavorite) Color.Red else Color.Gray
                     )
                 },
-                modifier = Modifier.clickable(onClick = onFavoriteToggle)
+                modifier = Modifier.clickable { onFavoriteToggle() }
             )
 
             // 添加到歌单
             ListItem(
                 headlineContent = { Text("添加到歌单") },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onAddToPlaylist)
+                modifier = Modifier.clickable { onAddToPlaylist() }
             )
 
             // 分享
             ListItem(
                 headlineContent = { Text("分享") },
                 leadingContent = { Icon(Icons.Default.Share, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onShare)
+                modifier = Modifier.clickable { onShare() }
             )
 
             // 歌曲详情

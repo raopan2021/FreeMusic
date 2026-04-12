@@ -37,10 +37,10 @@ fun MiniPlayer(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp)
-            .clickable(onClick = onPlayerClick)
-            .navigationBarsPadding(),
-        tonalElevation = 4.dp,
+            .height(80.dp)
+            .clickable(onClick = onPlayerClick),
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+        tonalElevation = 0.dp,
         shadowElevation = 4.dp
     ) {
         Row(

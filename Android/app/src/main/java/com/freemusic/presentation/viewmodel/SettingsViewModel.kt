@@ -235,12 +235,20 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun updateUiState() {
-        // 优先使用 _themeMode（用户明确选择的主题），否则根据深色/纯黑状态计算
+        // 根据 themeMode 直接计算主题显示名称
+        // 不再依赖 isDarkTheme 和 isPureBlack 的时序
         val themeName = when (_themeMode.value) {
             "浅色" -> "浅色"
             "深色" -> if (_isPureBlack.value) "纯黑" else "深色"
             else -> "默认"
         }
+        
+        // 同时更新 isDarkTheme 和 isPureBlack 的内存状态，确保一致性
+        val isDark = _themeMode.value in listOf("深色", "纯黑")
+        val isPureBlack = _themeMode.value == "纯黑"
+        if (_isDarkTheme.value != isDark) _isDarkTheme.value = isDark
+        if (_isPureBlack.value != isPureBlack) _isPureBlack.value = isPureBlack
+        
         _uiState.update { state ->
             state.copy(
                 currentThemeName = themeName,

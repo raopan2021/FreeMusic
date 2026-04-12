@@ -75,16 +75,7 @@ fun LocalMusicScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasPermission = isGranted
-        if (isGranted) {
-            viewModel.scanLocalMusic()
-        }
-    }
-    
-    // 首次加载时检查权限并扫描
-    LaunchedEffect(Unit) {
-        if (hasPermission) {
-            viewModel.scanLocalMusic()
-        }
+        // 权限授予后不自动扫描，由用户手动触发
     }
     
     Scaffold(

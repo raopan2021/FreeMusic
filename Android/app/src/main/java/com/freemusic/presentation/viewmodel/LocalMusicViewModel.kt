@@ -68,50 +68,42 @@ class LocalMusicViewModel @Inject constructor(
     }
     
     /**
-     * 标准化歌手名称并尝试修复未知歌手
+     * 标准化歌手名称（快速版本，用于扫描时）
+     * 完整的歌手修复在后台进行
      */
     private fun normalizeArtistName(artist: String): String {
-        // 标准化歌手名称（去除多余空格、规范化标点）
-        var normalized = ArtistNameNormalizer.normalize(artist)
-        
-        // 如果是未知歌手，尝试从歌名中提取
-        if (ArtistNameNormalizer.isUnknown(normalized)) {
-            // 尝试在 KnownArtists 中查找匹配
-            val match = KnownArtists.findMatch(artist)
-            if (match != null) {
-                return match
-            }
-        }
-        
-        return normalized
+        // 只做基本的标准化处理，不做昂贵的 KnownArtists 查找
+        return ArtistNameNormalizer.normalize(artist)
     }
     
     /**
-     * 尝试修复未知歌手（根据歌手名单匹配）
+     * 快速修复未知歌手（用于扫描时）
+     * 只做简单的空格/标点清理，不做昂贵的数据库匹配
      */
-    private fun fixUnknownArtist(title: String, currentArtist: String): String {
-        if (!ArtistNameNormalizer.isUnknown(currentArtist)) {
-            return currentArtist
-        }
-        
-        // 从歌名中提取可能的歌手
-        val (extractedArtist, _) = ArtistNameNormalizer.extractArtistFromTitle(title)
-        if (extractedArtist != null) {
-            // 检查 KnownArtists 中是否有匹配的
-            val match = KnownArtists.findMatch(extractedArtist)
-            if (match != null) {
-                return match
-            }
-            return ArtistNameNormalizer.normalize(extractedArtist)
-        }
-        
-        // 在 KnownArtists 中搜索相似名称
-        val match = KnownArtists.findMatch(title)
-        if (match != null) {
-            return match
-        }
-        
+    private fun fixUnknownArtist(currentArtist: String): String {
+        // 扫描时不进行昂贵的 KnownArtists 匹配
+        // 这个会在后台单独处理
         return currentArtist
+    }
+    
+    /**
+     * 批量修复所有未知歌手（在扫描完成后调用）
+     * 这个是可选的优化步骤
+     */
+    private fun fixAllUnknownArtists(songs: List<Song>): List<Song> {
+        // 构建快速查找表
+        val artistLookup = KnownArtists.allArtists
+            .associateBy { ArtistNameNormalizer.normalize(it).lowercase() }
+        
+        return songs.map { song ->
+            val normalizedArtist = ArtistNameNormalizer.normalize(song.artist).lowercase()
+            val fixedArtist = artistLookup[normalizedArtist] ?: song.artist
+            if (fixedArtist != song.artist) {
+                song.copy(artist = fixedArtist)
+            } else {
+                song
+            }
+        }
     }
 
     private fun scanMediaStore(sortOrder: Int): List<Song> {
@@ -204,8 +196,8 @@ class LocalMusicViewModel @Inject constructor(
                     
                     // 标准化歌手名称
                     val normalizedArtist = normalizeArtistName(artist)
-                    // 尝试修复未知歌手
-                    val fixedArtist = fixUnknownArtist(title, normalizedArtist)
+                    // 快速修复未知歌手（不做昂贵的数据库匹配）
+                    val fixedArtist = fixUnknownArtist(normalizedArtist)
                     
                     val albumArtUri = ContentUris.withAppendedId(
                         Uri.parse("content://media/external/audio/albumart"),

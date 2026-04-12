@@ -159,7 +159,8 @@ fun HomeScreen(
         ) {
             FloatingActionButton(
                 onClick = { showCreateDialog = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
@@ -172,6 +173,7 @@ fun HomeScreen(
             FloatingActionButton(
                 onClick = onSettingsClick,
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(

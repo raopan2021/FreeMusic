@@ -248,6 +248,7 @@ fun FreeMusicNavHost(
                     settingsViewModel.setEqualizerPreset(nextIdx)
                 },
                 shakeToSkipEnabled = shakeToSkip,
+                lyricsFontSize = lyricsFontSize,
                 // 歌单
                 playlists = playlistState.playlists,
                 onAddSongsToPlaylist = { songs, playlist ->

@@ -64,6 +64,7 @@ fun PlayerScreen(
     onVisualizerToggle: () -> Unit = {},
     onEqualizerToggle: () -> Unit = {},
     shakeToSkipEnabled: Boolean = false,
+    lyricsFontSize: Int = 16,
     // Playlists for "Add to Playlist"
     playlists: List<Playlist> = emptyList(),
     onAddSongsToPlaylist: (List<Song>, Playlist) -> Unit = { _, _ -> }
@@ -168,6 +169,7 @@ fun PlayerScreen(
                     lyrics = parsedLyrics,
                     currentLyricIndex = currentLyricIndex,
                     primaryColor = primaryColor,
+                    lyricsFontSize = lyricsFontSize,
                     onLongPress = { showLyricsSettingsLayer = true }
                 )
             }
@@ -613,6 +615,7 @@ private fun LyricsPage(
     lyrics: List<LyricLine>,
     currentLyricIndex: Int,
     primaryColor: Color,
+    lyricsFontSize: Int = 16,
     onLongPress: () -> Unit = {}
 ) {
     Column(
@@ -627,47 +630,57 @@ private fun LyricsPage(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(100.dp))
+        Spacer(modifier = Modifier.height(80.dp))
 
-        // 全屏歌词
+        // 传统两行歌词格式:
+        // 当前行 - 左上角靠左
+        // 下一行 - 右下角靠右
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
+                .weight(1f)
         ) {
             if (lyrics.isEmpty()) {
                 Text(
                     text = "暂无歌词",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.align(Alignment.Center)
                 )
             } else {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    lyrics.forEachIndexed { index, line ->
-                        val isCurrentLine = index == currentLyricIndex
-                        val isPastLine = index < currentLyricIndex
+                // 当前行歌词 - 左上角
+                val currentLine = lyrics.getOrNull(currentLyricIndex)
+                Text(
+                    text = currentLine?.text ?: "",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = (lyricsFontSize + 8).sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = primaryColor,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(top = 24.dp),
+                    textAlign = TextAlign.Start,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                        Text(
-                            text = line.text.ifEmpty { " " },
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = if (isCurrentLine) 20.sp else 16.sp
-                            ),
-                            color = when {
-                                isCurrentLine -> Color.White
-                                isPastLine -> Color.White.copy(alpha = 0.4f)
-                                else -> Color.White.copy(alpha = 0.6f)
-                            },
-                            fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                // 下一行歌词 - 右下角
+                val nextLine = lyrics.getOrNull(currentLyricIndex + 1)
+                Text(
+                    text = nextLine?.text ?: "",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = (lyricsFontSize + 4).sp,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 24.dp),
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
 

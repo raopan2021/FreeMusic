@@ -1,6 +1,5 @@
 package com.freemusic.presentation.ui.player
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -88,15 +87,9 @@ fun QueueList(
                     state = reorderableState,
                     key = item.song.id
                 ) { isDragging ->
-                    // 左边播放中指示线（更简洁的高亮方式）
-                    val borderModifier = if (isCurrentSong && !isDragging) {
-                        Modifier.border(3.dp, primaryColor, RoundedCornerShape(0.dp))
-                    } else Modifier
-
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .then(borderModifier)
                             .clickable(enabled = !isCurrentSong) { onPlay(index) },
                         color = Color.Transparent
                     ) {

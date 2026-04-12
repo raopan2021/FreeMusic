@@ -340,6 +340,125 @@ class PreferencesManager @Inject constructor(
         return prefs.getInt(KEY_PLAYBACK_INDEX, 0)
     }
 
+    // ============ 歌单持久化 ============
+    // 格式: playlistId\tplaylistName\tsong1Data\n song2Data\n ...
+    // Song格式: id\ttitle\tartist\talbum\tcoverUrl\tduration\tneteaseId\tisNetease
+    private val _localPlaylists = MutableStateFlow<List<String>>(emptyList())
+    val localPlaylists: StateFlow<List<String>> = _localPlaylists.asStateFlow()
+
+    init {
+        // 从 SharedPreferences 加载歌单
+        val stored = prefs.getString(KEY_LOCAL_PLAYLISTS, null)
+        if (stored != null && stored.isNotEmpty()) {
+            _localPlaylists.value = stored.split("|||OUTER|||")
+        }
+    }
+
+    fun saveLocalPlaylists(playlists: List<PlaylistData>) {
+        if (playlists.isEmpty()) {
+            prefs.edit().remove(KEY_LOCAL_PLAYLISTS).apply()
+            _localPlaylists.value = emptyList()
+        } else {
+            val encoded = playlists.joinToString("|||OUTER|||") { encodePlaylist(it) }
+            prefs.edit().putString(KEY_LOCAL_PLAYLISTS, encoded).apply()
+            _localPlaylists.value = playlists.map { encodePlaylistInfo(it) }
+        }
+    }
+
+    private fun encodePlaylist(playlist: PlaylistData): String {
+        val songsEncoded = playlist.songs.joinToString("|||SONG|||") { song ->
+            listOf(
+                song.id,
+                song.title,
+                song.artist,
+                song.album,
+                song.coverUrl ?: "",
+                song.duration.toString(),
+                song.neteaseId ?: "",
+                song.isNetease.toString()
+            ).joinToString("|||FIELD|||")
+        }
+        return listOf(playlist.id, playlist.name, songsEncoded).joinToString("|||INFO|||")
+    }
+
+    private fun encodePlaylistInfo(playlist: PlaylistData): String {
+        return "${playlist.id}|||INFO|||${playlist.name}|||INFO|||${playlist.songs.size}"
+    }
+
+    fun getLocalPlaylists(): List<PlaylistData> {
+        val stored = prefs.getString(KEY_LOCAL_PLAYLISTS, null) ?: return emptyList()
+        if (stored.isEmpty()) return emptyList()
+        
+        return stored.split("|||OUTER|||").mapNotNull { playlistStr ->
+            decodePlaylist(playlistStr)
+        }
+    }
+
+    private fun decodePlaylist(playlistStr: String): PlaylistData? {
+        val parts = playlistStr.split("|||INFO|||")
+        if (parts.size < 2) return null
+        
+        val id = parts[0]
+        val name = parts[1]
+        val songsStr = if (parts.size > 2) parts[2] else ""
+        
+        val songs = if (songsStr.isNotEmpty()) {
+            songsStr.split("|||SONG|||").mapNotNull { songStr ->
+                decodeSong(songStr)
+            }
+        } else {
+            emptyList()
+        }
+        
+        return PlaylistData(id, name, songs)
+    }
+
+    private fun decodeSong(songStr: String): SongData? {
+        val fields = songStr.split("|||FIELD|||")
+        if (fields.size < 8) return null
+        
+        return SongData(
+            id = fields[0],
+            title = fields[1],
+            artist = fields[2],
+            album = fields[3],
+            coverUrl = fields[4].ifEmpty { null },
+            duration = fields[5].toLongOrNull() ?: 0L,
+            neteaseId = fields[6].ifEmpty { null },
+            isNetease = fields[7].toBooleanStrictOrNull() ?: false
+        )
+    }
+
+    // ============ 收藏歌曲持久化 ============
+    fun saveFavorites(songs: List<SongData>) {
+        if (songs.isEmpty()) {
+            prefs.edit().remove(KEY_FAVORITES).apply()
+        } else {
+            val encoded = songs.joinToString("|||SONG|||") { song ->
+                listOf(
+                    song.id,
+                    song.title,
+                    song.artist,
+                    song.album,
+                    song.coverUrl ?: "",
+                    song.duration.toString(),
+                    song.neteaseId ?: "",
+                    song.isNetease.toString()
+                ).joinToString("|||FIELD|||")
+            }
+            prefs.edit().putString(KEY_FAVORITES, encoded).apply()
+        }
+    }
+
+    fun getFavorites(): List<SongData> {
+        val stored = prefs.getString(KEY_FAVORITES, null) ?: return emptyList()
+        if (stored.isEmpty()) return emptyList()
+        
+        return stored.split("|||SONG|||").mapNotNull { songStr ->
+            decodeSong(songStr)
+        }
+    }
+
     companion object {
         private const val PREFS_NAME = "freemusic_prefs"
 
@@ -389,6 +508,12 @@ class PreferencesManager @Inject constructor(
         // Playback Queue
         private const val KEY_PLAYBACK_QUEUE = "playback_queue"
         private const val KEY_PLAYBACK_INDEX = "playback_index"
+
+        // Local Playlists
+        private const val KEY_LOCAL_PLAYLISTS = "local_playlists"
+
+        // Favorites
+        private const val KEY_FAVORITES = "favorites"
     }
 }
 
@@ -437,3 +562,26 @@ enum class EqualizerPreset(val displayName: String, val bands: List<Int>) {
     DANCE("电子", listOf(400, 300, 0, 200, 400)),
     CUSTOM("自定义", listOf(0, 0, 0, 0, 0))
 }
+
+/**
+ * 歌单数据（用于本地持久化）
+ */
+data class PlaylistData(
+    val id: String,
+    val name: String,
+    val songs: List<SongData>
+)
+
+/**
+ * 歌曲数据（用于本地持久化）
+ */
+data class SongData(
+    val id: String,
+    val title: String,
+    val artist: String,
+    val album: String,
+    val coverUrl: String?,
+    val duration: Long,
+    val neteaseId: String?,
+    val isNetease: Boolean
+)

@@ -3,6 +3,7 @@ package com.freemusic.presentation.ui.player
 import android.content.Intent
 import java.util.Locale
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -117,19 +118,75 @@ fun PlayerScreen(
     val currentTimeStr = formatTime(uiState.currentPosition)
     val totalTimeStr = formatTime(uiState.duration)
 
+    // 动态背景特效 - 呼吸闪烁效果
+    val infiniteTransition = rememberInfiniteTransition(label = "bg_animation")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow_alpha"
+    )
+
+    // 背景色使用主题背景 + 动态渐变
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        primaryColor.copy(alpha = 0.4f),
-                        Color.Black,
-                        Color.Black
-                    )
+                        backgroundColor,
+                        backgroundColor.copy(alpha = 0.95f),
+                        surfaceColor.copy(alpha = 0.9f + pulseAlpha * 0.1f)
+                    ),
+                    startY = 0f,
+                    endY = Float.POSITIVE_INFINITY
                 )
             )
     ) {
+        // 动态径向渐变叠加层 - 中心光晕效果
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = glowAlpha),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // 顶部微光效果
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = pulseAlpha + 0.1f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         // HorizontalPager 左右滑动切换
         HorizontalPager(
             state = pagerState,

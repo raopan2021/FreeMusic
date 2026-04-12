@@ -7,7 +7,9 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.freemusic.data.KnownArtists
 import com.freemusic.domain.model.Song
+import com.freemusic.util.ArtistNameNormalizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +65,53 @@ class LocalMusicViewModel @Inject constructor(
                 }
             }
         }
+    }
+    
+    /**
+     * 标准化歌手名称并尝试修复未知歌手
+     */
+    private fun normalizeArtistName(artist: String): String {
+        // 标准化歌手名称（去除多余空格、规范化标点）
+        var normalized = ArtistNameNormalizer.normalize(artist)
+        
+        // 如果是未知歌手，尝试从歌名中提取
+        if (ArtistNameNormalizer.isUnknown(normalized)) {
+            // 尝试在 KnownArtists 中查找匹配
+            val match = KnownArtists.findMatch(artist)
+            if (match != null) {
+                return match
+            }
+        }
+        
+        return normalized
+    }
+    
+    /**
+     * 尝试修复未知歌手（根据歌手名单匹配）
+     */
+    private fun fixUnknownArtist(title: String, currentArtist: String): String {
+        if (!ArtistNameNormalizer.isUnknown(currentArtist)) {
+            return currentArtist
+        }
+        
+        // 从歌名中提取可能的歌手
+        val (extractedArtist, _) = ArtistNameNormalizer.extractArtistFromTitle(title)
+        if (extractedArtist != null) {
+            // 检查 KnownArtists 中是否有匹配的
+            val match = KnownArtists.findMatch(extractedArtist)
+            if (match != null) {
+                return match
+            }
+            return ArtistNameNormalizer.normalize(extractedArtist)
+        }
+        
+        // 在 KnownArtists 中搜索相似名称
+        val match = KnownArtists.findMatch(title)
+        if (match != null) {
+            return match
+        }
+        
+        return currentArtist
     }
 
     private fun scanMediaStore(sortOrder: Int): List<Song> {
@@ -153,6 +202,11 @@ class LocalMusicViewModel @Inject constructor(
                     
                     if (isRecording) continue
                     
+                    // 标准化歌手名称
+                    val normalizedArtist = normalizeArtistName(artist)
+                    // 尝试修复未知歌手
+                    val fixedArtist = fixUnknownArtist(title, normalizedArtist)
+                    
                     val albumArtUri = ContentUris.withAppendedId(
                         Uri.parse("content://media/external/audio/albumart"),
                         albumId
@@ -162,7 +216,7 @@ class LocalMusicViewModel @Inject constructor(
                         Song(
                             id = id.toString(),
                             title = title,
-                            artist = artist,
+                            artist = fixedArtist,
                             album = album,
                             coverUrl = albumArtUri,
                             duration = duration,

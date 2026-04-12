@@ -8,6 +8,7 @@ import com.freemusic.data.preferences.PreferencesManager
 import com.freemusic.data.preferences.SongData
 import com.freemusic.domain.model.Playlist
 import com.freemusic.domain.model.Song
+import com.freemusic.util.ArtistNameNormalizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,8 +45,14 @@ class PlaylistViewModel @Inject constructor(
     }
 
     private fun loadData() {
-        // 加载本地歌单
-        val savedPlaylists = preferencesManager.getLocalPlaylists().map { it.toPlaylist() }
+        // 加载本地歌单，并对歌手名称进行标准化
+        val savedPlaylists = preferencesManager.getLocalPlaylists()
+            .map { it.toPlaylist() }
+            .map { playlist ->
+                playlist.copy(songs = playlist.songs.map { song ->
+                    song.copy(artist = normalizeArtist(song.artist))
+                })
+            }
         
         // 创建"我喜欢的音乐"歌单
         val favoritesPlaylist = Playlist(
@@ -60,9 +67,11 @@ class PlaylistViewModel @Inject constructor(
             it.copy(playlists = listOf(favoritesPlaylist) + savedPlaylists)
         }
         
-        // 加载收藏歌曲到"我喜欢的音乐"歌单
+        // 加载收藏歌曲到"我喜欢的音乐"歌单，并标准化歌手名称
         viewModelScope.launch {
-            val savedFavorites = preferencesManager.getFavorites().map { it.toSong() }
+            val savedFavorites = preferencesManager.getFavorites()
+                .map { it.toSong() }
+                .map { song -> song.copy(artist = normalizeArtist(song.artist)) }
             _uiState.update { state ->
                 state.copy(
                     playlists = state.playlists.map { p ->
@@ -71,6 +80,13 @@ class PlaylistViewModel @Inject constructor(
                 )
             }
         }
+    }
+    
+    /**
+     * 标准化歌手名称
+     */
+    private fun normalizeArtist(artist: String): String {
+        return ArtistNameNormalizer.normalize(artist)
     }
 
     private fun savePlaylists() {

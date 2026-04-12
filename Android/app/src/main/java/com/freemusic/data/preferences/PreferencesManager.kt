@@ -20,6 +20,15 @@ class PreferencesManager @Inject constructor(
 
     // ============ 主题设置 ============
     
+    // 主题模式: "默认"(跟随系统), "浅色", "深色"
+    private val _themeMode = MutableStateFlow(prefs.getString(KEY_THEME_MODE, "默认") ?: "默认")
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: String) {
+        prefs.edit().putString(KEY_THEME_MODE, mode).apply()
+        _themeMode.value = mode
+    }
+
     private val _isDarkTheme = MutableStateFlow(prefs.getBoolean(KEY_DARK_THEME, false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
@@ -304,6 +313,7 @@ class PreferencesManager @Inject constructor(
         private const val PREFS_NAME = "freemusic_prefs"
 
         // Theme
+        private const val KEY_THEME_MODE = "theme_mode"
         private const val KEY_DARK_THEME = "dark_theme"
         private const val KEY_PURE_BLACK = "pure_black"
         private const val KEY_CUSTOM_PRIMARY_COLOR = "custom_primary_color"

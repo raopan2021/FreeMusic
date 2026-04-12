@@ -48,6 +48,9 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     // ============ 主题设置 ============
+    private val _themeMode = MutableStateFlow("默认")
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
     private val _isDarkTheme = MutableStateFlow(false)
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
 
@@ -123,6 +126,12 @@ class SettingsViewModel @Inject constructor(
 
     init {
         // 从 PreferencesManager 加载设置
+        viewModelScope.launch {
+            preferencesManager.themeMode.collect { 
+                _themeMode.value = it
+                updateUiState()
+            }
+        }
         viewModelScope.launch {
             preferencesManager.isDarkTheme.collect { 
                 _isDarkTheme.value = it
@@ -364,6 +373,7 @@ class SettingsViewModel @Inject constructor(
     // ============ 其他设置 ============
     fun setTheme(theme: String) {
         _uiState.update { it.copy(currentThemeName = theme) }
+        preferencesManager.setThemeMode(theme)
         
         // 根据主题名称设置深色模式
         when (theme) {
@@ -375,7 +385,7 @@ class SettingsViewModel @Inject constructor(
                 preferencesManager.setDarkTheme(true)
                 preferencesManager.setPureBlack(true)
             }
-            "默认", "亮色" -> {
+            "默认", "浅色" -> {
                 preferencesManager.setDarkTheme(false)
                 preferencesManager.setPureBlack(false)
             }

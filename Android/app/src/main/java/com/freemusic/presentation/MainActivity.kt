@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,7 +39,7 @@ class MainActivity : ComponentActivity() {
             val settingsViewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
             
             // 收集设置状态
-            val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
+            val themeMode by settingsViewModel.themeMode.collectAsState()
             val isPureBlack by settingsViewModel.isPureBlack.collectAsState()
             val customPrimaryColor by settingsViewModel.customPrimaryColor.collectAsState()
             val particlesEnabled by settingsViewModel.particlesEnabled.collectAsState()
@@ -53,9 +54,16 @@ class MainActivity : ComponentActivity() {
             val crossFadeDuration by settingsViewModel.crossFadeDuration.collectAsState()
             val lyricsFontSize by settingsViewModel.lyricsFontSize.collectAsState()
 
+            // 根据主题模式计算实际使用的深色模式
+            val effectiveDarkTheme = when (themeMode) {
+                "默认" -> isSystemInDarkTheme()
+                "暗色", "纯黑" -> true
+                else -> false
+            }
+
             FreeMusicTheme(
-                darkTheme = isDarkTheme,
-                pureBlack = isPureBlack,
+                darkTheme = effectiveDarkTheme,
+                pureBlack = isPureBlack && themeMode == "纯黑",
                 customPrimaryColor = if (customPrimaryColor == -1) null else customPrimaryColor
             ) {
                 Surface(

@@ -333,6 +333,16 @@ private fun QueueItem(
                 overflow = TextOverflow.Ellipsis
             )
         }
+        
+        // 播放次数（如果有）
+        if (song.playCount > 0) {
+            Text(
+                text = "▶ ${song.playCount}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
 
         // 时长
         Text(

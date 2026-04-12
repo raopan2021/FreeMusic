@@ -608,12 +608,26 @@ private fun SongItem(
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1
                 )
-                Text(
-                    text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    maxLines = 1
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${song.artist} • ${song.album}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (song.playCount > 0) {
+                        Text(
+                            text = "▶ ${song.playCount}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = PrimaryIndigo,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
             
             Text(

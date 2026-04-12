@@ -93,7 +93,20 @@ class PlayerViewModel @Inject constructor(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            updateCurrentIndex()
+            // reason: 0=新项目, 1=播放结束, 2=跳过, 3=重复
+            if (reason == 1 && mediaItem == null) {
+                // 播放结束且没有下一首，循环到第一首
+                mediaController?.let { controller ->
+                    val playlist = _uiState.value.playlist
+                    if (playlist.isNotEmpty()) {
+                        controller.seekTo(0, 0)
+                        controller.play()
+                        _uiState.update { it.copy(currentIndex = 0) }
+                    }
+                }
+            } else {
+                updateCurrentIndex()
+            }
         }
     }
 
@@ -896,26 +909,45 @@ class PlayerViewModel @Inject constructor(
 
     fun skipToNext() {
         mediaController?.let { controller ->
-            if (controller.hasNextMediaItem()) {
+            val playlist = _uiState.value.playlist
+            val currentIndex = _uiState.value.currentIndex
+            val hasNext = controller.hasNextMediaItem()
+            
+            if (hasNext) {
                 controller.seekToNext()
-                // 确保下一首自动播放
-                if (!controller.isPlaying) {
-                    controller.play()
-                }
+            } else if (playlist.isNotEmpty()) {
+                // 没有下一首但有播放列表，循环到第一首
+                controller.seekTo(0, 0)
+                _uiState.update { it.copy(currentIndex = 0) }
+            }
+            
+            // 确保播放
+            if (!controller.isPlaying) {
+                controller.play()
             }
         }
     }
 
     fun skipToPrevious() {
         mediaController?.let { controller ->
-            if (controller.hasPreviousMediaItem()) {
-                controller.seekToPreviousMediaItem()
-                // 确保上一首自动播放
-                if (!controller.isPlaying) {
-                    controller.play()
-                }
-            } else {
+            val playlist = _uiState.value.playlist
+            val currentPosition = controller.currentPosition
+            
+            // 如果当前播放位置超过3秒，回到当前歌曲开头
+            // 否则播放上一首
+            if (currentPosition > 3000 || !controller.hasPreviousMediaItem()) {
                 controller.seekTo(0)
+            } else {
+                controller.seekToPreviousMediaItem()
+                _uiState.update { 
+                    val newIndex = (it.currentIndex - 1).coerceAtLeast(0)
+                    it.copy(currentIndex = newIndex)
+                }
+            }
+            
+            // 确保播放
+            if (!controller.isPlaying) {
+                controller.play()
             }
         }
     }

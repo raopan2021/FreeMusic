@@ -166,18 +166,22 @@ fun FreeMusicNavHost(
             ) {
         composable(Screen.Home.route) {
             val playlistState by playlistViewModel.uiState.collectAsState()
-            val playlists = playlistState.playlists.map { p ->
-                com.freemusic.presentation.ui.home.PlaylistUiModel(
-                    id = p.id.hashCode().toLong(),
-                    name = p.name,
-                    songCount = p.songs.size
-                )
-            }
+            val playlists = playlistState.playlists
+                .filter { it.id != "favorites" }  // 过滤掉 favorites，因为首页有单独的"我喜欢"入口
+                .map { p ->
+                    com.freemusic.presentation.ui.home.PlaylistUiModel(
+                        id = p.id,
+                        name = p.name,
+                        songCount = p.songs.size
+                    )
+                }
             com.freemusic.presentation.ui.home.HomeScreen(
                 onSearchClick = { navController.navigate(Screen.Search.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 onLocalMusicClick = { navController.navigate(Screen.LocalMusic.route) },
-                onPlaylistClick = { navController.navigate(Screen.Playlist.route) },
+                onPlaylistClick = { playlistId -> 
+                    navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
+                },
                 onFolderBrowserClick = { navController.navigate(Screen.FolderBrowser.route) },
                 onArtistBrowserClick = { navController.navigate(Screen.ArtistBrowser.route) },
                 onAlbumBrowserClick = { navController.navigate(Screen.AlbumBrowser.route) },

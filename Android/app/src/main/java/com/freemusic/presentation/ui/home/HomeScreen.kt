@@ -30,7 +30,7 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
     onLocalMusicClick: () -> Unit = {},
-    onPlaylistClick: (Long) -> Unit = {},
+    onPlaylistClick: (String) -> Unit = {},
     onFolderBrowserClick: () -> Unit = {},
     onArtistBrowserClick: () -> Unit = {},
     onAlbumBrowserClick: () -> Unit = {},
@@ -343,7 +343,7 @@ private fun PlaylistRow(
 }
 
 data class PlaylistUiModel(
-    val id: Long,
+    val id: String,  // 使用原始 id (String)
     val name: String,
     val songCount: Int
 )

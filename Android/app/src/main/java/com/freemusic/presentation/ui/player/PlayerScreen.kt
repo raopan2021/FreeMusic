@@ -1340,9 +1340,18 @@ private fun MoreOptionsSheet(
     onShare: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
+        onDismissRequest = {
+            scope.launch {
+                sheetState.hide()
+                onDismiss()
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = sheetState
     ) {
         Column(
             modifier = Modifier

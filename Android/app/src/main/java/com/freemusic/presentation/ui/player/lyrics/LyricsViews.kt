@@ -315,12 +315,12 @@ fun PlayerDvdLyricsView(
     fontSize: Int = 16
 ) {
     // DVD歌词逻辑:
-    // - 偶数行(0,2,4...): 第1行显示currentLineIndex(高亮), 第2行显示currentLineIndex+1
-    // - 奇数行(1,3,5...): 第1行显示currentLineIndex+2, 第2行显示currentLineIndex+1(高亮)
+    // - 偶数行(0,2,4...): (idx, idx+1), 第1行高亮
+    // - 奇数行(1,3,5...): (idx+1, idx), 第2行高亮
     val isSecondLineHighlighted = currentLineIndex % 2 == 1
     
-    val line1Index = if (isSecondLineHighlighted) currentLineIndex + 2 else currentLineIndex
-    val line2Index = currentLineIndex + 1
+    val line1Index = if (isSecondLineHighlighted) currentLineIndex + 1 else currentLineIndex
+    val line2Index = if (isSecondLineHighlighted) currentLineIndex else currentLineIndex + 1
     
     val line1 = lyrics.getOrNull(line1Index)
     val line2 = lyrics.getOrNull(line2Index)

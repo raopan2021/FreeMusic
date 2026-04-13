@@ -144,7 +144,8 @@ fun ScrollingLyricsView(
     currentLineIndex: Int,
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo,
-    fontSize: Int = 16
+    fontSize: Int = 16,
+    backgroundColor: Color = Color.Black.copy(alpha = 0.9f)
 ) {
     val lazyListState = rememberLazyListState()
 
@@ -160,13 +161,18 @@ fun ScrollingLyricsView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f))
+            .background(backgroundColor)
     ) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(
+                    top = 80.dp,  // 灵动岛/状态栏间距
+                    start = 24.dp,
+                    end = 24.dp,
+                    bottom = 150.dp  // 底部导航栏间距
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -289,8 +295,8 @@ fun DesktopLyricsWidget(
 
 /**
  * 播放器内使用的紧凑DVD风格歌词组件
- * 当前歌词靠左，下一行歌词靠右
- * 无背景，用于专辑封面下方
+ * 当前歌词靠左高亮显示，下一行歌词靠右半透明
+ * 当一行高亮完成，自动滚动显示新歌词
  */
 @Composable
 fun PlayerDvdLyricsView(
@@ -300,36 +306,45 @@ fun PlayerDvdLyricsView(
     primaryColor: Color = PrimaryIndigo,
     fontSize: Int = 16
 ) {
-    val currentLine = lyrics.getOrNull(currentLineIndex)
-    val nextLine = lyrics.getOrNull(currentLineIndex + 1)
+    // 计算显示的歌词索引
+    // 偶数行(0,2,4...)显示在第1行(靠左高亮)
+    // 奇数行(1,3,5...)显示在第2行(靠右半透明)
+    val line1Index = currentLineIndex / 2 * 2      // 0->0, 1->0, 2->2, 3->2, 4->4...
+    val line2Index = line1Index + 1                 // 0->1, 1->1, 2->3, 3->3, 4->5...
+    
+    val line1 = lyrics.getOrNull(line1Index)
+    val line2 = lyrics.getOrNull(line2Index)
+    
+    // 判断当前是否应该高亮第2行
+    val isSecondLineHighlighted = currentLineIndex % 2 == 1
     
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 当前歌词 - 靠左显示
+        // 第1行歌词 - 靠左显示
         Text(
-            text = currentLine?.text ?: "暂无歌词",
+            text = line1?.text ?: "暂无歌词",
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontSize = fontSize.sp,
                 fontWeight = FontWeight.Bold,
                 lineHeight = (fontSize + 4).sp
             ),
-            color = if (currentLine != null) primaryColor else Color.White.copy(alpha = 0.5f),
+            color = if (!isSecondLineHighlighted && line1 != null) primaryColor else Color.White.copy(alpha = if (line1 != null) 0.5f else 0.3f),
             textAlign = TextAlign.Start,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         
-        // 下一行歌词 - 靠右显示
+        // 第2行歌词 - 靠右显示
         Text(
-            text = nextLine?.text ?: " ",
+            text = line2?.text ?: " ",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = (fontSize - 2).sp,
                 fontWeight = FontWeight.Normal,
                 lineHeight = (fontSize).sp
             ),
-            color = Color.White.copy(alpha = 0.5f),
+            color = if (isSecondLineHighlighted && line2 != null) primaryColor else Color.White.copy(alpha = 0.5f),
             textAlign = TextAlign.End,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

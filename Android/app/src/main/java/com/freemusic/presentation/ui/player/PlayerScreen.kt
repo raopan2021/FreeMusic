@@ -169,6 +169,7 @@ fun PlayerScreen(
                     currentLyricIndex = currentLyricIndex,
                     primaryColor = primaryColor,
                     lyricsFontSize = lyricsFontSize,
+                    backgroundColor = backgroundColor,
                     onLongPress = { showLyricsSettingsLayer = true }
                 )
             }
@@ -615,6 +616,7 @@ private fun LyricsPage(
     currentLyricIndex: Int,
     primaryColor: Color,
     lyricsFontSize: Int = 16,
+    backgroundColor: Color = Color.Black,
     onLongPress: () -> Unit = {}
 ) {
     // 全屏滚动歌词视图
@@ -623,9 +625,9 @@ private fun LyricsPage(
         currentLineIndex = currentLyricIndex,
         primaryColor = primaryColor,
         fontSize = lyricsFontSize,
+        backgroundColor = backgroundColor,
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { onLongPress() }

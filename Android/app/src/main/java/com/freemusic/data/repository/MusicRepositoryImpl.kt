@@ -1,5 +1,6 @@
 package com.freemusic.data.repository
 
+import com.freemusic.data.local.LocalDataSource
 import com.freemusic.data.remote.api.LrclibApi
 import com.freemusic.data.remote.api.MetingApi
 import com.freemusic.data.remote.api.NeteaseApi
@@ -18,7 +19,8 @@ import javax.inject.Singleton
 class MusicRepositoryImpl @Inject constructor(
     private val neteaseApi: NeteaseApi,
     private val metingApi: MetingApi,
-    @Named("lrclib") private val lrclibApi: LrclibApi
+    @Named("lrclib") private val lrclibApi: LrclibApi,
+    private val localDataSource: LocalDataSource
 ) : MusicRepository {
 
     override fun searchSongs(
@@ -63,11 +65,24 @@ class MusicRepositoryImpl @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     override fun getSongDetail(songId: String): Flow<Result<Song>> = flow {
+        // 先检查本地缓存
+        val cachedSong = localDataSource.getCachedSong(songId)
+            ?: localDataSource.getCachedFavoriteSong(songId)
+        
+        // 如果有缓存，先返回缓存（包含coverUrl）
+        if (cachedSong != null) {
+            emit(Result.success(cachedSong))
+            return@flow
+        }
+        
+        // 缓存没有，从网络获取
         try {
             val response = neteaseApi.getSongDetail(songId)
             val song = response.songs?.firstOrNull()?.toDomain()
             
             if (song != null) {
+                // 存入缓存
+                localDataSource.cacheSong(song)
                 emit(Result.success(song))
             } else {
                 emit(Result.failure(Exception("歌曲不存在")))
@@ -114,6 +129,14 @@ class MusicRepositoryImpl @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     override fun getLyrics(song: Song): Flow<Result<Lyrics>> = flow {
+        // 先检查本地缓存
+        val cachedLyrics = localDataSource.getCachedLyrics(song.id)
+        if (cachedLyrics != null && (cachedLyrics.lrc != null || cachedLyrics.yrc != null)) {
+            emit(Result.success(cachedLyrics))
+            return@flow
+        }
+        
+        // 缓存没有，从网络获取
         // 优先使用 LRCLIB
         try {
             val durationSeconds = (song.duration / 1000).toInt()
@@ -127,14 +150,17 @@ class MusicRepositoryImpl @Inject constructor(
             val bestMatch = results.firstOrNull { !it.instrumental }
             
             if (bestMatch != null && (bestMatch.syncedLyrics != null || bestMatch.plainLyrics != null)) {
-                emit(Result.success(Lyrics(
+                val lyrics = Lyrics(
                     songId = song.id,
                     lrc = bestMatch.syncedLyrics ?: bestMatch.plainLyrics,
                     yrc = null,
                     translation = null,
                     ttml = null,
                     metadata = listOf("来源: LRCLIB", "艺术家: ${bestMatch.artistName}", "专辑: ${bestMatch.albumName}")
-                )))
+                )
+                // 存入缓存
+                localDataSource.cacheLyrics(lyrics)
+                emit(Result.success(lyrics))
                 return@flow
             }
         } catch (e: Exception) {
@@ -145,21 +171,38 @@ class MusicRepositoryImpl @Inject constructor(
         try {
             val neteaseId = song.neteaseId ?: song.id
             val response = neteaseApi.getLyric(neteaseId)
-            emit(Result.success(response.lyricToDomain(song.id)))
+            val lyrics = response.lyricToDomain(song.id)
+            // 存入缓存
+            localDataSource.cacheLyrics(lyrics)
+            emit(Result.success(lyrics))
         } catch (e: Exception) {
             emit(Result.failure(Exception("获取歌词失败: ${e.message}")))
         }
     }.flowOn(Dispatchers.IO)
 
     override fun getSongWithUrl(songId: String): Flow<Result<SongWithUrl>> = flow {
+        // 先检查本地缓存
+        val cachedSong = localDataSource.getCachedSong(songId)
+            ?: localDataSource.getCachedFavoriteSong(songId)
+        
         try {
-            // 获取歌曲详情
+            // 获取歌曲详情（优先用缓存的coverUrl）
             val songResponse = neteaseApi.getSongDetail(songId)
-            val song = songResponse.songs?.firstOrNull()?.toDomain()
-                ?: run {
-                    emit(Result.failure(Exception("歌曲不存在")))
-                    return@flow
-                }
+            val networkSong = songResponse.songs?.firstOrNull()?.toDomain()
+            
+            // 使用网络数据，但保留缓存的coverUrl（如果有）
+            val song = networkSong?.copy(
+                coverUrl = networkSong.coverUrl ?: cachedSong?.coverUrl
+            ) ?: cachedSong?.also {
+                emit(Result.failure(Exception("歌曲不存在")))
+                return@flow
+            } ?: run {
+                emit(Result.failure(Exception("歌曲不存在")))
+                return@flow
+            }
+            
+            // 存入缓存
+            localDataSource.cacheSong(song)
             
             // 获取播放 URL
             val rawResponse = metingApi.getPlayUrl(id = songId).string().trim()
@@ -185,7 +228,27 @@ class MusicRepositoryImpl @Inject constructor(
                 emit(Result.failure(Exception("播放链接无效")))
             }
         } catch (e: Exception) {
-            emit(Result.failure(Exception("播放失败: ${e.message}")))
+            // 网络失败时，如果有缓存，返回缓存数据
+            if (cachedSong != null) {
+                val rawResponse = metingApi.getPlayUrl(id = songId).string().trim()
+                val url = try {
+                    if (rawResponse.startsWith("{")) {
+                        val jsonRegex = Regex(""""url""\s*:\s*"([^"]+)"""")
+                        jsonRegex.find(rawResponse)?.groupValues?.get(1) ?: rawResponse
+                    } else {
+                        rawResponse
+                    }
+                } catch (e: Exception) {
+                    rawResponse
+                }
+                if (url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))) {
+                    emit(Result.success(SongWithUrl(cachedSong, url)))
+                } else {
+                    emit(Result.failure(Exception("播放失败: ${e.message}")))
+                }
+            } else {
+                emit(Result.failure(Exception("播放失败: ${e.message}")))
+            }
         }
     }.flowOn(Dispatchers.IO)
 

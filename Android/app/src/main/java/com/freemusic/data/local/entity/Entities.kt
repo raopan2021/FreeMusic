@@ -45,3 +45,18 @@ data class PlayHistoryEntity(
     val playedAt: Long = System.currentTimeMillis(),
     val playCount: Int = 1
 )
+
+/**
+ * 歌词缓存实体
+ */
+@Entity(tableName = "lyrics_cache")
+data class LyricsCacheEntity(
+    @PrimaryKey
+    val songId: String,
+    val lrc: String?,
+    val yrc: String?,
+    val translation: String?,
+    val ttml: String?,
+    val metadata: String?, // JSON encoded list
+    val cachedAt: Long = System.currentTimeMillis()
+)

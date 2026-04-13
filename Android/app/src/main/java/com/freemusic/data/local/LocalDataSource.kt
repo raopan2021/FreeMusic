@@ -1,14 +1,17 @@
 package com.freemusic.data.local
 
 import com.freemusic.data.local.dao.FavoriteSongDao
+import com.freemusic.data.local.dao.LyricsCacheDao
 import com.freemusic.data.local.dao.PlayHistoryDao
 import com.freemusic.data.local.dao.SearchHistoryDao
 import com.freemusic.data.local.entity.FavoriteSongEntity
+import com.freemusic.data.local.entity.LyricsCacheEntity
 import com.freemusic.data.local.entity.PlayHistoryEntity
 import com.freemusic.data.local.entity.SearchHistoryEntity
 import com.freemusic.data.local.entity.toDomain
 import com.freemusic.data.local.entity.toFavoriteEntity
 import com.freemusic.data.local.entity.toPlayHistoryEntity
+import com.freemusic.domain.model.Lyrics
 import com.freemusic.domain.model.Song
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,7 +22,8 @@ import javax.inject.Singleton
 class LocalDataSource @Inject constructor(
     private val favoriteSongDao: FavoriteSongDao,
     private val searchHistoryDao: SearchHistoryDao,
-    private val playHistoryDao: PlayHistoryDao
+    private val playHistoryDao: PlayHistoryDao,
+    private val lyricsCacheDao: LyricsCacheDao
 ) {
 
     // ============ 收藏歌曲 ============
@@ -103,5 +107,68 @@ class LocalDataSource @Inject constructor(
 
     suspend fun clearPlayHistory() {
         playHistoryDao.clearHistory()
+    }
+    
+    // ============ 歌曲缓存 ============
+    
+    /**
+     * 从播放历史获取缓存的歌曲
+     */
+    suspend fun getCachedSong(songId: String): Song? {
+        return playHistoryDao.getPlayHistoryById(songId)?.toDomain()
+    }
+    
+    /**
+     * 从收藏获取缓存的歌曲
+     */
+    suspend fun getCachedFavoriteSong(songId: String): Song? {
+        return favoriteSongDao.getFavoriteById(songId)?.toDomain()
+    }
+    
+    /**
+     * 保存歌曲到播放历史（用于缓存）
+     */
+    suspend fun cacheSong(song: Song) {
+        // 同时存入播放历史以供缓存
+        playHistoryDao.insertPlayHistory(song.toPlayHistoryEntity())
+    }
+    
+    // ============ 歌词缓存 ============
+    
+    /**
+     * 获取缓存的歌词
+     */
+    suspend fun getCachedLyrics(songId: String): Lyrics? {
+        val entity = lyricsCacheDao.getLyrics(songId) ?: return null
+        return Lyrics(
+            songId = entity.songId,
+            lrc = entity.lrc,
+            yrc = entity.yrc,
+            translation = entity.translation,
+            ttml = entity.ttml,
+            metadata = entity.metadata?.split("|") ?: emptyList()
+        )
+    }
+    
+    /**
+     * 保存歌词到缓存
+     */
+    suspend fun cacheLyrics(lyrics: Lyrics) {
+        lyricsCacheDao.insertLyrics(LyricsCacheEntity(
+            songId = lyrics.songId,
+            lrc = lyrics.lrc,
+            yrc = lyrics.yrc,
+            translation = lyrics.translation,
+            ttml = lyrics.ttml,
+            metadata = lyrics.metadata.joinToString("|")
+        ))
+    }
+    
+    /**
+     * 清理过期歌词缓存（7天前的）
+     */
+    suspend fun cleanExpiredLyricsCache() {
+        val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
+        lyricsCacheDao.deleteOldCache(sevenDaysAgo)
     }
 }

@@ -2,6 +2,7 @@ package com.freemusic.data.local.dao
 
 import androidx.room.*
 import com.freemusic.data.local.entity.FavoriteSongEntity
+import com.freemusic.data.local.entity.LyricsCacheEntity
 import com.freemusic.data.local.entity.PlayHistoryEntity
 import com.freemusic.data.local.entity.SearchHistoryEntity
 import kotlinx.coroutines.flow.Flow
@@ -85,4 +86,26 @@ interface PlayHistoryDao {
     
     @Query("DELETE FROM play_history WHERE id NOT IN (SELECT id FROM play_history ORDER BY playedAt DESC LIMIT :keepCount)")
     suspend fun trimHistory(keepCount: Int)
+}
+
+/**
+ * 歌词缓存 DAO
+ */
+@Dao
+interface LyricsCacheDao {
+    
+    @Query("SELECT * FROM lyrics_cache WHERE songId = :songId")
+    suspend fun getLyrics(songId: String): LyricsCacheEntity?
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLyrics(lyrics: LyricsCacheEntity)
+    
+    @Query("DELETE FROM lyrics_cache WHERE cachedAt < :timestamp")
+    suspend fun deleteOldCache(timestamp: Long)
+    
+    @Query("DELETE FROM lyrics_cache")
+    suspend fun clearCache()
+    
+    @Query("SELECT COUNT(*) FROM lyrics_cache")
+    suspend fun getCacheCount(): Int
 }

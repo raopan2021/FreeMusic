@@ -15,142 +15,120 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.freemusic.domain.model.LyricLine
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 /**
- * 卡拉OK歌词视图
+ * 卡拉OK歌词视图 - DVD风格
+ * 第一行靠左（当前行，已高亮）
+ * 第二行靠右（下一行）
  */
 @Composable
 fun KaraokeLyricsView(
     lyrics: List<LyricLine>,
     currentLineIndex: Int,
     modifier: Modifier = Modifier,
-    primaryColor: Color = PrimaryIndigo
+    primaryColor: Color = PrimaryIndigo,
+    fontSize: Int = 16
 ) {
-    val lazyListState = rememberLazyListState()
-    
-    LaunchedEffect(currentLineIndex) {
-        if (lyrics.isNotEmpty() && currentLineIndex in lyrics.indices) {
-            lazyListState.animateScrollToItem(
-                index = currentLineIndex.coerceIn(0, lyrics.size - 1),
-                scrollOffset = -100
-            )
-        }
-    }
-    
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.8f))
+            .padding(24.dp)
     ) {
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = 100.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            itemsIndexed(lyrics) { index, line ->
-                val isCurrentLine = index == currentLineIndex
-                val isPastLine = index < currentLineIndex
-                
+        if (lyrics.isEmpty()) {
+            Text(
+                text = "暂无歌词",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else {
+            val currentLine = lyrics.getOrNull(currentLineIndex)
+            val nextLine = lyrics.getOrNull(currentLineIndex + 1)
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 第一行：当前歌词，靠左，DVD卡拉OK风格高亮
                 LyricLineText(
-                    text = line.text,
-                    isCurrentLine = isCurrentLine,
-                    isPastLine = isPastLine,
-                    primaryColor = primaryColor
+                    text = currentLine?.text ?: "",
+                    isHighlighted = true,
+                    isLeft = true,
+                    primaryColor = primaryColor,
+                    fontSize = fontSize
+                )
+
+                // 第二行：下一行歌词，靠右
+                LyricLineText(
+                    text = nextLine?.text ?: "",
+                    isHighlighted = false,
+                    isLeft = false,
+                    primaryColor = primaryColor,
+                    fontSize = fontSize
                 )
             }
         }
-        
-        // 顶部渐变
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .align(Alignment.TopCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black,
-                            Color.Black.copy(alpha = 0.8f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-        
-        // 底部渐变
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.8f),
-                            Color.Black
-                        )
-                    )
-                )
-        )
     }
 }
 
 @Composable
 private fun LyricLineText(
     text: String,
-    isCurrentLine: Boolean,
-    isPastLine: Boolean,
-    primaryColor: Color
+    isHighlighted: Boolean,
+    isLeft: Boolean,
+    primaryColor: Color,
+    fontSize: Int
 ) {
     val textAlpha by animateFloatAsState(
-        targetValue = when {
-            isCurrentLine -> 1f
-            isPastLine -> 0.4f
-            else -> 0.7f
-        },
+        targetValue = if (isHighlighted) 1f else 0.5f,
         label = "text_alpha"
     )
-    
+
     val textScale by animateFloatAsState(
-        targetValue = if (isCurrentLine) 1.1f else 1f,
+        targetValue = if (isHighlighted) 1.05f else 1f,
         label = "text_scale"
     )
-    
+
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = text,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
-            color = if (isCurrentLine) primaryColor else Color.White.copy(alpha = textAlpha),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            text = text.ifEmpty { " " },
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontSize = (fontSize + 8).sp,
+                lineHeight = (fontSize + 14).sp
+            ),
+            fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal,
+            color = if (isHighlighted) primaryColor else Color.White.copy(alpha = textAlpha),
+            textAlign = if (isLeft) TextAlign.Start else TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(if (isLeft) Alignment.TopStart else Alignment.BottomEnd)
         )
     }
 }
 
 /**
- * 滚动歌词视图
+ * 滚动歌词视图 - 全屏居中显示
  */
 @Composable
 fun ScrollingLyricsView(
     lyrics: List<LyricLine>,
     currentLineIndex: Int,
     modifier: Modifier = Modifier,
-    primaryColor: Color = PrimaryIndigo
+    primaryColor: Color = PrimaryIndigo,
+    fontSize: Int = 16
 ) {
     val lazyListState = rememberLazyListState()
-    
+
     LaunchedEffect(currentLineIndex) {
         if (lyrics.isNotEmpty() && currentLineIndex in lyrics.indices) {
             lazyListState.animateScrollToItem(
@@ -159,29 +137,37 @@ fun ScrollingLyricsView(
             )
         }
     }
-    
-    LazyColumn(
-        state = lazyListState,
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.9f))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        itemsIndexed(lyrics) { index, line ->
-            val isCurrentLine = index == currentLineIndex
-            
-            Text(
-                text = line.text,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
-                color = if (isCurrentLine) primaryColor else Color.White.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            )
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            itemsIndexed(lyrics) { index, line ->
+                val isCurrentLine = index == currentLineIndex
+
+                Text(
+                    text = line.text,
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontSize = (fontSize + 4).sp,
+                        lineHeight = (fontSize + 10).sp
+                    ),
+                    fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isCurrentLine) primaryColor else Color.White.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                )
+            }
         }
     }
 }

@@ -22,12 +22,10 @@ import com.freemusic.domain.model.LyricLine
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 /**
- * 卡拉OK歌词视图 - DVD风格
- * 第一行靠左（当前行，已高亮）
- * 第二行靠右（下一行）
+ * 滚动歌词视图 - 全屏居中滚动显示
  */
 @Composable
-fun KaraokeLyricsView(
+fun ScrollingLyricsView(
     lyrics: List<LyricLine>,
     currentLineIndex: Int,
     modifier: Modifier = Modifier,
@@ -95,6 +93,18 @@ private fun LyricLineText(
         label = "text_scale"
     )
 
+    // 跑马灯动画
+    val infiniteTransition = rememberInfiniteTransition(label = "marquee")
+    val marqueeOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "marquee_offset"
+    )
+
     Box(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -108,19 +118,25 @@ private fun LyricLineText(
             color = if (isHighlighted) primaryColor else Color.White.copy(alpha = textAlpha),
             textAlign = if (isLeft) TextAlign.Start else TextAlign.End,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .fillMaxWidth()
+                .graphicsLayer {
+                    // 跑马灯效果：当文本超长时水平滚动
+                    val maxScroll = 100f
+                    translationX = -marqueeOffset * maxScroll
+                }
                 .align(if (isLeft) Alignment.TopStart else Alignment.BottomEnd)
         )
     }
 }
 
 /**
- * 滚动歌词视图 - 全屏居中显示
+ * 卡拉OK歌词视图 - DVD风格
+ * 第一行靠左（当前行，已高亮）
+ * 第二行靠右（下一行）
  */
 @Composable
-fun ScrollingLyricsView(
+fun KaraokeLyricsView(
     lyrics: List<LyricLine>,
     currentLineIndex: Int,
     modifier: Modifier = Modifier,

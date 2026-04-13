@@ -168,10 +168,10 @@ fun ScrollingLyricsView(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = 80.dp,  // 灵动岛/状态栏间距
+                    top = 100.dp,  // 灵动岛/状态栏间距
                     start = 24.dp,
                     end = 24.dp,
-                    bottom = 150.dp  // 底部导航栏间距
+                    bottom = 80.dp  // 底部导航栏间距
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -296,7 +296,7 @@ fun DesktopLyricsWidget(
 /**
  * 播放器内使用的紧凑DVD风格歌词组件
  * 当前歌词靠左高亮显示，下一行歌词靠右半透明
- * 当一行高亮完成，自动滚动显示新歌词
+ * 歌词对显示: (1,2) -> (3,2) -> (3,4) -> (5,4) -> (5,6) ...
  */
 @Composable
 fun PlayerDvdLyricsView(
@@ -306,17 +306,16 @@ fun PlayerDvdLyricsView(
     primaryColor: Color = PrimaryIndigo,
     fontSize: Int = 16
 ) {
-    // 计算显示的歌词索引
-    // 偶数行(0,2,4...)显示在第1行(靠左高亮)
-    // 奇数行(1,3,5...)显示在第2行(靠右半透明)
-    val line1Index = currentLineIndex / 2 * 2      // 0->0, 1->0, 2->2, 3->2, 4->4...
-    val line2Index = line1Index + 1                 // 0->1, 1->1, 2->3, 3->3, 4->5...
+    // DVD歌词逻辑:
+    // - 偶数行(0,2,4...): 第1行显示currentLineIndex(高亮), 第2行显示currentLineIndex+1
+    // - 奇数行(1,3,5...): 第1行显示currentLineIndex+2, 第2行显示currentLineIndex+1(高亮)
+    val isSecondLineHighlighted = currentLineIndex % 2 == 1
+    
+    val line1Index = if (isSecondLineHighlighted) currentLineIndex + 2 else currentLineIndex
+    val line2Index = currentLineIndex + 1
     
     val line1 = lyrics.getOrNull(line1Index)
     val line2 = lyrics.getOrNull(line2Index)
-    
-    // 判断当前是否应该高亮第2行
-    val isSecondLineHighlighted = currentLineIndex % 2 == 1
     
     Column(
         modifier = modifier.fillMaxWidth(),

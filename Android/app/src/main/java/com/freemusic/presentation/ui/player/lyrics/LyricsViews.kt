@@ -23,10 +23,13 @@ import com.freemusic.domain.model.LyricLine
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
 
 /**
- * 滚动歌词视图 - 全屏居中滚动显示
+ * DVD风格歌词视图
+ * 当前歌词行靠左显示（高亮）
+ * 下一行歌词靠右显示
+ * 模拟经典DVD卡拉OK的双行布局
  */
 @Composable
-fun ScrollingLyricsView(
+fun DvdLyricsView(
     lyrics: List<LyricLine>,
     currentLineIndex: Int,
     modifier: Modifier = Modifier,
@@ -54,23 +57,23 @@ fun ScrollingLyricsView(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // 第一行：当前歌词，靠左，DVD卡拉OK风格高亮
-                LyricLineText(
-                    text = currentLine?.text ?: "",
-                    isHighlighted = true,
-                    isLeft = true,
-                    primaryColor = primaryColor,
-                    fontSize = fontSize
-                )
+                // 第一行：当前歌词，靠左
+            LyricLineText(
+                text = currentLine?.text ?: "",
+                isHighlighted = true,
+                isLeft = true,
+                primaryColor = primaryColor,
+                fontSize = fontSize
+            )
 
-                // 第二行：下一行歌词，靠右
-                LyricLineText(
-                    text = nextLine?.text ?: "",
-                    isHighlighted = false,
-                    isLeft = false,
-                    primaryColor = primaryColor,
-                    fontSize = fontSize
-                )
+            // 第二行：下一行歌词，靠右
+            LyricLineText(
+                text = nextLine?.text ?: "",
+                isHighlighted = false,
+                isLeft = false,
+                primaryColor = primaryColor,
+                fontSize = fontSize
+            )
             }
         }
     }
@@ -132,12 +135,11 @@ private fun LyricLineText(
 }
 
 /**
- * 卡拉OK歌词视图 - DVD风格
- * 第一行靠左（当前行，已高亮）
- * 第二行靠右（下一行）
+ * 滚动歌词视图 - 全屏居中滚动显示
+ * 所有歌词行居中对齐，垂直滚动，当前行高亮
  */
 @Composable
-fun KaraokeLyricsView(
+fun ScrollingLyricsView(
     lyrics: List<LyricLine>,
     currentLineIndex: Int,
     modifier: Modifier = Modifier,

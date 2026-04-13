@@ -108,6 +108,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @Named("lrclib")
     fun provideLrclibApi(@Named("lrclib") retrofit: Retrofit): LrclibApi {
         return retrofit.create(LrclibApi::class.java)
     }

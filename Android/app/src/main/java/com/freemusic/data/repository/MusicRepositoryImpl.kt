@@ -11,13 +11,14 @@ import com.freemusic.domain.repository.MusicRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
 class MusicRepositoryImpl @Inject constructor(
     private val neteaseApi: NeteaseApi,
     private val metingApi: MetingApi,
-    private val lrclibApi: LrclibApi
+    @Named("lrclib") private val lrclibApi: LrclibApi
 ) : MusicRepository {
 
     override fun searchSongs(

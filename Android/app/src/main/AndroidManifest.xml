@@ -78,6 +78,15 @@
             </intent-filter>
         </service>
 
+        <!-- 媒体按钮接收器，处理蓝牙耳机和线控按钮 -->
+        <receiver
+            android:name=".service.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

@@ -138,7 +138,7 @@ private fun LyricLineText(
 
 /**
  * 滚动歌词视图 - 全屏居中滚动显示
- * 所有歌词行居中对齐，垂直滚动，当前行高亮
+ * 当前歌词行固定在屏幕中间，上下滚动切换
  */
 @Composable
 fun ScrollingLyricsView(
@@ -150,18 +150,14 @@ fun ScrollingLyricsView(
     backgroundColor: Color = Color.Black.copy(alpha = 0.9f)
 ) {
     val lazyListState = rememberLazyListState()
-    val density = LocalDensity.current
-    val itemHeightDp = (fontSize + 22).dp
-    
-    // 计算使当前行居中的偏移量
-    val centerOffset = -((LocalConfiguration.current.screenHeightDp.dp / 2) - itemHeightDp)
-    val centerOffsetPx = (centerOffset.value * density.density).toInt()
     
     LaunchedEffect(currentLineIndex) {
         if (lyrics.isNotEmpty() && currentLineIndex in lyrics.indices) {
+            // 计算需要滚动到的位置，使当前行居中
+            // 使用 smoothScrollTo 让动画更平滑
             lazyListState.animateScrollToItem(
-                index = currentLineIndex,
-                scrollOffset = centerOffsetPx
+                index = maxOf(0, currentLineIndex - 1),
+                scrollOffset = 0
             )
         }
     }
@@ -176,14 +172,12 @@ fun ScrollingLyricsView(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = 100.dp,  // 灵动岛/状态栏间距
-                    start = 24.dp,
-                    end = 24.dp,
-                    bottom = 80.dp  // 底部导航栏间距
+                    top = 100.dp,
+                    bottom = 80.dp
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 150.dp)  // 确保首尾歌词完整显示
+            verticalArrangement = Arrangement.Center,
+            contentPadding = PaddingValues(vertical = 100.dp)
         ) {
             itemsIndexed(lyrics) { index, line ->
                 val isCurrentLine = index == currentLineIndex
@@ -199,7 +193,7 @@ fun ScrollingLyricsView(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp)
+                        .padding(vertical = 8.dp, horizontal = 24.dp)
                 )
             }
         }
@@ -306,6 +300,7 @@ fun DesktopLyricsWidget(
  * 播放器内使用的紧凑DVD风格歌词组件
  * 当前歌词靠左高亮显示，下一行歌词靠右半透明
  * 歌词对显示: (1,2) -> (3,2) -> (3,4) -> (5,4) -> (5,6) ...
+ * 带颜色过渡动画
  */
 @Composable
 fun PlayerDvdLyricsView(
@@ -326,8 +321,31 @@ fun PlayerDvdLyricsView(
     val line1 = lyrics.getOrNull(line1Index)
     val line2 = lyrics.getOrNull(line2Index)
     
+    // 动画颜色过渡
+    val line1Color by animateColorAsState(
+        targetValue = when {
+            line1 == null -> Color.White.copy(alpha = 0.3f)
+            !isSecondLineHighlighted -> primaryColor
+            else -> Color.White.copy(alpha = 0.5f)
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "line1Color"
+    )
+    
+    val line2Color by animateColorAsState(
+        targetValue = when {
+            line2 == null -> Color.White.copy(alpha = 0.5f)
+            isSecondLineHighlighted -> primaryColor
+            else -> Color.White.copy(alpha = 0.5f)
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "line2Color"
+    )
+    
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessLow)),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 第1行歌词 - 靠左显示
@@ -338,7 +356,7 @@ fun PlayerDvdLyricsView(
                 fontWeight = FontWeight.Bold,
                 lineHeight = (fontSize + 4).sp
             ),
-            color = if (!isSecondLineHighlighted && line1 != null) primaryColor else Color.White.copy(alpha = if (line1 != null) 0.5f else 0.3f),
+            color = line1Color,
             textAlign = TextAlign.Start,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -353,7 +371,7 @@ fun PlayerDvdLyricsView(
                 fontWeight = FontWeight.Normal,
                 lineHeight = (fontSize).sp
             ),
-            color = if (isSecondLineHighlighted && line2 != null) primaryColor else Color.White.copy(alpha = 0.5f),
+            color = line2Color,
             textAlign = TextAlign.End,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

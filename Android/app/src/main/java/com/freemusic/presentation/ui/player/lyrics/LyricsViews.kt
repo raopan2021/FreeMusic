@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.sp
 import com.freemusic.domain.model.LyricLine
 import com.freemusic.presentation.ui.theme.PrimaryIndigo
@@ -148,12 +150,18 @@ fun ScrollingLyricsView(
     backgroundColor: Color = Color.Black.copy(alpha = 0.9f)
 ) {
     val lazyListState = rememberLazyListState()
-
+    val density = LocalDensity.current
+    val itemHeightDp = (fontSize + 22).dp
+    
+    // 计算使当前行居中的偏移量
+    val centerOffset = -((LocalConfiguration.current.screenHeightDp.dp / 2) - itemHeightDp)
+    val centerOffsetPx = (centerOffset.value * density.density).toInt()
+    
     LaunchedEffect(currentLineIndex) {
         if (lyrics.isNotEmpty() && currentLineIndex in lyrics.indices) {
             lazyListState.animateScrollToItem(
                 index = currentLineIndex,
-                scrollOffset = -50
+                scrollOffset = centerOffsetPx
             )
         }
     }

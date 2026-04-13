@@ -182,7 +182,8 @@ fun ScrollingLyricsView(
                     bottom = 80.dp  // 底部导航栏间距
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(vertical = 150.dp)  // 确保首尾歌词完整显示
         ) {
             itemsIndexed(lyrics) { index, line ->
                 val isCurrentLine = index == currentLineIndex
@@ -340,7 +341,8 @@ fun PlayerDvdLyricsView(
             color = if (!isSecondLineHighlighted && line1 != null) primaryColor else Color.White.copy(alpha = if (line1 != null) 0.5f else 0.3f),
             textAlign = TextAlign.Start,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
         )
         
         // 第2行歌词 - 靠右显示
@@ -354,7 +356,8 @@ fun PlayerDvdLyricsView(
             color = if (isSecondLineHighlighted && line2 != null) primaryColor else Color.White.copy(alpha = 0.5f),
             textAlign = TextAlign.End,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

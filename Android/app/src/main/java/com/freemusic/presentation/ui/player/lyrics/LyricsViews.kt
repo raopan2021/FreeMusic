@@ -286,3 +286,53 @@ fun DesktopLyricsWidget(
         }
     }
 }
+
+/**
+ * 播放器内使用的紧凑DVD风格歌词组件
+ * 当前歌词靠左，下一行歌词靠右
+ * 无背景，用于专辑封面下方
+ */
+@Composable
+fun PlayerDvdLyricsView(
+    lyrics: List<LyricLine>,
+    currentLineIndex: Int,
+    modifier: Modifier = Modifier,
+    primaryColor: Color = PrimaryIndigo,
+    fontSize: Int = 16
+) {
+    val currentLine = lyrics.getOrNull(currentLineIndex)
+    val nextLine = lyrics.getOrNull(currentLineIndex + 1)
+    
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // 当前歌词 - 靠左显示
+        Text(
+            text = currentLine?.text ?: "暂无歌词",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = fontSize.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = (fontSize + 4).sp
+            ),
+            color = if (currentLine != null) primaryColor else Color.White.copy(alpha = 0.5f),
+            textAlign = TextAlign.Start,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        
+        // 下一行歌词 - 靠右显示
+        Text(
+            text = nextLine?.text ?: " ",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = (fontSize - 2).sp,
+                fontWeight = FontWeight.Normal,
+                lineHeight = (fontSize).sp
+            ),
+            color = Color.White.copy(alpha = 0.5f),
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}

@@ -45,6 +45,9 @@ import com.freemusic.domain.model.Song
 import com.freemusic.domain.model.LyricLine
 import com.freemusic.domain.model.Playlist
 import com.freemusic.presentation.ui.player.controls.PlayRepeatMode
+import com.freemusic.presentation.ui.player.lyrics.DvdLyricsView
+import com.freemusic.presentation.ui.player.lyrics.PlayerDvdLyricsView
+import com.freemusic.presentation.ui.player.lyrics.ScrollingLyricsView
 import com.freemusic.presentation.viewmodel.PlayerViewModel
 import com.freemusic.presentation.viewmodel.QueueItem
 import kotlinx.coroutines.launch
@@ -428,10 +431,10 @@ private fun PlayerPage(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 3行歌词预览
-                LyricsPreview(
+                // DVD风格歌词: 当前行靠左，下一行靠右
+                PlayerDvdLyricsView(
                     lyrics = lyrics,
-                    currentIndex = currentLyricIndex,
+                    currentLineIndex = currentLyricIndex,
                     primaryColor = primaryColor
                 )
             }
@@ -604,7 +607,7 @@ private fun PlayerPage(
 }
 
 /**
- * 歌词页面
+ * 歌词页面 - 全屏滚动歌词
  */
 @Composable
 private fun LyricsPage(
@@ -614,7 +617,12 @@ private fun LyricsPage(
     lyricsFontSize: Int = 16,
     onLongPress: () -> Unit = {}
 ) {
-    Column(
+    // 全屏滚动歌词视图
+    ScrollingLyricsView(
+        lyrics = lyrics,
+        currentLineIndex = currentLyricIndex,
+        primaryColor = primaryColor,
+        fontSize = lyricsFontSize,
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
@@ -623,67 +631,7 @@ private fun LyricsPage(
                     onLongPress = { onLongPress() }
                 )
             }
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(80.dp))
-
-        // 传统两行歌词格式:
-        // 当前行 - 左上角靠左
-        // 下一行 - 右下角靠右
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            if (lyrics.isEmpty()) {
-                Text(
-                    text = "暂无歌词",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.5f),
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                // 当前行歌词 - 左上角
-                val currentLine = lyrics.getOrNull(currentLyricIndex)
-                Text(
-                    text = currentLine?.text ?: "",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontSize = (lyricsFontSize + 8).sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = (lyricsFontSize + 12).sp
-                    ),
-                    color = primaryColor,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = 24.dp),
-                    textAlign = TextAlign.Start,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // 下一行歌词 - 右下角
-                val nextLine = lyrics.getOrNull(currentLyricIndex + 1)
-                Text(
-                    text = nextLine?.text ?: "",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontSize = (lyricsFontSize + 4).sp,
-                        fontWeight = FontWeight.Normal,
-                        lineHeight = (lyricsFontSize + 8).sp
-                    ),
-                    color = Color.White.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(bottom = 24.dp),
-                    textAlign = TextAlign.End,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(150.dp))
-    }
+    )
 }
 
 /**

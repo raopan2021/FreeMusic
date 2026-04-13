@@ -97,11 +97,6 @@ class LocalDataSource @Inject constructor(
             playHistoryDao.incrementPlayCount(song.id)
         } else {
             playHistoryDao.insertPlayHistory(song.toPlayHistoryEntity())
-            // 自动清理：如果超过100条，删除最旧的记录
-            val count = playHistoryDao.getHistoryCount()
-            if (count > 100) {
-                playHistoryDao.trimHistory(100)
-            }
         }
     }
 

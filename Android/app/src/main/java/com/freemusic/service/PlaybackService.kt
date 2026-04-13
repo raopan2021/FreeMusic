@@ -123,7 +123,7 @@ class PlaybackService : MediaSessionService() {
 
             // 下一首
             KeyEvent.KEYCODE_MEDIA_NEXT,
-            KeyEvent.KEYCODE_MEDIA_FAST -> {
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
                 player.seekToNext()
                 playPauseClickCount = 0
                 return true
@@ -209,7 +209,12 @@ class PlaybackService : MediaSessionService() {
                     val keyEvent = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
                     if (keyEvent != null) {
                         handleMediaKeyEvent(keyEvent)
+                    } else {
+                        Unit
                     }
+                }
+                else -> {
+                    // 未知 action，不处理
                 }
             }
         }

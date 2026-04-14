@@ -27,7 +27,7 @@ object DatabaseModule {
             context,
             FreeMusicDatabase::class.java,
             FreeMusicDatabase.DATABASE_NAME
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides

@@ -336,11 +336,11 @@ class PreferencesManager @Inject constructor(
     // 保存播放队列（歌曲ID列表和当前索引）
     fun savePlaybackQueue(songIds: List<String>, currentIndex: Int) {
         if (songIds.isEmpty()) {
-            prefs.edit().remove(KEY_PLAYBACK_QUEUE).apply()
-            prefs.edit().remove(KEY_PLAYBACK_INDEX).apply()
+            prefs.edit().remove(KEY_PLAYBACK_QUEUE).commit()
+            prefs.edit().remove(KEY_PLAYBACK_INDEX).commit()
         } else {
-            prefs.edit().putString(KEY_PLAYBACK_QUEUE, songIds.joinToString(",")).apply()
-            prefs.edit().putInt(KEY_PLAYBACK_INDEX, currentIndex).apply()
+            prefs.edit().putString(KEY_PLAYBACK_QUEUE, songIds.joinToString(",")).commit()
+            prefs.edit().putInt(KEY_PLAYBACK_INDEX, currentIndex).commit()
         }
     }
 
@@ -369,11 +369,11 @@ class PreferencesManager @Inject constructor(
 
     fun saveLocalPlaylists(playlists: List<PlaylistData>) {
         if (playlists.isEmpty()) {
-            prefs.edit().remove(KEY_LOCAL_PLAYLISTS).apply()
+            prefs.edit().remove(KEY_LOCAL_PLAYLISTS).commit()
             _localPlaylists.value = emptyList()
         } else {
             val encoded = playlists.joinToString("|||OUTER|||") { encodePlaylist(it) }
-            prefs.edit().putString(KEY_LOCAL_PLAYLISTS, encoded).apply()
+            prefs.edit().putString(KEY_LOCAL_PLAYLISTS, encoded).commit()
             _localPlaylists.value = playlists.map { encodePlaylistInfo(it) }
         }
     }
@@ -447,7 +447,7 @@ class PreferencesManager @Inject constructor(
     // ============ 收藏歌曲持久化 ============
     fun saveFavorites(songs: List<SongData>) {
         if (songs.isEmpty()) {
-            prefs.edit().remove(KEY_FAVORITES).apply()
+            prefs.edit().remove(KEY_FAVORITES).commit()
         } else {
             val encoded = songs.joinToString("|||SONG|||") { song ->
                 listOf(
@@ -462,7 +462,7 @@ class PreferencesManager @Inject constructor(
                     song.playCount.toString()
                 ).joinToString("|||FIELD|||")
             }
-            prefs.edit().putString(KEY_FAVORITES, encoded).apply()
+            prefs.edit().putString(KEY_FAVORITES, encoded).commit()
         }
     }
 

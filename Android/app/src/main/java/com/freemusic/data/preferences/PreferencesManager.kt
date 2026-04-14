@@ -6,6 +6,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -355,7 +357,13 @@ class PreferencesManager @Inject constructor(
 
     // ============ 歌单持久化 ============
     // 格式: playlistId\tplaylistName\tsong1Data\n song2Data\n ...
-    // Song格式: id\ttitle\tartist\talbum\tcoverUrl\tduration\tneteaseId\tisNetease
+    // 使用 JSON 编码歌单，避免分隔符冲突
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        prettyPrint = false
+    }
+    
     private val _localPlaylists = MutableStateFlow<List<String>>(emptyList())
     val localPlaylists: StateFlow<List<String>> = _localPlaylists.asStateFlow()
 
@@ -363,7 +371,12 @@ class PreferencesManager @Inject constructor(
         // 从 SharedPreferences 加载歌单
         val stored = prefs.getString(KEY_LOCAL_PLAYLISTS, null)
         if (stored != null && stored.isNotEmpty()) {
-            _localPlaylists.value = stored.split("|||OUTER|||")
+            try {
+                val playlists = json.decodeFromString<List<PlaylistData>>(stored)
+                _localPlaylists.value = playlists.map { "${it.id}|||INFO|||${it.name}|||INFO|||${it.songs.size}" }
+            } catch (e: Exception) {
+                _localPlaylists.value = emptyList()
+            }
         }
     }
 
@@ -372,76 +385,21 @@ class PreferencesManager @Inject constructor(
             prefs.edit().remove(KEY_LOCAL_PLAYLISTS).commit()
             _localPlaylists.value = emptyList()
         } else {
-            val encoded = playlists.joinToString("|||OUTER|||") { encodePlaylist(it) }
+            val encoded = json.encodeToString(playlists)
             prefs.edit().putString(KEY_LOCAL_PLAYLISTS, encoded).commit()
-            _localPlaylists.value = playlists.map { encodePlaylistInfo(it) }
+            _localPlaylists.value = playlists.map { "${it.id}|||INFO|||${it.name}|||INFO|||${it.songs.size}" }
         }
-    }
-
-    private fun encodePlaylist(playlist: PlaylistData): String {
-        val songsEncoded = playlist.songs.joinToString("|||SONG|||") { song ->
-            listOf(
-                song.id,
-                song.title,
-                song.artist,
-                song.album,
-                song.coverUrl ?: "",
-                song.duration.toString(),
-                song.neteaseId ?: "",
-                song.isNetease.toString(),
-                song.playCount.toString()
-            ).joinToString("|||FIELD|||")
-        }
-        return listOf(playlist.id, playlist.name, songsEncoded).joinToString("|||INFO|||")
-    }
-
-    private fun encodePlaylistInfo(playlist: PlaylistData): String {
-        return "${playlist.id}|||INFO|||${playlist.name}|||INFO|||${playlist.songs.size}"
     }
 
     fun getLocalPlaylists(): List<PlaylistData> {
         val stored = prefs.getString(KEY_LOCAL_PLAYLISTS, null) ?: return emptyList()
         if (stored.isEmpty()) return emptyList()
         
-        return stored.split("|||OUTER|||").mapNotNull { playlistStr ->
-            decodePlaylist(playlistStr)
-        }
-    }
-
-    private fun decodePlaylist(playlistStr: String): PlaylistData? {
-        val parts = playlistStr.split("|||INFO|||")
-        if (parts.size < 2) return null
-        
-        val id = parts[0]
-        val name = parts[1]
-        val songsStr = if (parts.size > 2) parts[2] else ""
-        
-        val songs = if (songsStr.isNotEmpty()) {
-            songsStr.split("|||SONG|||").mapNotNull { songStr ->
-                decodeSong(songStr)
-            }
-        } else {
+        return try {
+            json.decodeFromString(stored)
+        } catch (e: Exception) {
             emptyList()
         }
-        
-        return PlaylistData(id, name, songs)
-    }
-
-    private fun decodeSong(songStr: String): SongData? {
-        val fields = songStr.split("|||FIELD|||")
-        if (fields.size < 8) return null
-        
-        return SongData(
-            id = fields[0],
-            title = fields[1],
-            artist = fields[2],
-            album = fields[3],
-            coverUrl = fields[4].ifEmpty { null },
-            duration = fields[5].toLongOrNull() ?: 0L,
-            neteaseId = fields[6].ifEmpty { null },
-            isNetease = fields[7].toBooleanStrictOrNull() ?: false,
-            playCount = if (fields.size > 8) fields[8].toIntOrNull() ?: 0 else 0
-        )
     }
 
     // ============ 收藏歌曲持久化 ============
@@ -449,19 +407,7 @@ class PreferencesManager @Inject constructor(
         if (songs.isEmpty()) {
             prefs.edit().remove(KEY_FAVORITES).commit()
         } else {
-            val encoded = songs.joinToString("|||SONG|||") { song ->
-                listOf(
-                    song.id,
-                    song.title,
-                    song.artist,
-                    song.album,
-                    song.coverUrl ?: "",
-                    song.duration.toString(),
-                    song.neteaseId ?: "",
-                    song.isNetease.toString(),
-                    song.playCount.toString()
-                ).joinToString("|||FIELD|||")
-            }
+            val encoded = json.encodeToString(songs)
             prefs.edit().putString(KEY_FAVORITES, encoded).commit()
         }
     }
@@ -470,8 +416,10 @@ class PreferencesManager @Inject constructor(
         val stored = prefs.getString(KEY_FAVORITES, null) ?: return emptyList()
         if (stored.isEmpty()) return emptyList()
         
-        return stored.split("|||SONG|||").mapNotNull { songStr ->
-            decodeSong(songStr)
+        return try {
+            json.decodeFromString(stored)
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
@@ -583,6 +531,7 @@ enum class EqualizerPreset(val displayName: String, val bands: List<Int>) {
 /**
  * 歌单数据（用于本地持久化）
  */
+@kotlinx.serialization.Serializable
 data class PlaylistData(
     val id: String,
     val name: String,
@@ -592,6 +541,7 @@ data class PlaylistData(
 /**
  * 歌曲数据（用于本地持久化）
  */
+@kotlinx.serialization.Serializable
 data class SongData(
     val id: String,
     val title: String,

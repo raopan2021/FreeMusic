@@ -60,3 +60,23 @@ data class LyricsCacheEntity(
     val metadata: String?, // JSON encoded list
     val cachedAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * 本地歌曲实体 - 持久化扫描的本地音乐
+ */
+@Entity(tableName = "local_songs")
+data class LocalSongEntity(
+    @PrimaryKey
+    val id: String, // MediaStore ID
+    val title: String,
+    val artist: String,
+    val album: String,
+    val albumId: Long,
+    val coverUrl: String?, // content://media/external/audio/albumart/xxx
+    val duration: Long,
+    val filePath: String,
+    val displayName: String,
+    val size: Long,
+    val dateAdded: Long,
+    val lastScanned: Long = System.currentTimeMillis()
+)

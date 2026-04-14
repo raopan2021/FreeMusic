@@ -3,6 +3,7 @@ package com.freemusic.data.local.dao
 import androidx.room.*
 import com.freemusic.data.local.entity.FavoriteSongEntity
 import com.freemusic.data.local.entity.LyricsCacheEntity
+import com.freemusic.data.local.entity.LocalSongEntity
 import com.freemusic.data.local.entity.PlayHistoryEntity
 import com.freemusic.data.local.entity.SearchHistoryEntity
 import kotlinx.coroutines.flow.Flow
@@ -108,4 +109,41 @@ interface LyricsCacheDao {
     
     @Query("SELECT COUNT(*) FROM lyrics_cache")
     suspend fun getCacheCount(): Int
+}
+
+/**
+ * 本地歌曲 DAO
+ */
+@Dao
+interface LocalSongDao {
+    
+    @Query("SELECT * FROM local_songs ORDER BY title ASC")
+    fun getAllSongs(): Flow<List<LocalSongEntity>>
+    
+    @Query("SELECT * FROM local_songs ORDER BY title ASC")
+    suspend fun getAllSongsList(): List<LocalSongEntity>
+    
+    @Query("SELECT * FROM local_songs WHERE id = :songId")
+    suspend fun getSongById(songId: String): LocalSongEntity?
+    
+    @Query("SELECT * FROM local_songs WHERE id IN (:songIds)")
+    suspend fun getSongsByIds(songIds: List<String>): List<LocalSongEntity>
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSong(song: LocalSongEntity)
+    
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSongs(songs: List<LocalSongEntity>)
+    
+    @Delete
+    suspend fun deleteSong(song: LocalSongEntity)
+    
+    @Query("DELETE FROM local_songs")
+    suspend fun deleteAllSongs()
+    
+    @Query("SELECT COUNT(*) FROM local_songs")
+    suspend fun getSongCount(): Int
+    
+    @Query("DELETE FROM local_songs WHERE id NOT IN (:validIds)")
+    suspend fun deleteRemovedSongs(validIds: List<String>)
 }

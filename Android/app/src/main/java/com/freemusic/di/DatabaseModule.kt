@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.freemusic.data.local.FreeMusicDatabase
 import com.freemusic.data.local.dao.FavoriteSongDao
 import com.freemusic.data.local.dao.LyricsCacheDao
+import com.freemusic.data.local.dao.LocalSongDao
 import com.freemusic.data.local.dao.PlayHistoryDao
 import com.freemusic.data.local.dao.SearchHistoryDao
 import dagger.Module
@@ -52,5 +53,11 @@ object DatabaseModule {
     @Singleton
     fun provideLyricsCacheDao(database: FreeMusicDatabase): LyricsCacheDao {
         return database.lyricsCacheDao()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideLocalSongDao(database: FreeMusicDatabase): LocalSongDao {
+        return database.localSongDao()
     }
 }

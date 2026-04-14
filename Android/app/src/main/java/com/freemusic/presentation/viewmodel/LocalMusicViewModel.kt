@@ -8,6 +8,8 @@ import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.freemusic.data.KnownArtists
+import com.freemusic.data.local.dao.LocalSongDao
+import com.freemusic.data.local.entity.LocalSongEntity
 import com.freemusic.domain.model.Song
 import com.freemusic.util.ArtistNameNormalizer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,12 +27,14 @@ data class LocalMusicUiState(
     val isLoading: Boolean = false,
     val scannedCount: Int = 0,
     val totalDuration: String = "0:00",
-    val error: String? = null
+    val error: String? = null,
+    val isFromCache: Boolean = false // 是否从缓存加载
 )
 
 @HiltViewModel
 class LocalMusicViewModel @Inject constructor(
-    application: Application
+    application: Application,
+    private val localSongDao: LocalSongDao
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(LocalMusicUiState())
@@ -38,17 +42,70 @@ class LocalMusicViewModel @Inject constructor(
     
     // 歌手名称修复缓存，避免同一歌手重复查询
     private val artistFixCache = mutableMapOf<String, String>()
+    
+    // 用于去重扫描时遇到的歌曲ID
+    private var scannedIds = mutableSetOf<String>()
 
+    init {
+        // 启动时尝试从数据库加载缓存的歌曲
+        loadCachedSongs()
+    }
+    
+    /**
+     * 从数据库缓存加载歌曲
+     */
+    private fun loadCachedSongs() {
+        viewModelScope.launch {
+            try {
+                val cachedSongs = withContext(Dispatchers.IO) {
+                    localSongDao.getAllSongsList()
+                }
+                
+                if (cachedSongs.isNotEmpty()) {
+                    val songs = cachedSongs.map { it.toSong() }
+                    val totalMs = songs.sumOf { it.duration }
+                    val duration = formatDuration(totalMs)
+                    
+                    _uiState.update {
+                        it.copy(
+                            songs = songs,
+                            scannedCount = songs.size,
+                            totalDuration = duration,
+                            isFromCache = true
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // 忽略，加载失败时会在下次扫描获取
+            }
+        }
+    }
+
+    /**
+     * 扫描本地音乐并持久化
+     */
     fun scanLocalMusic(sortOrder: Int = 0) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, scannedCount = 0, error = null) }
+            _uiState.update { it.copy(isLoading = true, scannedCount = 0, error = null, isFromCache = false) }
             
             // 清除缓存
             artistFixCache.clear()
+            scannedIds.clear()
             
             try {
-                val songs = withContext(Dispatchers.IO) {
+                val (songs, entities) = withContext(Dispatchers.IO) {
                     scanMediaStore(sortOrder)
+                }
+                
+                // 持久化到数据库
+                withContext(Dispatchers.IO) {
+                    // 先删除已不存在的歌曲
+                    val validIds = entities.map { it.id }
+                    if (validIds.isNotEmpty()) {
+                        localSongDao.deleteRemovedSongs(validIds)
+                    }
+                    // 插入/更新所有扫描到的歌曲
+                    localSongDao.insertSongs(entities)
                 }
                 
                 val totalMs = songs.sumOf { it.duration }
@@ -75,22 +132,17 @@ class LocalMusicViewModel @Inject constructor(
     
     /**
      * 标准化歌手名称（快速版本，用于扫描时）
-     * 完整的歌手修复在后台进行
      */
     private fun normalizeArtistName(artist: String): String {
-        // 只做基本的标准化处理，不做昂贵的 KnownArtists 查找
         return ArtistNameNormalizer.normalize(artist)
     }
     
     /**
      * 快速修复未知歌手（带缓存优化）
-     * 同一歌手只查询一次数据库
      */
     private fun fixUnknownArtist(currentArtist: String): String {
-        // 先查缓存
         artistFixCache[currentArtist]?.let { return it }
         
-        // 缓存未命中，进行 KnownArtists 匹配
         val fixed = if (ArtistNameNormalizer.isUnknown(currentArtist)) {
             val match = KnownArtists.findMatch(currentArtist)
             match ?: currentArtist
@@ -98,33 +150,16 @@ class LocalMusicViewModel @Inject constructor(
             currentArtist
         }
         
-        // 加入缓存
         artistFixCache[currentArtist] = fixed
         return fixed
     }
-    
-    /**
-     * 批量修复所有未知歌手（在扫描完成后调用）
-     * 这个是可选的优化步骤
-     */
-    private fun fixAllUnknownArtists(songs: List<Song>): List<Song> {
-        // 构建快速查找表
-        val artistLookup = KnownArtists.allArtists
-            .associateBy { ArtistNameNormalizer.normalize(it).lowercase() }
-        
-        return songs.map { song ->
-            val normalizedArtist = ArtistNameNormalizer.normalize(song.artist).lowercase()
-            val fixedArtist = artistLookup[normalizedArtist] ?: song.artist
-            if (fixedArtist != song.artist) {
-                song.copy(artist = fixedArtist)
-            } else {
-                song
-            }
-        }
-    }
 
-    private fun scanMediaStore(sortOrder: Int): List<Song> {
+    /**
+     * 扫描 MediaStore，返回 (歌曲列表, 数据库实体列表)
+     */
+    private fun scanMediaStore(sortOrder: Int): Pair<List<Song>, List<LocalSongEntity>> {
         val songs = mutableListOf<Song>()
+        val entities = mutableListOf<LocalSongEntity>()
         val context = getApplication<Application>()
         
         val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -142,13 +177,13 @@ class LocalMusicViewModel @Inject constructor(
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.SIZE,
             MediaStore.Audio.Media.DATE_ADDED
         )
         
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} = ?"
         val selectionArgs = arrayOf("1")
         
-        // 排序选项: 0=名称, 1=艺术家, 2=时长, 3=添加时间
         val mediaStoreSortOrder = when (sortOrder) {
             0 -> "${MediaStore.Audio.Media.TITLE} ASC"
             1 -> "${MediaStore.Audio.Media.ARTIST} ASC, ${MediaStore.Audio.Media.TITLE} ASC"
@@ -169,7 +204,7 @@ class LocalMusicViewModel @Inject constructor(
             )
             
             if (cursor == null || cursor.count == 0) {
-                return emptyList()
+                return Pair(emptyList(), emptyList())
             }
             
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
@@ -180,6 +215,8 @@ class LocalMusicViewModel @Inject constructor(
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
             val filePathColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
             
             while (cursor.moveToNext()) {
                 try {
@@ -189,11 +226,19 @@ class LocalMusicViewModel @Inject constructor(
                     val album = cursor.getString(albumColumn) ?: "Unknown"
                     val albumId = cursor.getLong(albumIdColumn)
                     val duration = cursor.getLong(durationColumn)
+                    val displayName = cursor.getString(displayNameColumn) ?: ""
+                    val filePath = cursor.getString(filePathColumn) ?: ""
+                    val size = cursor.getLong(sizeColumn)
+                    val dateAdded = cursor.getLong(dateAddedColumn)
                     
                     if (duration < 60000) continue
                     
-                    val displayName = cursor.getString(displayNameColumn) ?: ""
-                    val filePath = cursor.getString(filePathColumn) ?: ""
+                    val songId = id.toString()
+                    
+                    // 跳过重复
+                    if (scannedIds.contains(songId)) continue
+                    scannedIds.add(songId)
+                    
                     val lowerTitle = title.lowercase()
                     val lowerArtist = artist.lowercase()
                     val lowerAlbum = album.lowercase()
@@ -211,9 +256,7 @@ class LocalMusicViewModel @Inject constructor(
                     
                     if (isRecording) continue
                     
-                    // 标准化歌手名称
                     val normalizedArtist = normalizeArtistName(artist)
-                    // 快速修复未知歌手（不做昂贵的数据库匹配）
                     val fixedArtist = fixUnknownArtist(normalizedArtist)
                     
                     val albumArtUri = ContentUris.withAppendedId(
@@ -221,18 +264,33 @@ class LocalMusicViewModel @Inject constructor(
                         albumId
                     ).toString()
                     
-                    songs.add(
-                        Song(
-                            id = id.toString(),
-                            title = title,
-                            artist = fixedArtist,
-                            album = album,
-                            coverUrl = albumArtUri,
-                            duration = duration,
-                            neteaseId = null,
-                            isNetease = false
-                        )
+                    val song = Song(
+                        id = songId,
+                        title = title,
+                        artist = fixedArtist,
+                        album = album,
+                        coverUrl = albumArtUri,
+                        duration = duration,
+                        neteaseId = null,
+                        isNetease = false
                     )
+                    
+                    val entity = LocalSongEntity(
+                        id = songId,
+                        title = title,
+                        artist = fixedArtist,
+                        album = album,
+                        albumId = albumId,
+                        coverUrl = albumArtUri,
+                        duration = duration,
+                        filePath = filePath,
+                        displayName = displayName,
+                        size = size,
+                        dateAdded = dateAdded
+                    )
+                    
+                    songs.add(song)
+                    entities.add(entity)
                 } catch (e: Exception) {
                     continue
                 }
@@ -243,7 +301,14 @@ class LocalMusicViewModel @Inject constructor(
             cursor?.close()
         }
         
-        return songs
+        return Pair(songs, entities)
+    }
+    
+    /**
+     * 根据ID列表获取歌曲（用于播放队列恢复）
+     */
+    fun getSongsByIds(ids: List<String>): List<Song> {
+        return _uiState.value.songs.filter { it.id in ids }
     }
 
     private fun formatDuration(totalMs: Long): String {
@@ -257,5 +322,21 @@ class LocalMusicViewModel @Inject constructor(
         } else {
             "%d:%02d".format(minutes, seconds)
         }
+    }
+    
+    /**
+     * LocalSongEntity 转换为 Song
+     */
+    private fun LocalSongEntity.toSong(): Song {
+        return Song(
+            id = id,
+            title = title,
+            artist = artist,
+            album = album,
+            coverUrl = coverUrl,
+            duration = duration,
+            neteaseId = null,
+            isNetease = false
+        )
     }
 }

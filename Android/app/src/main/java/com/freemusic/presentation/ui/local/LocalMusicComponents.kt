@@ -400,7 +400,7 @@ fun FolderPickerCard(
             Spacer(modifier = Modifier.height(12.dp))
             
             OutlinedButton(
-                onClick = { /* Open folder picker */ },
+                onClick = { selectedFolder?.let { onFolderSelected(it) } },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.FolderOpen, contentDescription = null)

@@ -36,6 +36,7 @@ fun MyLibraryScreen(
     onRecentClick: () -> Unit,
     onDownloadsClick: () -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
+    onCreatePlaylistClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
@@ -80,7 +81,7 @@ fun MyLibraryScreen(
             // 创建歌单
             item {
                 CreatePlaylistCard(
-                    onClick = { },
+                    onClick = onCreatePlaylistClick,
                     modifier = Modifier.padding(16.dp)
                 )
             }

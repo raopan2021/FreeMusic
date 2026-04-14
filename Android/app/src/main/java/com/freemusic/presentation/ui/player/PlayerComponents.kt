@@ -162,6 +162,8 @@ fun FullPlayer(
     albumName: String,
     isPlaying: Boolean,
     isFavorite: Boolean,
+    isShuffleEnabled: Boolean = false,
+    repeatMode: Int = 0, // 0: 不循环, 1: 列表循环, 2: 单曲循环
     duration: Long,
     position: Long,
     lyrics: String?,
@@ -173,6 +175,9 @@ fun FullPlayer(
     onShare: () -> Unit,
     onLyricsToggle: () -> Unit,
     onMore: () -> Unit,
+    onShuffle: () -> Unit = {},
+    onRepeat: () -> Unit = {},
+    onQueue: () -> Unit = {},
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
@@ -361,16 +366,24 @@ fun FullPlayer(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                IconButton(onClick = { /* shuffle */ }) {
-                    Icon(Icons.Default.Shuffle, contentDescription = "随机播放")
+                IconButton(onClick = onShuffle) {
+                    Icon(
+                        Icons.Default.Shuffle, 
+                        contentDescription = "随机播放",
+                        tint = if (isShuffleEnabled) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
                 }
-                IconButton(onClick = { /* repeat */ }) {
-                    Icon(Icons.Default.Repeat, contentDescription = "循环播放")
+                IconButton(onClick = onRepeat) {
+                    Icon(
+                        Icons.Default.Repeat, 
+                        contentDescription = "循环播放",
+                        tint = if (repeatMode > 0) primaryColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
                 }
                 IconButton(onClick = onLyricsToggle) {
                     Icon(Icons.Default.Lyrics, contentDescription = "歌词")
                 }
-                IconButton(onClick = { /* queue */ }) {
+                IconButton(onClick = onQueue) {
                     Icon(Icons.Default.QueueMusic, contentDescription = "播放队列")
                 }
             }

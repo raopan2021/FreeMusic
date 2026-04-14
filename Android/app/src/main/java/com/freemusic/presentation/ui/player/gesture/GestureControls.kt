@@ -309,7 +309,7 @@ fun LongPressPlayButton(
                 shape = CircleShape
             )
             .combinedClickable(
-                onClick = { },
+                onClick = { onPlayPause() },
                 onLongClick = {
                     isPressed = true
                     onPlayPause()

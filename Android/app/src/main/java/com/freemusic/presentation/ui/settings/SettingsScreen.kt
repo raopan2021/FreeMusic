@@ -72,6 +72,7 @@ fun SettingsScreen(
     var showVisualizerDialog by remember { mutableStateOf(false) }
     var showEqualizerDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showLicensesDialog by remember { mutableStateOf(false) }
     var showCoverSwitchDialog by remember { mutableStateOf(false) }
     var showColorPickerDialog by remember { mutableStateOf(false) }
     var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
@@ -274,7 +275,7 @@ fun SettingsScreen(
                         icon = Icons.Default.Code,
                         title = "开源许可",
                         subtitle = "查看项目依赖的许可",
-                        onClick = { }
+                        onClick = { showLicensesDialog = true }
                     )
                 }
             }
@@ -648,6 +649,37 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { showAboutDialog = false }) {
+                        Text("确定")
+                    }
+                }
+            )
+        }
+        
+        // 开源许可对话框
+        if (showLicensesDialog) {
+            AlertDialog(
+                onDismissRequest = { showLicensesDialog = false },
+                title = { Text("开源许可") },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text("本项目使用了以下开源库:", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Jetpack Compose - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("Material Design 3 - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("Coil - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("ExoPlayer/Media3 - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("Hilt - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("Room - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("Retrofit - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("OkHttp - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("Kotlin Coroutines - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Text("KSP - Apache 2.0", fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("所有开源库均遵循 Apache 2.0 许可证。", fontWeight = FontWeight.Normal)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLicensesDialog = false }) {
                         Text("确定")
                     }
                 }

@@ -328,6 +328,8 @@ fun RGBColorEditor(
 fun ThemePreviewCard(
     themeColor: ThemeColor,
     isDarkTheme: Boolean,
+    onPreview: () -> Unit = {},
+    onApply: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color(0xFFF5F5F5)
@@ -369,7 +371,7 @@ fun ThemePreviewCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Button(
-                    onClick = {},
+                    onClick = onPreview,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = themeColor.primary),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
@@ -380,7 +382,7 @@ fun ThemePreviewCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 OutlinedButton(
-                    onClick = {},
+                    onClick = onApply,
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {

@@ -388,6 +388,7 @@ fun AnimatedSongListItem(
     song: Song,
     onClick: () -> Unit,
     onFavoriteClick: (() -> Unit)? = null,
+    onMoreClick: (() -> Unit)? = null,
     isFavorite: Boolean = false,
     isPlaying: Boolean = false,
     index: Int = 0,
@@ -475,7 +476,7 @@ fun AnimatedSongListItem(
                             )
                         }
                     }
-                    IconButton(onClick = { /* 更多选项 */ }) {
+                    IconButton(onClick = { onMoreClick?.invoke() }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "更多",

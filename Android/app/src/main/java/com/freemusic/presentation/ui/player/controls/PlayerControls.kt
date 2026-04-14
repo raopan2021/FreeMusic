@@ -223,6 +223,7 @@ fun QuickActionsBar(
     onShare: () -> Unit,
     onQueue: () -> Unit,
     onLyricsToggle: () -> Unit,
+    onBluetoothClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     primaryColor: Color = PrimaryIndigo
 ) {
@@ -252,7 +253,7 @@ fun QuickActionsBar(
         }
         
         // 蓝牙
-        IconButton(onClick = { }) {
+        IconButton(onClick = onBluetoothClick) {
             Icon(
                 imageVector = Icons.Default.Bluetooth,
                 contentDescription = "蓝牙",

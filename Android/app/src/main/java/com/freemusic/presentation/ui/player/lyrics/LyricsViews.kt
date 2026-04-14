@@ -1,10 +1,16 @@
 package com.freemusic.presentation.ui.player.lyrics
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +20,8 @@ import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -150,11 +158,10 @@ fun ScrollingLyricsView(
     backgroundColor: Color = Color.Black.copy(alpha = 0.9f)
 ) {
     val lazyListState = rememberLazyListState()
+    val context = LocalContext.current
     
     LaunchedEffect(currentLineIndex) {
         if (lyrics.isNotEmpty() && currentLineIndex in lyrics.indices) {
-            // 计算需要滚动到的位置，使当前行居中
-            // 使用 smoothScrollTo 让动画更平滑
             lazyListState.animateScrollToItem(
                 index = maxOf(0, currentLineIndex - 1),
                 scrollOffset = 0
@@ -181,9 +188,15 @@ fun ScrollingLyricsView(
         ) {
             itemsIndexed(lyrics) { index, line ->
                 val isCurrentLine = index == currentLineIndex
+                
+                // 清理YRC格式歌词，只保留纯文本
+                val cleanText = line.text
+                    .replace(Regex("<\\d{2}:\\d{2}\\.\\d{3}>"), "")
+                    .replace("<([^>]+)>".toRegex(), "$1")
+                    .trim()
 
                 Text(
-                    text = line.text,
+                    text = if (cleanText.isNotEmpty()) cleanText else line.text,
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontSize = (fontSize + 4).sp,
                         lineHeight = (fontSize + 10).sp
@@ -194,6 +207,17 @@ fun ScrollingLyricsView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp, horizontal = 24.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    val textToCopy = if (cleanText.isNotEmpty()) cleanText else line.text
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("歌词", textToCopy)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "已复制", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
                 )
             }
         }

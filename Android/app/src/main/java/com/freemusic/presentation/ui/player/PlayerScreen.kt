@@ -169,8 +169,7 @@ fun PlayerScreen(
                     currentLyricIndex = currentLyricIndex,
                     primaryColor = primaryColor,
                     lyricsFontSize = lyricsFontSize,
-                    backgroundColor = backgroundColor,
-                    onLongPress = { showLyricsSettingsLayer = true }
+                    backgroundColor = backgroundColor
                 )
             }
         }
@@ -616,23 +615,16 @@ private fun LyricsPage(
     currentLyricIndex: Int,
     primaryColor: Color,
     lyricsFontSize: Int = 16,
-    backgroundColor: Color = Color.Black,
-    onLongPress: () -> Unit = {}
+    backgroundColor: Color = Color.Black
 ) {
-    // 全屏滚动歌词视图
+    // 全屏滚动歌词视图（长按复制歌词）
     ScrollingLyricsView(
         lyrics = lyrics,
         currentLineIndex = currentLyricIndex,
         primaryColor = primaryColor,
         fontSize = lyricsFontSize,
         backgroundColor = backgroundColor,
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = { onLongPress() }
-                )
-            }
+        modifier = Modifier.fillMaxSize()
     )
 }
 

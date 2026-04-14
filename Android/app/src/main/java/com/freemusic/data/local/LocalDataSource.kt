@@ -158,12 +158,4 @@ class LocalDataSource @Inject constructor(
             metadata = lyrics.metadata.joinToString("|")
         ))
     }
-    
-    /**
-     * 清理过期歌词缓存（7天前的）
-     */
-    suspend fun cleanExpiredLyricsCache() {
-        val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000)
-        lyricsCacheDao.deleteOldCache(sevenDaysAgo)
-    }
 }

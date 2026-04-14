@@ -101,9 +101,6 @@ interface LyricsCacheDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLyrics(lyrics: LyricsCacheEntity)
     
-    @Query("DELETE FROM lyrics_cache WHERE cachedAt < :timestamp")
-    suspend fun deleteOldCache(timestamp: Long)
-    
     @Query("DELETE FROM lyrics_cache")
     suspend fun clearCache()
     

@@ -1,41 +1,83 @@
-import React from 'react';
+/**
+ * 全屏播放器页面
+ */
+
+import React, {useEffect, useCallback} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  Image,
+  ScrollView,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useMusicStore} from '../store/musicStore';
+import {ProgressBar} from '../components';
+import {
+  pause,
+  resume,
+  skipToNext,
+  skipToPrevious,
+  seekTo,
+} from '../services/playerService';
+import {RootStackParamList} from '../navigation/AppNavigator';
 
-export default function PlayerScreen() {
-  const navigation = useNavigation();
-  const {player, setIsPlaying, playNext, playPrevious, setPosition} =
-    useMusicStore();
+type PlayerScreenRouteProp = RouteProp<RootStackParamList, 'Player'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+export default function PlayerScreen(): React.JSX.Element {
+  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<PlayerScreenRouteProp>();
+
+  const {
+    player,
+    setIsPlaying,
+    toggleShuffle,
+    setRepeatMode,
+    toggleFavorite,
+    isFavorite,
+  } = useMusicStore();
+
   const {currentSong, isPlaying, position, duration, repeatMode, shuffleEnabled} =
     player;
 
-  const formatTime = (ms: number) => {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  // 处理播放/暂停
+  const handleTogglePlay = useCallback(async () => {
+    if (isPlaying) {
+      await pause();
+    } else {
+      await resume();
+    }
+  }, [isPlaying]);
 
-  const progress = duration > 0 ? position / duration : 0;
+  // 处理上一首
+  const handlePrevious = useCallback(async () => {
+    await skipToPrevious();
+  }, []);
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
+  // 处理下一首
+  const handleNext = useCallback(async () => {
+    await skipToNext();
+  }, []);
 
-  const cycleRepeatMode = () => {
+  // 处理进度条拖动
+  const handleSeek = useCallback(async (pos: number) => {
+    await seekTo(pos / 1000); // 转换为秒
+  }, []);
+
+  // 处理循环模式切换
+  const handleRepeatMode = useCallback(() => {
     const modes: ('off' | 'all' | 'one')[] = ['off', 'all', 'one'];
     const currentIndex = modes.indexOf(repeatMode);
     const nextIndex = (currentIndex + 1) % modes.length;
-    useMusicStore.getState().setRepeatMode(modes[nextIndex]);
-  };
+    setRepeatMode(modes[nextIndex]);
+  }, [repeatMode, setRepeatMode]);
 
+  // 获取循环图标
   const getRepeatIcon = () => {
     switch (repeatMode) {
       case 'one':
@@ -45,6 +87,22 @@ export default function PlayerScreen() {
       default:
         return 'repeat';
     }
+  };
+
+  // 获取收藏状态
+  const getFavoriteIcon = () => {
+    if (!currentSong) {
+      return 'favorite-border';
+    }
+    return isFavorite(currentSong.id) ? 'favorite' : 'favorite-border';
+  };
+
+  // 获取收藏颜色
+  const getFavoriteColor = () => {
+    if (!currentSong) {
+      return '#fff';
+    }
+    return isFavorite(currentSong.id) ? '#6366F1' : '#fff';
   };
 
   if (!currentSong) {
@@ -81,85 +139,106 @@ export default function PlayerScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 封面 */}
-      <View style={styles.coverContainer}>
-        <View style={styles.cover}>
-          <MaterialIcons name="album" size={120} color="#333" />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        {/* 封面 */}
+        <View style={styles.coverContainer}>
+          <View style={styles.cover}>
+            {currentSong.coverUrl ? (
+              <Image
+                source={{uri: currentSong.coverUrl}}
+                style={styles.coverImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.coverPlaceholder}>
+                <MaterialIcons name="album" size={120} color="#333" />
+              </View>
+            )}
+          </View>
         </View>
-      </View>
 
-      {/* 歌曲信息 */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.title} numberOfLines={1}>
-          {currentSong.title}
-        </Text>
-        <Text style={styles.artist} numberOfLines={1}>
-          {currentSong.artist} • {currentSong.album}
-        </Text>
-      </View>
-
-      {/* 进度条 */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, {width: `${progress * 100}%`}]} />
+        {/* 歌曲信息 */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.title} numberOfLines={1}>
+            {currentSong.title}
+          </Text>
+          <Text style={styles.artist} numberOfLines={1}>
+            {currentSong.artist} • {currentSong.album}
+          </Text>
         </View>
-        <View style={styles.timeContainer}>
-          <Text style={styles.time}>{formatTime(position)}</Text>
-          <Text style={styles.time}>{formatTime(duration)}</Text>
+
+        {/* 进度条 */}
+        <View style={styles.progressContainer}>
+          <ProgressBar
+            position={position}
+            duration={duration}
+            onSeek={handleSeek}
+          />
         </View>
-      </View>
 
-      {/* 控制按钮 */}
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={() => useMusicStore.getState().toggleShuffle()}>
-          <MaterialIcons
-            name="shuffle"
-            size={28}
-            color={shuffleEnabled ? '#6366F1' : '#666'}
-          />
-        </TouchableOpacity>
+        {/* 播放控制 */}
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={toggleShuffle}>
+            <MaterialIcons
+              name="shuffle"
+              size={28}
+              color={shuffleEnabled ? '#6366F1' : '#666'}
+            />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.controlButton} onPress={playPrevious}>
-          <MaterialIcons name="skip-previous" size={40} color="#fff" />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton} onPress={handlePrevious}>
+            <MaterialIcons name="skip-previous" size={40} color="#fff" />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.playButton}
-          onPress={togglePlay}>
-          <MaterialIcons
-            name={isPlaying ? 'pause' : 'play-arrow'}
-            size={48}
-            color="#fff"
-          />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.playButton} onPress={handleTogglePlay}>
+            <MaterialIcons
+              name={isPlaying ? 'pause' : 'play-arrow'}
+              size={48}
+              color="#fff"
+            />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.controlButton} onPress={playNext}>
-          <MaterialIcons name="skip-next" size={40} color="#fff" />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton} onPress={handleNext}>
+            <MaterialIcons name="skip-next" size={40} color="#fff" />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.controlButton} onPress={cycleRepeatMode}>
-          <MaterialIcons
-            name={getRepeatIcon()}
-            size={28}
-            color={repeatMode !== 'off' ? '#6366F1' : '#666'}
-          />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.controlButton} onPress={handleRepeatMode}>
+            <MaterialIcons
+              name={getRepeatIcon()}
+              size={28}
+              color={repeatMode !== 'off' ? '#6366F1' : '#666'}
+            />
+          </TouchableOpacity>
+        </View>
 
-      {/* 底部功能栏 */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.bottomButton}>
-          <MaterialIcons name="favorite-border" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomButton}>
-          <MaterialIcons name="queue-music" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomButton}>
-          <MaterialIcons name="lyrics" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+        {/* 底部功能栏 */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={styles.bottomButton}
+            onPress={() => toggleFavorite(currentSong)}>
+            <MaterialIcons
+              name={getFavoriteIcon()}
+              size={24}
+              color={getFavoriteColor()}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bottomButton}
+            onPress={() => navigation.navigate('Queue')}>
+            <MaterialIcons name="queue-music" size={24} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bottomButton}
+            onPress={() => navigation.navigate('Lyrics')}>
+            <MaterialIcons name="lyrics" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -175,6 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 8,
     paddingTop: 8,
+    paddingBottom: 16,
   },
   headerButton: {
     padding: 8,
@@ -183,16 +263,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   coverContainer: {
     alignItems: 'center',
     paddingHorizontal: 40,
-    paddingTop: 40,
   },
   cover: {
     width: 280,
     height: 280,
     backgroundColor: '#2a2a2a',
     borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  coverPlaceholder: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -216,25 +315,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 32,
   },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#333',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#6366F1',
-    borderRadius: 2,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  time: {
-    fontSize: 12,
-    color: '#666',
-  },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -252,6 +332,11 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#6366F1',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   bottomBar: {
     flexDirection: 'row',

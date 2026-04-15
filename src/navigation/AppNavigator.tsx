@@ -11,6 +11,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // Screens
 import HomeScreen from '../screens/HomeScreen';
 import LibraryScreen from '../screens/LibraryScreen';
+import LocalMusicScreen from '../screens/LocalMusicScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PlayerScreen from '../screens/PlayerScreen';
 import PlaylistScreen from '../screens/PlaylistScreen';
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   PlaylistDetail: {playlistId: string};
   Queue: undefined;
   Lyrics: undefined;
+  LocalMusic: undefined;
 };
 
 export type MainTabParamList = {
@@ -146,6 +148,11 @@ export default function AppNavigator() {
             title: '歌词',
             presentation: 'modal',
           }}
+        />
+        <Stack.Screen
+          name="LocalMusic"
+          component={LocalMusicScreen}
+          options={{title: '本地音乐'}}
         />
       </Stack.Navigator>
     </NavigationContainer>

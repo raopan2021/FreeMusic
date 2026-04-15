@@ -116,9 +116,7 @@ export default function LibraryScreen(): React.JSX.Element {
                 icon: 'folder',
                 title: '本地音乐',
                 count: localSongs.length,
-                onPress: () => {
-                  // TODO: 本地音乐扫描
-                },
+                onPress: () => navigation.navigate('LocalMusic'),
               })}
             </View>
 

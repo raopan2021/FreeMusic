@@ -9,6 +9,7 @@ export interface Song {
   neteaseId: string | null;
   isNetease: boolean;
   filePath?: string;
+  url?: string; // 播放 URL
 }
 
 // 歌单类型
@@ -21,10 +22,8 @@ export interface Playlist {
 
 // 歌词类型
 export interface Lyrics {
-  lrc: string | null;
-  yrc: string | null;
-  translation: string | null;
-  ttml: string | null;
+  plainLyrics: string | null;
+  syncedLyrics: string | null;
 }
 
 // 播放状态
@@ -56,4 +55,70 @@ export interface Settings {
 export interface EqualizerPreset {
   name: string;
   bands: number[];
+}
+
+// 搜索结果类型
+export interface SearchResult {
+  songs: Song[];
+  hasMore: boolean;
+  total: number;
+}
+
+// 网易云搜索响应
+export interface NeteaseSearchResponse {
+  result: {
+    songs?: Array<{
+      id: number;
+      name: string;
+      artists: Array<{ id: number; name: string }>;
+      album: { id: number; name: string; picUrl: string };
+      duration: number;
+    }>;
+    hasMore: boolean;
+    songCount: number;
+  };
+  code: number;
+}
+
+// 网易云歌曲详情响应
+export interface NeteaseSongDetailResponse {
+  songs: Array<{
+    id: number;
+    name: string;
+    artists: Array<{ id: number; name: string }>;
+    album: { id: number; name: string; picUrl: string };
+    duration: number;
+    djId?: number;
+    reason?: string;
+   Privilege?: {
+      cs: boolean;
+      maxbr: number;
+      fl: number;
+    };
+  }>;
+  code: number;
+}
+
+// 网易云歌词响应
+export interface NeteaseLyricResponse {
+  netease?: {
+    lyric: string;
+    tlyric?: {
+      lyric: string;
+    };
+  };
+  code: number;
+}
+
+// LRCLIB 歌词响应
+export interface LrclibResponse {
+  id: number;
+  name: string;
+  trackName: string;
+  artistName: string;
+  albumName: string;
+  duration: number;
+  instrumental: boolean;
+  plainLyrics: string | null;
+  syncedLyrics: string | null;
 }

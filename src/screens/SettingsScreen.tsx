@@ -1,192 +1,238 @@
-import React, {useState} from 'react';
+/**
+ * 设置页面
+ */
+
+import React, {useCallback} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StatusBar,
   Switch,
   Alert,
-  PermissionsAndroid,
-  Platform,
 } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {useMusicStore} from '../store/musicStore';
 
-export default function SettingsScreen() {
-  const {settings, updateSettings, setLocalSongs} = useMusicStore();
+export default function SettingsScreen(): React.JSX.Element {
+  const {settings, updateSettings, resetSettings} = useMusicStore();
 
-  const requestStoragePermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          {
-            title: '存储权限',
-            message: 'FreeMusic需要访问您的音乐文件',
-            buttonNeutral: '稍后询问',
-            buttonPositive: '确定',
-          },
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          scanLocalMusic();
-        } else {
-          Alert.alert('权限被拒绝', '无法扫描本地音乐');
-        }
-      } catch (err) {
-        console.warn(err);
-      }
-    }
-  };
-
-  const scanLocalMusic = async () => {
-    // TODO: 实现本地音乐扫描
-    // 这里需要使用 react-native-fs 来扫描媒体库
-    Alert.alert('提示', '本地音乐扫描功能开发中');
-  };
-
-  const colors = [
-    '#6366F1', // Indigo (默认)
-    '#EC4899', // Pink
-    '#10B981', // Green
-    '#F59E0B', // Amber
-    '#EF4444', // Red
-    '#8B5CF6', // Purple
-    '#06B6D4', // Cyan
+  // 主题选项
+  const themeOptions = [
+    {value: 'dark', label: '暗色'},
+    {value: 'light', label: '亮色'},
+    {value: 'system', label: '跟随系统'},
   ];
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* 主题设置 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>外观</Text>
+  // 播放速度选项
+  const speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>深色主题</Text>
-          <Switch
-            value={settings.theme === 'dark'}
-            onValueChange={(value) =>
-              updateSettings({theme: value ? 'dark' : 'light'})
-            }
-            trackColor={{false: '#333', true: '#6366F1'}}
-          />
-        </View>
-
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>主题颜色</Text>
-          <View style={styles.colorPicker}>
-            {colors.map((color) => (
-              <TouchableOpacity
-                key={color}
-                style={[
-                  styles.colorOption,
-                  {backgroundColor: color},
-                  settings.primaryColor === color && styles.colorSelected,
-                ]}
-                onPress={() => updateSettings({primaryColor: color})}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>歌词字体大小</Text>
-          <View style={styles.sizeControl}>
-            <TouchableOpacity
-              style={styles.sizeButton}
-              onPress={() =>
-                updateSettings({
-                  lyricsFontSize: Math.max(12, settings.lyricsFontSize - 2),
-                })
-              }>
-              <MaterialIcons name="remove" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.sizeValue}>{settings.lyricsFontSize}</Text>
-            <TouchableOpacity
-              style={styles.sizeButton}
-              onPress={() =>
-                updateSettings({
-                  lyricsFontSize: Math.min(32, settings.lyricsFontSize + 2),
-                })
-              }>
-              <MaterialIcons name="add" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
+  // 渲染设置项
+  const renderSettingItem = ({
+    title,
+    subtitle,
+    right,
+    onPress,
+  }: {
+    title: string;
+    subtitle?: string;
+    right?: React.ReactNode;
+    onPress?: () => void;
+  }) => (
+    <TouchableOpacity
+      style={styles.settingItem}
+      onPress={onPress}
+      disabled={!onPress}>
+      <View style={styles.settingInfo}>
+        <Text style={styles.settingTitle}>{title}</Text>
+        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
       </View>
+      {right}
+    </TouchableOpacity>
+  );
 
-      {/* 播放设置 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>播放</Text>
-
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>自动播放</Text>
-          <Switch
-            value={settings.autoPlay}
-            onValueChange={(value) => updateSettings({autoPlay: value})}
-            trackColor={{false: '#333', true: '#6366F1'}}
-          />
-        </View>
-
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>播放速度</Text>
-          <View style={styles.speedPicker}>
-            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
-              <TouchableOpacity
-                key={speed}
-                style={[
-                  styles.speedOption,
-                  settings.playbackSpeed === speed && styles.speedSelected,
-                ]}
-                onPress={() => updateSettings({playbackSpeed: speed})}>
-                <Text
-                  style={[
-                    styles.speedText,
-                    settings.playbackSpeed === speed && styles.speedTextSelected,
-                  ]}>
-                  {speed}x
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.settingItem}>
-          <Text style={styles.settingLabel}>跳过静音</Text>
-          <Switch
-            value={settings.skipSilence}
-            onValueChange={(value) => updateSettings({skipSilence: value})}
-            trackColor={{false: '#333', true: '#6366F1'}}
-          />
-        </View>
-      </View>
-
-      {/* 本地音乐 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>本地音乐</Text>
-
-        <TouchableOpacity style={styles.button} onPress={requestStoragePermission}>
-          <MaterialIcons name="refresh" size={24} color="#6366F1" />
-          <Text style={styles.buttonText}>扫描本地音乐</Text>
+  // 渲染分段选项
+  const renderSegmentOptions = <T extends string | number>({
+    options,
+    value,
+    onChange,
+    renderLabel,
+  }: {
+    options: T[];
+    value: T;
+    onChange: (value: T) => void;
+    renderLabel: (value: T) => string;
+  }) => (
+    <View style={styles.segmentContainer}>
+      {options.map(option => (
+        <TouchableOpacity
+          key={String(option)}
+          style={[
+            styles.segmentItem,
+            value === option && styles.segmentItemActive,
+          ]}
+          onPress={() => onChange(option)}>
+          <Text
+            style={[
+              styles.segmentText,
+              value === option && styles.segmentTextActive,
+            ]}>
+            {renderLabel(option)}
+          </Text>
         </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  // 渲染关于部分
+  const renderAbout = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>关于</Text>
+      {renderSettingItem({
+        title: '版本',
+        right: <Text style={styles.versionText}>1.0.0</Text>,
+      })}
+      {renderSettingItem({
+        title: '关于 FreeMusic',
+        onPress: () => {
+          Alert.alert(
+            'FreeMusic RN',
+            '基于 React Native 的网易云音乐第三方客户端\n\n使用 react-native-track-player 实现音频播放\n使用 Zustand 进行状态管理',
+          );
+        },
+      })}
+    </View>
+  );
+
+  // 渲染重置选项
+  const renderReset = () => (
+    <View style={styles.section}>
+      {renderSettingItem({
+        title: '重置设置',
+        subtitle: '恢复默认设置',
+        onPress: () => {
+          Alert.alert('重置设置', '确定要恢复默认设置吗？', [
+            {text: '取消', style: 'cancel'},
+            {
+              text: '重置',
+              style: 'destructive',
+              onPress: resetSettings,
+            },
+          ]);
+        },
+      })}
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
+      {/* 头部 */}
+      <View style={styles.header}>
+        <Text style={styles.title}>设置</Text>
       </View>
 
-      {/* 关于 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>关于</Text>
-
-        <View style={styles.aboutItem}>
-          <Text style={styles.aboutLabel}>FreeMusic</Text>
-          <Text style={styles.aboutValue}>版本 1.0.0</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+        {/* 主题设置 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>外观</Text>
+          {renderSettingItem({
+            title: '主题',
+            subtitle: '选择应用主题',
+            right: renderSegmentOptions<string>({
+              options: themeOptions.map(t => t.value) as string[],
+              value: settings.theme,
+              onChange: value => updateSettings({theme: value}),
+              renderLabel: value => {
+                const option = themeOptions.find(t => t.value === value);
+                return option?.label || value;
+              },
+            }),
+          })}
         </View>
-        <View style={styles.aboutItem}>
-          <Text style={styles.aboutLabel}>开发者</Text>
-          <Text style={styles.aboutValue}>raopan</Text>
-        </View>
-      </View>
 
-      <View style={styles.footer} />
-    </ScrollView>
+        {/* 播放设置 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>播放</Text>
+          {renderSettingItem({
+            title: '自动播放',
+            subtitle: '歌曲加载完成后自动播放',
+            right: (
+              <Switch
+                value={settings.autoPlay}
+                onValueChange={value => updateSettings({autoPlay: value})}
+                trackColor={{false: '#333', true: '#6366F1'}}
+                thumbColor="#fff"
+              />
+            ),
+          })}
+          {renderSettingItem({
+            title: '跳过静音',
+            subtitle: '自动跳过音频中的静音片段',
+            right: (
+              <Switch
+                value={settings.skipSilence}
+                onValueChange={value => updateSettings({skipSilence: value})}
+                trackColor={{false: '#333', true: '#6366F1'}}
+                thumbColor="#fff"
+              />
+            ),
+          })}
+          {renderSettingItem({
+            title: '播放速度',
+            subtitle: `当前: ${settings.playbackSpeed}x`,
+            right: renderSegmentOptions<number>({
+              options: speedOptions,
+              value: settings.playbackSpeed,
+              onChange: value => updateSettings({playbackSpeed: value}),
+              renderLabel: value => `${value}x`,
+            }),
+          })}
+        </View>
+
+        {/* 歌词设置 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>歌词</Text>
+          {renderSettingItem({
+            title: '歌词字体大小',
+            subtitle: `当前: ${settings.lyricsFontSize}px`,
+            right: renderSegmentOptions<number>({
+              options: [14, 16, 18, 20, 22],
+              value: settings.lyricsFontSize,
+              onChange: value => updateSettings({lyricsFontSize: value}),
+              renderLabel: value => `${value}`,
+            }),
+          })}
+        </View>
+
+        {/* 数据管理 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>数据</Text>
+          {renderSettingItem({
+            title: '清除搜索历史',
+            onPress: () => {
+              useMusicStore.getState().clearSearchHistory();
+              Alert.alert('提示', '搜索历史已清除');
+            },
+          })}
+          {renderSettingItem({
+            title: '清除播放历史',
+            onPress: () => {
+              useMusicStore.getState().clearPlayHistory();
+              Alert.alert('提示', '播放历史已清除');
+            },
+          })}
+        </View>
+
+        {renderAbout()}
+        {renderReset()}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -195,106 +241,78 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
   section: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#888',
-    marginBottom: 16,
-    textTransform: 'uppercase',
+    paddingHorizontal: 20,
+    marginBottom: 8,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#252525',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
   },
-  settingLabel: {
-    fontSize: 14,
+  settingInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  settingTitle: {
+    fontSize: 15,
     color: '#fff',
   },
-  colorPicker: {
-    flexDirection: 'row',
+  settingSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
   },
-  colorOption: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    marginLeft: 8,
-  },
-  colorSelected: {
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  sizeControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sizeButton: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#333',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sizeValue: {
+  versionText: {
     fontSize: 14,
-    color: '#fff',
-    marginHorizontal: 16,
-    minWidth: 30,
-    textAlign: 'center',
+    color: '#666',
   },
-  speedPicker: {
+  segmentContainer: {
     flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    padding: 2,
   },
-  speedOption: {
-    paddingHorizontal: 12,
+  segmentItem: {
     paddingVertical: 6,
-    backgroundColor: '#333',
-    borderRadius: 4,
-    marginLeft: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
   },
-  speedSelected: {
+  segmentItemActive: {
     backgroundColor: '#6366F1',
   },
-  speedText: {
+  segmentText: {
     fontSize: 12,
     color: '#888',
   },
-  speedTextSelected: {
+  segmentTextActive: {
     color: '#fff',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 8,
-  },
-  buttonText: {
-    fontSize: 14,
-    color: '#6366F1',
-    marginLeft: 12,
-  },
-  aboutItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  aboutLabel: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  aboutValue: {
-    fontSize: 14,
-    color: '#888',
-  },
-  footer: {
-    height: 100,
+    fontWeight: '600',
   },
 });

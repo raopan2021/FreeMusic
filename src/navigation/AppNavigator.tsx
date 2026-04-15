@@ -1,3 +1,7 @@
+/**
+ * 应用导航配置
+ */
+
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -10,12 +14,19 @@ import LibraryScreen from '../screens/LibraryScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PlayerScreen from '../screens/PlayerScreen';
 import PlaylistScreen from '../screens/PlaylistScreen';
+import PlaylistDetailScreen from '../screens/PlaylistDetailScreen';
+import QueueScreen from '../screens/QueueScreen';
+import LyricsScreen from '../screens/LyricsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
+// 类型定义
 export type RootStackParamList = {
   Main: undefined;
   Player: undefined;
-  Playlist: {playlistId: string};
+  Playlist: undefined;
+  PlaylistDetail: {playlistId: string};
+  Queue: undefined;
+  Lyrics: undefined;
 };
 
 export type MainTabParamList = {
@@ -116,7 +127,25 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Playlist"
           component={PlaylistScreen}
-          options={{title: '歌单'}}
+          options={{title: '我的歌单'}}
+        />
+        <Stack.Screen
+          name="PlaylistDetail"
+          component={PlaylistDetailScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="Queue"
+          component={QueueScreen}
+          options={{title: '播放队列'}}
+        />
+        <Stack.Screen
+          name="Lyrics"
+          component={LyricsScreen}
+          options={{
+            title: '歌词',
+            presentation: 'modal',
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
